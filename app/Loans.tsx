@@ -1,10 +1,11 @@
+// app/login.tsx
 import React from 'react';
 import { View, Text } from 'react-native';
 
-export default function LoginScreen() {
+export default function SettingsScreen() {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Log-in Screen</Text>
+      <Text>Loans</Text>
     </View>
   );
 }
