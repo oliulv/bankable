@@ -44,7 +44,32 @@ export default function HomeScreen() {
     }
   };
 
-  const navigateTo = (route: string) => {
+  const navigateTo = (route: 
+    "/BankableAIScreen" | 
+    `/BankableAIScreen?${string}` | 
+    `/BankableAIScreen#${string}` | 
+    "/BankableVirtualPetScreen" | 
+    `/BankableVirtualPetScreen?${string}` | 
+    `/BankableVirtualPetScreen#${string}` | 
+    "/InvestmentsScreen" | 
+    `/InvestmentsScreen?${string}` | 
+    `/InvestmentsScreen#${string}` | 
+    "/EcoFinancialImpactScreen" | 
+    `/EcoFinancialImpactScreen?${string}` | 
+    `/EcoFinancialImpactScreen#${string}` | 
+    "/LifeEventSupportScreen" | 
+    `/LifeEventSupportScreen?${string}` | 
+    `/LifeEventSupportScreen#${string}` | 
+    "/GroupSavingGoalsScreen" | 
+    `/GroupSavingGoalsScreen?${string}` | 
+    `/GroupSavingGoalsScreen#${string}` | 
+    "/DynamicBudgetCalendarScreen" | 
+    `/DynamicBudgetCalendarScreen?${string}` | 
+    `/DynamicBudgetCalendarScreen#${string}` | 
+    "/SettingsScreen" | 
+    `/SettingsScreen?${string}` | 
+    `/SettingsScreen#${string}` 
+  ) => {
     toggleMenu(); // Close the menu
     router.push(route);
   };
@@ -61,7 +86,7 @@ export default function HomeScreen() {
 
       {/* MAIN CONTENT (e.g. transaction cards, accounts, etc.) */}
       <View style={styles.content}>
-        <Text>Welcome to your banking app dashboard!</Text>
+        <Text>Welcome to your banking app!</Text>
         {/* Replace this placeholder with your real home content. */}
       </View>
 
