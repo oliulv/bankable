@@ -7,15 +7,17 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false, 
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.BankableApp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.BankableApp"
     },
     "web": {
       "bundler": "metro",
@@ -23,7 +25,9 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      ["expo-router"],
+      [
+        "expo-router"
+      ],
       [
         "expo-splash-screen",
         {
@@ -36,7 +40,12 @@
     ],
     "packagerOpts": {
       "config": "metro.config.js",
-      "sourceExts": ["js", "jsx", "ts", "tsx"]
+      "sourceExts": [
+        "js",
+        "jsx",
+        "ts",
+        "tsx"
+      ]
     },
     "experiments": {
       "typedRoutes": true

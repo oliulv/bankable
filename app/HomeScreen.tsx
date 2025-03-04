@@ -1,194 +1,259 @@
-import React, { useState } from 'react';
+// app/HomeScreen.tsx
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  Button,
-  Animated,
-  Dimensions,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-
-const DRAWER_WIDTH = 250; // The width of the side menu
-const screenWidth = Dimensions.get('window').width;
+  ImageBackground,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function HomeScreen() {
-  const router = useRouter();
-
-  // Controls whether the menu is considered open or closed
-  const [menuVisible, setMenuVisible] = useState(false);
-
-  // Animation value for sliding the drawer
-  // Start fully off-screen to the right
-  const [menuAnim] = useState(new Animated.Value(DRAWER_WIDTH));
-
-  const toggleMenu = () => {
-    if (menuVisible) {
-      // Animate the drawer off-screen
-      Animated.timing(menuAnim, {
-        toValue: DRAWER_WIDTH,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setMenuVisible(false));
-    } else {
-      // Mark the menu as visible first
-      setMenuVisible(true);
-      // Animate the drawer onto the screen
-      Animated.timing(menuAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  };
-
-  const navigateTo = (route: 
-    "/BankableAIScreen" | 
-    `/BankableAIScreen?${string}` | 
-    `/BankableAIScreen#${string}` | 
-    "/BankableVirtualPetScreen" | 
-    `/BankableVirtualPetScreen?${string}` | 
-    `/BankableVirtualPetScreen#${string}` | 
-    "/InvestmentsScreen" | 
-    `/InvestmentsScreen?${string}` | 
-    `/InvestmentsScreen#${string}` | 
-    "/EcoFinancialImpactScreen" | 
-    `/EcoFinancialImpactScreen?${string}` | 
-    `/EcoFinancialImpactScreen#${string}` | 
-    "/LifeEventSupportScreen" | 
-    `/LifeEventSupportScreen?${string}` | 
-    `/LifeEventSupportScreen#${string}` | 
-    "/GroupSavingGoalsScreen" | 
-    `/GroupSavingGoalsScreen?${string}` | 
-    `/GroupSavingGoalsScreen#${string}` | 
-    "/DynamicBudgetCalendarScreen" | 
-    `/DynamicBudgetCalendarScreen?${string}` | 
-    `/DynamicBudgetCalendarScreen#${string}` | 
-    "/SettingsScreen" | 
-    `/SettingsScreen?${string}` | 
-    `/SettingsScreen#${string}` 
-  ) => {
-    toggleMenu(); // Close the menu
-    router.push(route);
-  };
-
   return (
-    <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Home</Text>
-        <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-          <Ionicons name="menu" size={24} color="black" />
-        </TouchableOpacity>
-      </View>
-
-      {/* MAIN CONTENT (e.g. transaction cards, accounts, etc.) */}
-      <View style={styles.content}>
-        <Text>Welcome to your banking app!</Text>
-        {/* Replace this placeholder with your real home content. */}
-      </View>
-
-      {/* If the menu is open, show an overlay that closes it when tapped */}
-      {menuVisible && (
-        <TouchableOpacity style={styles.overlay} onPress={toggleMenu} activeOpacity={1}>
-          {/* Drawer itself is an Animated.View */}
-          <Animated.View
-            style={[
-              styles.drawer,
-              { transform: [{ translateX: menuAnim }] },
-            ]}
+    <LinearGradient
+      colors={["#e2f1f8", "#fafafa"]} // Adjust gradient colours if you like
+      style={styles.gradientBackground}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* HEADER CARD WITH BACKGROUND IMAGE */}
+        <View style={styles.headerCardContainer}>
+          <ImageBackground
+            source={{
+              uri: "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?fit=crop&w=600&q=80",
+            }}
+            style={styles.headerCardBackground}
+            imageStyle={styles.headerCardImage}
           >
-            <Button
-              title="Financial AI"
-              onPress={() => navigateTo('/BankableAIScreen')}
-            />
-            <Button
-              title="Bankable Virtual Pet"
-              onPress={() => navigateTo('/BankableVirtualPetScreen')}
-            />
-            <Button
-              title="Investments"
-              onPress={() => navigateTo('/InvestmentsScreen')}
-            />
-            <Button
-              title="Eco Financial Impact"
-              onPress={() => navigateTo('/EcoFinancialImpactScreen')}
-            />
-            <Button
-              title="Life Event Support"
-              onPress={() => navigateTo('/LifeEventSupportScreen')}
-            />
-            <Button
-              title="Group Saving Goals"
-              onPress={() => navigateTo('/GroupSavingGoalsScreen')}
-            />
-            <Button
-              title="Dynamic Budget Calendar"
-              onPress={() => navigateTo('/DynamicBudgetCalendarScreen')}
-            />
-            <Button
-              title="Settings"
-              onPress={() => navigateTo('/SettingsScreen')}
-            />
-          </Animated.View>
-        </TouchableOpacity>
-      )}
-    </View>
+            <View style={styles.headerCardContent}>
+              <Text style={styles.accountType}>Classic</Text>
+              <View style={styles.accountRow}>
+                <Ionicons name="bug" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.accountNumber}>12-34-56 / 12345678</Text>
+              </View>
+              <Text style={styles.balance}>£100.00</Text>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.actionButton}>
+                  <Text style={styles.actionButtonText}>Pay</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionButton}>
+                  <Text style={styles.actionButtonText}>Transfer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ImageBackground>
+        </View>
+
+        {/* RECENT TRANSACTIONS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          <View style={styles.transactionItem}>
+            <View style={styles.transactionDetails}>
+              <Ionicons name="fast-food" size={20} color="#4f9f9f" />
+              <View style={{ marginLeft: 8 }}>
+                <Text style={styles.transactionName}>McDonald’s</Text>
+                <Text style={styles.transactionDate}>20/02/2025</Text>
+              </View>
+            </View>
+            <Text style={styles.transactionAmount}>£8.98</Text>
+          </View>
+          <View style={styles.transactionItem}>
+            <View style={styles.transactionDetails}>
+              <Ionicons name="cart" size={20} color="#4f9f9f" />
+              <View style={{ marginLeft: 8 }}>
+                <Text style={styles.transactionName}>Tesco</Text>
+                <Text style={styles.transactionDate}>11/02/2025</Text>
+              </View>
+            </View>
+            <Text style={styles.transactionAmount}>£12.50</Text>
+          </View>
+        </View>
+
+        {/* GROUP SAVING GOALS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Group Saving Goals</Text>
+          <View style={styles.goalRow}>
+            <Text style={styles.goalName}>Traveling</Text>
+            <Text style={styles.goalPercent}>68%</Text>
+          </View>
+          <View style={styles.progressBarBackground}>
+            <View style={[styles.progressBarFill, { width: "68%" }]} />
+          </View>
+        </View>
+
+        {/* SPENDING INSIGHTS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Spending Insights</Text>
+          <View style={styles.insightsBox}>
+            <Ionicons name="pie-chart" size={24} color="#4f9f9f" style={{ marginRight: 8 }} />
+            <Text style={styles.insightsText}>
+              This month, you spent 40% on groceries, 20% on entertainment, and
+              40% on other expenses. Keep up the good work!
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  /* Container that holds everything */
-  container: {
+  gradientBackground: {
     flex: 1,
-    backgroundColor: '#fff',
   },
-  /* Header row with a title and the menu icon */
-  header: {
-    height: 60,
-    backgroundColor: '#fff',
+  scrollContent: {
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    elevation: 4, // Android shadow
-    shadowColor: '#000', // iOS shadow
-    shadowOpacity: 0.2,
+    paddingBottom: 32,
+  },
+  /* HEADER CARD */
+  headerCardContainer: {
+    height: 200,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginTop: 16,
+    marginBottom: 16,
+    elevation: 3, // Android shadow
+    shadowColor: "#000", // iOS shadow
+    shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 2 },
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  headerCardBackground: {
+    flex: 1,
+    justifyContent: "center",
   },
-  menuButton: {
-    padding: 8,
+  headerCardImage: {
+    resizeMode: "cover",
   },
-  /* Main content area (below the header) */
-  content: {
+  headerCardContent: {
+    backgroundColor: "rgba(0,0,0,0.3)",
     flex: 1,
     padding: 16,
+    justifyContent: "center",
   },
-  /* Dark overlay behind the drawer */
-  overlay: {
-    ...StyleSheet.absoluteFillObject, // covers entire screen
-    backgroundColor: 'rgba(0, 0, 0, 0.1)', // slight dim
-    // Tapping anywhere on this closes the menu
+  accountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  /* The drawer that slides in from the right */
-  drawer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: DRAWER_WIDTH,
-    backgroundColor: '#f2f2f2',
-    padding: 16,
-    // shadow for iOS and Android
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: -2, height: 0 },
-    elevation: 5,
+  accountType: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  accountNumber: {
+    fontSize: 14,
+    color: "#fff",
+  },
+  balance: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 12,
+  },
+  buttonRow: {
+    flexDirection: "row",
+  },
+  actionButton: {
+    backgroundColor: "#fff",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  actionButtonText: {
+    color: "#4f9f9f",
+    fontWeight: "600",
+  },
+
+  /* SECTIONS */
+  section: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 8,
+  },
+
+  /* TRANSACTIONS */
+  transactionItem: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  transactionDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  transactionName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: "#888",
+  },
+  transactionAmount: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+  },
+
+  /* GROUP SAVING GOALS */
+  goalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  goalName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+  },
+  goalPercent: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#4f9f9f",
+  },
+  progressBarBackground: {
+    height: 8,
+    backgroundColor: "#ddd",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#4f9f9f",
+  },
+
+  /* SPENDING INSIGHTS */
+  insightsBox: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  insightsText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#333",
   },
 });
