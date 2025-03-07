@@ -9,14 +9,10 @@ import {
   ImageBackground,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+
 
 export default function HomeScreen() {
   return (
-    <LinearGradient
-      colors={["#e2f1f8", "#fafafa"]} // Adjust gradient colours if you like
-      style={styles.gradientBackground}
-    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* HEADER CARD WITH BACKGROUND IMAGE */}
         <View style={styles.headerCardContainer}>
@@ -95,7 +91,6 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-    </LinearGradient>
   );
 }
 
