@@ -1,10 +1,3 @@
 --- xcodebuild: WARNING: Using the first of multiple matching destinations:
 { platform:iOS Simulator, id:01A791F7-0B8F-461E-9B79-F93256F72338, OS:18.3.1, name:iPhone 16 Pro }
 { platform:iOS Simulator, id:01A791F7-0B8F-461E-9B79-F93256F72338, OS:18.3.1, name:iPhone 16 Pro }
-** BUILD FAILED **
-
-
-The following build commands failed:
-	PhaseScriptExecution [CP]\ Check\ Pods\ Manifest.lock /Users/oliulv/Library/Developer/Xcode/DerivedData/BankableApp-dqthsdmpwdrznffpbuzqdwbgupyw/Build/Intermediates.noindex/BankableApp.build/Debug-iphonesimulator/BankableApp.build/Script-08A4A3CD28434E44B6B9DE2E.sh (in target 'BankableApp' from project 'BankableApp')
-	Building workspace BankableApp with scheme BankableApp and configuration Debug
-(2 failures)
