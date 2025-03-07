@@ -1,13 +1,39 @@
 // components/Header.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useUser } from "../context/UserContext";
+import { getCustomerById } from "../api/userData";
 
 export default function Header() {
-  // If you want to open a side menu, add logic here (e.g. useState or props)
+  const { customerId, customerName } = useUser();
+  const [displayName, setDisplayName] = useState("Guest");
+
+  useEffect(() => {
+    async function fetchUserName() {
+      try {
+        // If we already have a name from the login process, use that
+        if (customerName) {
+          setDisplayName(customerName);
+        }
+        // Otherwise if we have an ID but no name, fetch from the database
+        else if (customerId) {
+          const customer = await getCustomerById(customerId);
+          if (customer && customer.name) {
+            setDisplayName(customer.name);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching customer data:", error);
+      }
+    }
+
+    fetchUserName();
+  }, [customerId, customerName]);
+
   return (
     <View style={styles.header}>
-      {/* Left side: turtle + Hello, Chelsea */}
+      {/* Left side: turtle + Hello, [Name] */}
       <View style={styles.left}>
         <Image
           source={{
@@ -16,7 +42,7 @@ export default function Header() {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.userName}>Hello, Chelsea</Text>
+        <Text style={styles.userName}>Hello, {displayName}</Text>
       </View>
 
       {/* Right side: menu icon */}

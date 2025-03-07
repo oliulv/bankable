@@ -4,7 +4,8 @@ import { Stack } from "expo-router";
 
 import SplashScreen from "./SplashScreen";
 import Header from "../components/Header";
-import Footer from "../components/Footer"; // Import the new Footer
+import Footer from "../components/Footer";
+import { UserProvider } from "../context/UserContext";
 
 export default function RootLayout() {
   const [isSplashFinished, setIsSplashFinished] = useState(false);
@@ -21,22 +22,24 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      {/* Header at the top */}
-      <Header />
+    <UserProvider>
+      <SafeAreaView style={styles.safeContainer}>
+        {/* Header at the top */}
+        <Header />
 
-      {/* Screen content in the middle */}
-      <View style={styles.content}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        />
-      </View>
+        {/* Screen content in the middle */}
+        <View style={styles.content}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}
+          />
+        </View>
 
-      {/* Green footer at the bottom */}
-      <Footer />
-    </SafeAreaView>
+        {/* Green footer at the bottom */}
+        <Footer />
+      </SafeAreaView>
+    </UserProvider>
   );
 }
 

@@ -2,20 +2,22 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithNames } from '../api/auth';
-import { supabase } from '../supabaseClient';
+import { useUser } from '../context/UserContext';
 
 export default function IndexScreen() {
   const router = useRouter();
+  const { setCustomerId, setCustomerName } = useUser();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  
-  // Temporary state for DB connection test result.
-  const [dbStatus, setDbStatus] = useState<string | null>(null);
 
   const handleLogin = async () => {
     try {
       const user = await signInWithNames(firstName, lastName);
-      // Optionally query user-related data here
+      
+      // Save to context
+      setCustomerId(user.customer_id);
+      setCustomerName(firstName); // Or use user.name if returned from API
+      
       router.push('/HomeScreen');
     } catch (error) {
       if (error instanceof Error) {
@@ -23,23 +25,6 @@ export default function IndexScreen() {
       } else {
         Alert.alert('Login Error', 'An unexpected error occurred.');
       }
-    }
-  };
-
-  // Temporary function to check DB connection
-  const checkDBConnection = async () => {
-    try {
-      const { data, error } = await supabase.from('customer').select('*').limit(1);
-      if (error) {
-        setDbStatus(`DB Error: ${error.message}`);
-        Alert.alert('DB Connection', `Error: ${error.message}`);
-      } else {
-        setDbStatus('Connected to DB!');
-        Alert.alert('DB Connection', 'Successfully connected to the database!');
-      }
-    } catch (err) {
-      setDbStatus('Unexpected error occurred');
-      Alert.alert('DB Connection', 'Unexpected error occurred');
     }
   };
 
@@ -62,12 +47,6 @@ export default function IndexScreen() {
       />
 
       <Button title="Login" onPress={handleLogin} />
-      <View style={{ marginTop: 20 }}>
-        <Button title="Test DB Connection" onPress={checkDBConnection} />
-      </View>
-      {dbStatus && (
-        <Text style={styles.statusText}>Status: {dbStatus}</Text>
-      )}
     </View>
   );
 }
@@ -91,10 +70,5 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 8,
     borderRadius: 4,
-  },
-  statusText: {
-    marginTop: 16,
-    textAlign: 'center',
-    fontSize: 16,
   },
 });

@@ -1,4 +1,3 @@
-// app/HomeScreen.tsx
 import React from "react";
 import {
   View,
@@ -10,87 +9,96 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-
 export default function HomeScreen() {
   return (
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* HEADER CARD WITH BACKGROUND IMAGE */}
-        <View style={styles.headerCardContainer}>
-          <ImageBackground
-            source={{
-              uri: "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?fit=crop&w=600&q=80",
-            }}
-            style={styles.headerCardBackground}
-            imageStyle={styles.headerCardImage}
-          >
-            <View style={styles.headerCardContent}>
-              <Text style={styles.accountType}>Classic</Text>
-              <View style={styles.accountRow}>
-                <Ionicons name="bug" size={20} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.accountNumber}>12-34-56 / 12345678</Text>
-              </View>
-              <Text style={styles.balance}>£100.00</Text>
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Text style={styles.actionButtonText}>Pay</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Text style={styles.actionButtonText}>Transfer</Text>
-                </TouchableOpacity>
-              </View>
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      {/* HEADER CARD WITH BACKGROUND IMAGE */}
+      <View style={styles.headerCardContainer}>
+        <ImageBackground
+          source={{
+            uri: "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?fit=crop&w=600&q=80",
+          }}
+          style={styles.headerCardBackground}
+          imageStyle={styles.headerCardImage}
+        >
+          <View style={styles.headerCardContent}>
+            <Text style={styles.accountType}>Classic</Text>
+            <View style={styles.accountRow}>
+              <Ionicons
+                name="bug"
+                size={20}
+                color="#fff"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.accountNumber}>12-34-56 / 12345678</Text>
             </View>
-          </ImageBackground>
-        </View>
-
-        {/* RECENT TRANSACTIONS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          <View style={styles.transactionItem}>
-            <View style={styles.transactionDetails}>
-              <Ionicons name="fast-food" size={20} color="#4f9f9f" />
-              <View style={{ marginLeft: 8 }}>
-                <Text style={styles.transactionName}>McDonald’s</Text>
-                <Text style={styles.transactionDate}>20/02/2025</Text>
-              </View>
+            <Text style={styles.balance}>£100.00</Text>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.actionButton}>
+                <Text style={styles.actionButtonText}>Pay</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <Text style={styles.actionButtonText}>Transfer</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.transactionAmount}>£8.98</Text>
           </View>
-          <View style={styles.transactionItem}>
-            <View style={styles.transactionDetails}>
-              <Ionicons name="cart" size={20} color="#4f9f9f" />
-              <View style={{ marginLeft: 8 }}>
-                <Text style={styles.transactionName}>Tesco</Text>
-                <Text style={styles.transactionDate}>11/02/2025</Text>
-              </View>
+        </ImageBackground>
+      </View>
+
+      {/* RECENT TRANSACTIONS */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <View style={styles.transactionItem}>
+          <View style={styles.transactionDetails}>
+            <Ionicons name="fast-food" size={20} color="#4f9f9f" />
+            <View style={{ marginLeft: 8 }}>
+              <Text style={styles.transactionName}>McDonald's</Text>
+              <Text style={styles.transactionDate}>20/02/2025</Text>
             </View>
-            <Text style={styles.transactionAmount}>£12.50</Text>
           </View>
+          <Text style={styles.transactionAmount}>£8.98</Text>
         </View>
+        <View style={styles.transactionItem}>
+          <View style={styles.transactionDetails}>
+            <Ionicons name="cart" size={20} color="#4f9f9f" />
+            <View style={{ marginLeft: 8 }}>
+              <Text style={styles.transactionName}>Tesco</Text>
+              <Text style={styles.transactionDate}>11/02/2025</Text>
+            </View>
+          </View>
+          <Text style={styles.transactionAmount}>£12.50</Text>
+        </View>
+      </View>
 
-        {/* GROUP SAVING GOALS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Group Saving Goals</Text>
-          <View style={styles.goalRow}>
-            <Text style={styles.goalName}>Traveling</Text>
-            <Text style={styles.goalPercent}>68%</Text>
-          </View>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: "68%" }]} />
-          </View>
+      {/* GROUP SAVING GOALS */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Group Saving Goals</Text>
+        <View style={styles.goalRow}>
+          <Text style={styles.goalName}>Traveling</Text>
+          <Text style={styles.goalPercent}>68%</Text>
         </View>
+        <View style={styles.progressBarBackground}>
+          <View style={[styles.progressBarFill, { width: "68%" }]} />
+        </View>
+      </View>
 
-        {/* SPENDING INSIGHTS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Spending Insights</Text>
-          <View style={styles.insightsBox}>
-            <Ionicons name="pie-chart" size={24} color="#4f9f9f" style={{ marginRight: 8 }} />
-            <Text style={styles.insightsText}>
-              This month, you spent 40% on groceries, 20% on entertainment, and
-              40% on other expenses. Keep up the good work!
-            </Text>
-          </View>
+      {/* SPENDING INSIGHTS */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Spending Insights</Text>
+        <View style={styles.insightsBox}>
+          <Ionicons
+            name="pie-chart"
+            size={24}
+            color="#4f9f9f"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.insightsText}>
+            This month, you spent 40% on groceries, 20% on entertainment, and
+            40% on other expenses. Keep up the good work!
+          </Text>
         </View>
-      </ScrollView>
+      </View>
+    </ScrollView>
   );
 }
 
