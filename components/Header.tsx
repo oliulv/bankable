@@ -4,10 +4,12 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../context/UserContext";
 import { getCustomerById } from "../api/userData";
+import { Sheet, SheetTrigger, SheetContent } from './ui/sheet';
 
 export default function Header() {
   const { customerId, customerName } = useUser();
   const [displayName, setDisplayName] = useState("Guest");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     async function fetchUserName() {
@@ -32,24 +34,29 @@ export default function Header() {
   }, [customerId, customerName]);
 
   return (
-    <View style={styles.header}>
-      {/* Left side: turtle + Hello, [Name] */}
-      <View style={styles.left}>
-        <Image
-          source={{
-            uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot_2024-11-17_at_7.03.16_PM-removebg-preview-qYVjiMHoaYBDi7UFT0Diy07RmwLjrH.png",
-          }}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.userName}>Hello, {displayName}</Text>
-      </View>
+    <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+      <View style={styles.header}>
+        {/* Left side: turtle + Hello, [Name] */}
+        <View style={styles.left}>
+          <Image
+            source={{
+              uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot_2024-11-17_at_7.03.16_PM-removebg-preview-qYVjiMHoaYBDi7UFT0Diy07RmwLjrH.png",
+            }}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.userName}>Hello, {displayName}</Text>
+        </View>
 
-      {/* Right side: menu icon */}
-      <TouchableOpacity onPress={() => console.log("Open menu")}>
-        <Ionicons name="menu" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
+        {/* Right side: menu icon */}
+        <SheetTrigger>
+          <Ionicons name="menu" size={24} color="#fff" />
+        </SheetTrigger>
+      </View>
+      
+      {/* The sliding menu */}
+      <SheetContent side="right" />
+    </Sheet>
   );
 }
 

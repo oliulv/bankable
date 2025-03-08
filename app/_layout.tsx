@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, SafeAreaView } from "react-native";
 import { Stack } from "expo-router";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import SplashScreen from "./SplashScreen";
 import Header from "../components/Header";
@@ -22,24 +23,26 @@ export default function RootLayout() {
   }
 
   return (
-    <UserProvider>
-      <SafeAreaView style={styles.safeContainer}>
-        {/* Header at the top */}
-        <Header />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <UserProvider>
+        <SafeAreaView style={styles.safeContainer}>
+          {/* Header at the top */}
+          <Header />
 
-        {/* Screen content in the middle */}
-        <View style={styles.content}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-            }}
-          />
-        </View>
+          {/* Screen content in the middle */}
+          <View style={styles.content}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+              }}
+            />
+          </View>
 
-        {/* Green footer at the bottom */}
-        <Footer />
-      </SafeAreaView>
-    </UserProvider>
+          {/* Green footer at the bottom */}
+          <Footer />
+        </SafeAreaView>
+      </UserProvider>
+    </GestureHandlerRootView>
   );
 }
 
