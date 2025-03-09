@@ -9,12 +9,28 @@ export default function Footer() {
 
   return (
     <View style={styles.footer}>
-      {/* Home */}
+      {/* Virtual Pet */}
       <TouchableOpacity
         style={styles.iconContainer}
+        onPress={() => router.push("/BankableVirtualPetScreen")}
+      >
+        <Ionicons name="bug" size={24} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Group Savings Goals */}
+      <TouchableOpacity
+        style={styles.iconContainer}
+        onPress={() => router.push("/GroupSavingGoalsScreen")}
+      >
+        <Ionicons name="people" size={24} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Home - Center */}
+      <TouchableOpacity
+        style={[styles.iconContainer, styles.homeIcon]}
         onPress={() => router.push("/HomeScreen")}
       >
-        <Ionicons name="home" size={24} color="#fff" />
+        <Ionicons name="home" size={28} color="#fff" />
       </TouchableOpacity>
 
       {/* Bankable AI */}
@@ -23,14 +39,6 @@ export default function Footer() {
         onPress={() => router.push("/BankableAIScreen")}
       >
         <Ionicons name="bulb" size={24} color="#fff" />
-      </TouchableOpacity>
-
-      {/* Virtual Pet */}
-      <TouchableOpacity
-        style={styles.iconContainer}
-        onPress={() => router.push("/BankableVirtualPetScreen")}
-      >
-        <Ionicons name="bug" size={24} color="#fff" />
       </TouchableOpacity>
 
       {/* Settings */}
@@ -47,12 +55,16 @@ export default function Footer() {
 const styles = StyleSheet.create({
   footer: {
     height: 60,
-    backgroundColor: "#006a4d", // GREEN FOOTER
+    backgroundColor: "#006a4d",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
   },
   iconContainer: {
     padding: 8,
+  },
+  homeIcon: {
+    transform: [{ scale: 1.2 }],
+    marginHorizontal: 5,
   },
 });

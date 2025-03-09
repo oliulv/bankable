@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, SafeAreaView } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import SplashScreen from "./SplashScreen";
@@ -10,6 +10,8 @@ import { UserProvider } from "../context/UserContext";
 
 export default function RootLayout() {
   const [isSplashFinished, setIsSplashFinished] = useState(false);
+  const pathname = usePathname();
+  const isLoginScreen = pathname === '/';
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -25,22 +27,24 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
-        <SafeAreaView style={styles.safeContainer}>
-          {/* Header at the top */}
-          <Header />
-
-          {/* Screen content in the middle */}
-          <View style={styles.content}>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: "none",
-              }}
-            />
+        <SafeAreaView 
+          style={[
+            styles.safeContainer, 
+            isLoginScreen ? styles.loginSafeContainer : styles.defaultSafeContainer
+          ]}
+        >
+          {!isLoginScreen && <Header />}
+          
+          <View 
+            style={[
+              styles.content, 
+              isLoginScreen ? styles.loginContent : styles.defaultContent
+            ]}
+          >
+            <Stack screenOptions={{ headerShown: false, animation: "none" }} />
           </View>
-
-          {/* Green footer at the bottom */}
-          <Footer />
+          
+          {!isLoginScreen && <Footer />}
         </SafeAreaView>
       </UserProvider>
     </GestureHandlerRootView>
@@ -50,10 +54,21 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: "#006a4d", // White so no leftover green
+  },
+  loginSafeContainer: {
+    backgroundColor: '#000',
+  },
+  defaultSafeContainer: {
+    backgroundColor: '#006a4d',
   },
   content: {
     flex: 1,
     backgroundColor: "#006a4d",
   },
+  loginContent: {
+    backgroundColor: 'transparent',
+  },
+  defaultContent: {
+    backgroundColor: '#006a4d',
+  }
 });
