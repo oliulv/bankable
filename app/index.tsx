@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, Dimensions, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithNames } from '../api/auth';
 import { useUser } from '../context/UserContext';
@@ -15,7 +15,7 @@ export default function IndexScreen() {
   const [lastName, setLastName] = useState('');
   const videoRef = useRef<AV.Video>(null);
   const { width, height } = Dimensions.get('window');
-  
+
   useEffect(() => {
     const loadVideo = async () => {
       try {
@@ -26,10 +26,10 @@ export default function IndexScreen() {
         console.error("Error loading video:", error);
       }
     };
-    
+
     loadVideo();
   }, []);
-  
+
   const handleLogin = async () => {
     try {
       const user = await signInWithNames(firstName, lastName);
@@ -43,7 +43,12 @@ export default function IndexScreen() {
       );
     }
   };
-  
+
+  // Simplified Dev Login: direct navigation
+  const handleDevLogin = () => {
+    router.push('/HomeScreen');
+  };
+
   return (
     <View style={styles.container}>
       <AV.Video
@@ -55,28 +60,28 @@ export default function IndexScreen() {
         isLooping
         isMuted
       />
-      
+
       {/* Overlay Content */}
       <SafeAreaView style={styles.overlay}>
         <View style={styles.contentContainer}>
           <Text style={styles.slogan}>Money Made Simple - Let's Begin</Text>
-          
+
           <TextInput
             style={styles.input}
-            placeholder="First Name"
+            placeholder="User ID"
             value={firstName}
             onChangeText={setFirstName}
             placeholderTextColor="rgba(255,255,255,0.7)"
           />
-          
+
           <TextInput
             style={styles.input}
-            placeholder="Last Name"
+            placeholder="Password"
             value={lastName}
             onChangeText={setLastName}
             placeholderTextColor="rgba(255,255,255,0.7)"
           />
-          
+
           <View style={styles.buttonContainer}>
             <Button
               onPress={handleLogin}
@@ -85,6 +90,13 @@ export default function IndexScreen() {
               Login
             </Button>
           </View>
+
+          {/* Dev Login Button */}
+          <TouchableOpacity onPress={handleDevLogin} style={{ marginTop: 16 }}>
+            <Text style={{ color: '#ffffffaa', fontSize: 14, textAlign: 'center' }}>
+              Dev Login
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </View>

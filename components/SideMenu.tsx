@@ -23,7 +23,7 @@ interface SideMenuProps {
 
 const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
   const router = useRouter();
-  const { customerName } = useUser();
+  const { setCustomerId, setCustomerName } = useUser();
 
   const navigateTo = (screenName: AppScreenPath) => {
     closeDrawer();
@@ -31,9 +31,15 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
   };
 
   const handleLogout = () => {
-    // Add your logout logic here
+    // Clear user context
+    setCustomerId(null);
+    setCustomerName('');
+    
+    // Close drawer
     closeDrawer();
-    // You might want to navigate to login page or clear user context
+    
+    // Navigate to login screen (index)
+    router.push('/');
   };
 
   return (
