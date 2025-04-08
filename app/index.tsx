@@ -59,7 +59,7 @@ export default function IndexScreen() {
       {/* Overlay Content */}
       <SafeAreaView style={styles.overlay}>
         <View style={styles.contentContainer}>
-          <Text style={styles.slogan}>Money Made Simple - Let's Begin</Text>
+          <Text style={styles.slogan}>Take Control of Tomorrow, Today - Let's Begin</Text>
           
           <TextInput
             style={styles.input}
