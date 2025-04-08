@@ -65,7 +65,7 @@ export default function IndexScreen() {
       <SafeAreaView style={styles.overlay}>
         <View style={styles.contentContainer}>
           <Text style={styles.slogan}>Money Made Simple - Let's Begin</Text>
-
+          
           <TextInput
             style={styles.input}
             placeholder="User ID"
