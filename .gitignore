@@ -3,6 +3,8 @@
 
 .vscode/
 
+.expo/
+
 # dependencies
 /node_modules
 
