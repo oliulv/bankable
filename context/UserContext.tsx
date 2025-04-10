@@ -1,5 +1,4 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { signInWithNames } from "../api/auth";
 import { getCustomerAccounts } from "../api/userData";
 
 interface ProductInfo {

@@ -372,17 +372,20 @@ export default function HomeScreen(): JSX.Element {
             horizontal
             showsHorizontalScrollIndicator={false}
             snapToInterval={CARD_WIDTH + 8}
-            decelerationRate="fast"
+            decelerationRate={0.8} // Changed from "fast" to a numeric value for more precise control
             snapToAlignment="center"
             onScroll={onScroll}
             onScrollEndDrag={onScrollEndDrag}
-            scrollEventThrottle={16}
+            scrollEventThrottle={8} // Changed from 16 to 8 for more responsive tracking
             contentContainerStyle={{ paddingHorizontal: SPACING }}
             getItemLayout={(data, index) => ({
               length: CARD_WIDTH + 8,
               offset: (CARD_WIDTH + 8) * index,
               index,
             })}
+            pagingEnabled={true} // Add this for more intuitive paging behavior
+            directionalLockEnabled={true} // Lock to horizontal scrolling only
+            scrollToOverflowEnabled={true} // Better behavior near edges
             renderItem={({ item }) => {
               const videoSource = productTypeToVideo[item.product.product_type] || 
                                   require("../assets/videos/REC-1.mp4");
