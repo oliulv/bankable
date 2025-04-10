@@ -58,7 +58,11 @@ export default function AccountDetailsScreen() {
       <View style={styles.accountHeader}>
         <Text style={styles.accountType}>{account.product.product_type}</Text>
         <Text style={styles.accountName}>{account.product.product_name}</Text>
-        <Text style={styles.balance}>£{account.starting_balance.toFixed(2)}</Text>
+        <Text style={styles.balance}>
+          {typeof account.starting_balance === 'number' 
+            ? `£${account.starting_balance.toFixed(2)}`
+            : '£0.00'}
+        </Text>
       </View>
 
       <View style={styles.transactionsContainer}>
