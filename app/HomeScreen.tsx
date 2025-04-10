@@ -358,12 +358,6 @@ export default function HomeScreen(): JSX.Element {
       contentContainerStyle={styles.container} 
       showsVerticalScrollIndicator={false}
     >
-      {/* Welcome Header */}
-      <View style={styles.welcomeHeader}>
-        <Text style={styles.welcomeText}>Hello, {customerName}</Text>
-        <Text style={styles.welcomeSubtext}>Welcome to Bankable</Text>
-      </View>
-
       {/* Swipeable Header Cards */}
       <View style={[styles.swipeableContainer, { marginTop: 16 }]}>
         {accounts.length === 0 ? (

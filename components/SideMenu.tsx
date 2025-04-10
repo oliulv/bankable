@@ -32,7 +32,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
 
   const handleLogout = () => {
     // Clear user context
-    setCustomerId(null);
+    setCustomerId('');
     setCustomerName('');
     
     // Close drawer
