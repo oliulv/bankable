@@ -1,51 +1,51 @@
 // components/Header.tsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter, usePathname } from "expo-router";
 import { useUser } from "../context/UserContext";
-import { getCustomerById } from "../api/userData";
 import { Sheet, SheetTrigger, SheetContent } from './ui/sheet';
 
 export default function Header() {
-  const { customerId, customerName } = useUser();
-  const [displayName, setDisplayName] = useState("Guest");
+  const router = useRouter();
+  const pathname = usePathname();
+  const { customerName } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
+  
+  // Check if we're on the home page
+  const isHomePage = pathname === '/HomeScreen';
 
-  useEffect(() => {
-    async function fetchUserName() {
-      try {
-        // If we already have a name from the login process, use that
-        if (customerName) {
-          setDisplayName(customerName);
-        }
-        // Otherwise if we have an ID but no name, fetch from the database
-        else if (customerId) {
-          const customer = await getCustomerById(customerId);
-          if (customer && customer.name) {
-            setDisplayName(customer.name);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching customer data:", error);
-      }
-    }
-
-    fetchUserName();
-  }, [customerId, customerName]);
+  // Handle back navigation
+  const handleBack = () => {
+    router.back();
+  };
 
   return (
     <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
       <View style={styles.header}>
-        {/* Left side: turtle + Hello, [Name] */}
+        {/* Left side: Conditional turtle or back button + Hello, [Name] */}
         <View style={styles.left}>
-          <Image
-            source={{
-              uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot_2024-11-17_at_7.03.16_PM-removebg-preview-qYVjiMHoaYBDi7UFT0Diy07RmwLjrH.png",
-            }}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.userName}>Hello, {displayName}</Text>
+          {isHomePage ? (
+            // Show turtle on home page
+            <Image
+              source={{
+                uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot_2024-11-17_at_7.03.16_PM-removebg-preview-qYVjiMHoaYBDi7UFT0Diy07RmwLjrH.png",
+              }}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          ) : (
+            // Show back button on other pages
+            <TouchableOpacity 
+              onPress={handleBack}
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.userName}>
+            Hello, {customerName || 'Guest'}
+          </Text>
         </View>
 
         {/* Right side: menu icon */}
@@ -77,6 +77,13 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     tintColor: "#fff",
+    marginRight: 8,
+  },
+  backButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 8,
   },
   userName: {

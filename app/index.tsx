@@ -10,9 +10,10 @@ import 'react-native-reanimated';
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { setCustomerId, setCustomerName } = useUser();
+  const { setCustomerId, setCustomerName, setCustomerData, fetchAccountsData } = useUser();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const videoRef = useRef<AV.Video>(null);
   const { width, height } = Dimensions.get('window');
 
@@ -31,21 +32,47 @@ export default function IndexScreen() {
   }, []);
 
   const handleLogin = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      Alert.alert('Login Error', 'Please enter both User ID and Password');
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
+      // Get user data from authentication
       const user = await signInWithNames(firstName, lastName);
+      
+      // Set all relevant user data in context
       setCustomerId(user.customer_id);
-      setCustomerName(firstName);
+      setCustomerName(`${user.name} ${user.surname}`);
+      setCustomerData(user);
+      
+      // Pre-fetch accounts data for the user
+      await fetchAccountsData(user.customer_id);
+      
+      // Navigate to home screen
       router.push('/HomeScreen');
     } catch (error) {
       Alert.alert(
         'Login Error',
         error instanceof Error ? error.message : 'An unexpected error occurred.'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Simplified Dev Login: direct navigation
   const handleDevLogin = () => {
+    // For dev login, we can set a fixed customer ID to fetch real data
+    const devCustomerId = "C0001"; // Replace with a valid customer ID from your database
+    setCustomerId(devCustomerId);
+    setCustomerName("Dev User");
+    
+    // Optional: Pre-fetch accounts for the dev user
+    fetchAccountsData(devCustomerId).catch(console.error);
+    
     router.push('/HomeScreen');
   };
 
@@ -80,6 +107,7 @@ export default function IndexScreen() {
             value={lastName}
             onChangeText={setLastName}
             placeholderTextColor="rgba(255,255,255,0.7)"
+            secureTextEntry={true}
           />
 
           <View style={styles.buttonContainer}>
@@ -87,7 +115,7 @@ export default function IndexScreen() {
               onPress={handleLogin}
               style={styles.loginButton}
             >
-              Login
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </View>
 

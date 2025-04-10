@@ -7,6 +7,7 @@ import { useUser } from '../context/UserContext';
 // Define type for screen paths to match Expo Router's expected types
 type AppScreenPath =  
   | "/HomeScreen"
+  | "/AccountsOverviewScreen"
   | "/GroupSavingGoalsScreen" 
   | "/InvestmentsScreen"
   | "/DynamicBudgetCalendarScreen"
@@ -32,7 +33,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
 
   const handleLogout = () => {
     // Clear user context
-    setCustomerId(null);
+    setCustomerId('');
     setCustomerName('');
     
     // Close drawer
@@ -55,6 +56,11 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
           icon="home-outline" 
           title="Home" 
           onPress={() => navigateTo("/HomeScreen")} 
+        />
+        <MenuItem 
+          icon="wallet-outline" 
+          title="Accounts" 
+          onPress={() => navigateTo("/AccountsOverviewScreen")} 
         />
         <MenuItem 
           icon="people-outline" 
