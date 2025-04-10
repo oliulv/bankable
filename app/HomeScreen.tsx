@@ -9,9 +9,14 @@ import {
   NativeSyntheticEvent,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Video, ResizeMode } from "expo-av";
+import { useUser } from "../context/UserContext";
+import { AccountInfo } from "../context/UserContext";
+import { useRouter } from "expo-router";
+import { getAccountTransactions } from "../api/userData";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth * 0.85; 
@@ -23,70 +28,28 @@ interface Transaction {
   date: string;
   amount: string;
   icon: keyof typeof Ionicons.glyphMap;
-  type: "inflow" | "outflow"; // Added transaction type
+  type: "inflow" | "outflow";
 }
 
-interface AccountData {
-  id: number;
-  cardVideo: any;
-  accountType: string;
-  accountNumber: string;
-  balance: string;
-  transactions: Transaction[];
-  groupSavingGoals: { goalName: string; percent: number };
-  spendingInsights: string;
-}
+// Map to convert product types to card videos
+const productTypeToVideo: Record<string, any> = {
+  "Personal Current Account": require("../assets/videos/REC-1.mp4"),
+  "Savings": require("../assets/videos/REC-2.mp4"),
+  "Credit Card": require("../assets/videos/REC-3.mp4"),
+  "Overdraft": require("../assets/videos/REC-1.mp4"), // Fallback
+};
 
-// Enhanced sample data with transaction types
-const accounts: AccountData[] = [
-  {
-    id: 1,
-    cardVideo: require("../assets/videos/REC-2.mp4"),
-    accountType: "Premium",
-    accountNumber: "98-76-54 / 87654321",
-    balance: "£250.00",
-    transactions: [
-      { id: 1, name: "Starbucks", date: "15/03/2025", amount: "£5.00", icon: "cafe", type: "outflow" },
-      { id: 2, name: "Amazon", date: "10/03/2025", amount: "£45.00", icon: "cart", type: "outflow" },
-    ],
-    groupSavingGoals: { goalName: "New Car", percent: 45 },
-    spendingInsights:
-      "You spent 50% on utilities, 30% on shopping, and 20% on other expenses.",
-  },
-  {
-    id: 0, // This is the Classic account (middle one)
-    cardVideo: require("../assets/videos/REC-1.mp4"),
-    accountType: "Classic",
-    accountNumber: "12-34-56 / 12345678",
-    balance: "£100.00",
-    transactions: [
-      { id: 1, name: "McDonald's", date: "20/02/2025", amount: "£8.98", icon: "fast-food", type: "outflow" },
-      { id: 2, name: "Tesco", date: "11/02/2025", amount: "£12.50", icon: "basket", type: "outflow" },
-      { id: 3, name: "Salary", date: "01/03/2025", amount: "£1,450.00", icon: "cash", type: "inflow" },
-    ],
-    groupSavingGoals: { goalName: "Traveling", percent: 68 },
-    spendingInsights:
-      "This month, you spent 40% on groceries, 20% on entertainment, and 40% on other expenses.",
-  },
-  {
-    id: 2,
-    cardVideo: require("../assets/videos/REC-3.mp4"),
-    accountType: "Gold",
-    accountNumber: "11-22-33 / 44445555",
-    balance: "£500.00",
-    transactions: [
-      { id: 1, name: "Uber", date: "05/03/2025", amount: "£15.00", icon: "car", type: "outflow" },
-      { id: 2, name: "Gym", date: "03/03/2025", amount: "£30.00", icon: "fitness", type: "outflow" },
-      { id: 3, name: "Refund", date: "02/03/2025", amount: "£25.50", icon: "return-down-back", type: "inflow" },
-    ],
-    groupSavingGoals: { goalName: "House Renovation", percent: 80 },
-    spendingInsights:
-      "You spent 60% on rent, 25% on groceries, and 15% on other expenses.",
-  },
-];
-
-// Find index of account with id 0
-const defaultAccountIndex = accounts.findIndex(account => account.id === 0);
+// Map transaction categories to icons
+const categoryToIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
+  "Food": "fast-food",
+  "Shopping": "cart",
+  "Salary": "cash",
+  "Transport": "car",
+  "Utilities": "flash",
+  "Entertainment": "game-controller",
+  "Health": "fitness",
+  "Other": "apps",
+};
 
 // Daily affirmations from the screenshot
 const dailyAffirmations = [
@@ -107,12 +70,16 @@ interface WidgetConfig {
 }
 
 export default function HomeScreen(): JSX.Element {
-  const [currentIndex, setCurrentIndex] = useState<number>(defaultAccountIndex);
+  const router = useRouter();
+  const { accounts, customerName, customerId, fetchAccountsData, isLoading } = useUser();
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
   const flatListRef = useRef<FlatList<any>>(null);
   const [todayAffirmation] = useState<string>(
     dailyAffirmations[Math.floor(Math.random() * dailyAffirmations.length)]
   );
-  
+  const [accountTransactions, setAccountTransactions] = useState<Record<string, any[]>>({});
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
   // Widget configuration state
   const [widgets, setWidgets] = useState<WidgetConfig[]>([
     { id: "daily-affirmation", type: "affirmation", title: "Daily Affirmation", order: 1, visible: true },
@@ -122,21 +89,58 @@ export default function HomeScreen(): JSX.Element {
     { id: "emergency-fund", type: "fund", title: "Tomorrow Tracker", order: 5, visible: true },
     { id: "quick-actions", type: "actions", title: "Quick Actions", order: 6, visible: true },
   ]);
-  
-  // Scroll to default account (id 0) when component mounts
+
+  // Fetch accounts when screen loads
   useEffect(() => {
-    if (flatListRef.current && defaultAccountIndex >= 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToIndex({
-          index: defaultAccountIndex,
-          animated: false,
-        });
-      }, 100); // Small delay to ensure component is fully mounted
+    if (customerId) {
+      fetchAccountsData(customerId);
     }
-  }, []);
+  }, [customerId]);
+
+  // Fetch transactions for current account
+  useEffect(() => {
+    const fetchTransactionsForAccount = async (accountId: string) => {
+      if (accountId && !accountTransactions[accountId]) {
+        setLoadingTransactions(true);
+        try {
+          const transactions = await getAccountTransactions(accountId);
+          setAccountTransactions(prev => ({
+            ...prev,
+            [accountId]: transactions
+          }));
+        } catch (error) {
+          console.error("Error fetching transactions:", error);
+        } finally {
+          setLoadingTransactions(false);
+        }
+      }
+    };
+
+    if (accounts.length > 0 && currentIndex < accounts.length) {
+      fetchTransactionsForAccount(accounts[currentIndex].account_id);
+    }
+  }, [currentIndex, accounts]);
+
+  // Format transactions for display
+  const formatTransactions = (rawTransactions: any[] = []): Transaction[] => {
+    return rawTransactions.slice(0, 3).map((tx, index) => ({
+      id: index,
+      name: tx.transaction_reference || "Transaction",
+      date: new Date(tx.transaction_date).toLocaleDateString(),
+      amount: formatCurrency(tx.transaction_amount),
+      icon: categoryToIcon[tx.transaction_category] || "apps",
+      type: tx.transaction_amount >= 0 ? "inflow" : "outflow"
+    }));
+  };
+
+  const formatCurrency = (amount: number): string => {
+    return `£${Math.abs(amount).toFixed(2)}`;
+  };
 
   // Enhanced swipe sensitivity - even small swipes will trigger card change
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (accounts.length === 0) return;
+    
     const offsetX = e.nativeEvent.contentOffset.x;
     const newIndex = Math.round(offsetX / (CARD_WIDTH + 8));
     
@@ -148,6 +152,8 @@ export default function HomeScreen(): JSX.Element {
   
   // On scroll end, ensure we snap correctly
   const onScrollEndDrag = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (accounts.length === 0) return;
+    
     const offsetX = e.nativeEvent.contentOffset.x;
     const velocity = e.nativeEvent.velocity?.x || 0;
     
@@ -178,7 +184,12 @@ export default function HomeScreen(): JSX.Element {
     setCurrentIndex(newIndex);
   };
 
-  const currentAccount = accounts[currentIndex];
+  const currentAccount = accounts.length > 0 ? accounts[currentIndex] : null;
+  
+  // Get transactions for current account
+  const currentTransactions = currentAccount 
+    ? formatTransactions(accountTransactions[currentAccount.account_id]) 
+    : [];
   
   // Sort widgets by order
   const sortedWidgets = [...widgets].sort((a, b) => a.order - b.order);
@@ -186,6 +197,7 @@ export default function HomeScreen(): JSX.Element {
   // Function to render widgets based on type
   const renderWidget = (widget: WidgetConfig) => {
     if (!widget.visible) return null;
+    if (!currentAccount && widget.type !== "affirmation") return null;
     
     switch (widget.type) {
       case "affirmation":
@@ -205,23 +217,29 @@ export default function HomeScreen(): JSX.Element {
           <DraggableWidget key={widget.id} widget={widget} onReorder={() => {}}>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{widget.title}</Text>
-              {currentAccount.transactions.map((tx) => (
-                <View key={tx.id} style={styles.transactionItem}>
-                  <View style={styles.transactionDetails}>
-                    <Ionicons name={tx.icon} size={20} color="#4f9f9f" />
-                    <View style={{ marginLeft: 12 }}>
-                      <Text style={styles.transactionName}>{tx.name}</Text>
-                      <Text style={styles.transactionDate}>{tx.date}</Text>
+              {loadingTransactions ? (
+                <ActivityIndicator size="small" color="#4f9f9f" style={{marginVertical: 20}} />
+              ) : currentTransactions.length > 0 ? (
+                currentTransactions.map((tx) => (
+                  <View key={tx.id} style={styles.transactionItem}>
+                    <View style={styles.transactionDetails}>
+                      <Ionicons name={tx.icon} size={20} color="#4f9f9f" />
+                      <View style={{ marginLeft: 12 }}>
+                        <Text style={styles.transactionName}>{tx.name}</Text>
+                        <Text style={styles.transactionDate}>{tx.date}</Text>
+                      </View>
                     </View>
+                    <Text style={[
+                      styles.transactionAmount, 
+                      tx.type === "inflow" ? styles.inflow : styles.outflow
+                    ]}>
+                      {tx.type === "inflow" ? "+" : "-"}{tx.amount}
+                    </Text>
                   </View>
-                  <Text style={[
-                    styles.transactionAmount, 
-                    tx.type === "inflow" ? styles.inflow : styles.outflow
-                  ]}>
-                    {tx.type === "inflow" ? "+" : "-"}{tx.amount}
-                  </Text>
-                </View>
-              ))}
+                ))
+              ) : (
+                <Text style={styles.emptyText}>No recent transactions</Text>
+              )}
             </View>
           </DraggableWidget>
         );
@@ -233,17 +251,17 @@ export default function HomeScreen(): JSX.Element {
               <Text style={styles.sectionTitle}>{widget.title}</Text>
               <View style={styles.goalRow}>
                 <Text style={styles.goalName}>
-                  {currentAccount.groupSavingGoals.goalName}
+                  {currentAccount?.product?.product_type === "Savings" ? "Savings Goal" : "Financial Goal"}
                 </Text>
                 <Text style={styles.goalPercent}>
-                  {currentAccount.groupSavingGoals.percent}%
+                  45%
                 </Text>
               </View>
               <View style={styles.progressBarBackground}>
                 <View
                   style={[
                     styles.progressBarFill,
-                    { width: `${currentAccount.groupSavingGoals.percent}%` },
+                    { width: '45%' },
                   ]}
                 />
               </View>
@@ -264,7 +282,7 @@ export default function HomeScreen(): JSX.Element {
                   style={{ marginRight: 12 }}
                 />
                 <Text style={styles.insightsText}>
-                  {currentAccount.spendingInsights}
+                  Based on your recent transactions, you're managing your finances effectively.
                 </Text>
               </View>
             </View>
@@ -325,78 +343,112 @@ export default function HomeScreen(): JSX.Element {
     }
   };
 
+  // Show loading indicator when fetching accounts
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#4f9f9f" />
+        <Text style={{marginTop: 20, color: '#666'}}>Loading your accounts...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView 
       contentContainerStyle={styles.container} 
       showsVerticalScrollIndicator={false}
     >
-      {/* Swipeable Header Cards - Now at the top without Account Overview */}
+      {/* Welcome Header */}
+      <View style={styles.welcomeHeader}>
+        <Text style={styles.welcomeText}>Hello, {customerName}</Text>
+        <Text style={styles.welcomeSubtext}>Welcome to Bankable</Text>
+      </View>
+
+      {/* Swipeable Header Cards */}
       <View style={[styles.swipeableContainer, { marginTop: 16 }]}>
-        <FlatList
-          ref={flatListRef}
-          data={accounts}
-          keyExtractor={(item) => item.id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={CARD_WIDTH + 8}
-          decelerationRate="fast"
-          snapToAlignment="center"
-          onScroll={onScroll}
-          onScrollEndDrag={onScrollEndDrag}
-          scrollEventThrottle={16} // Important for smooth tracking
-          contentContainerStyle={{ paddingHorizontal: SPACING }}
-          getItemLayout={(data, index) => ({
-            length: CARD_WIDTH + 8,
-            offset: (CARD_WIDTH + 8) * index,
-            index,
-          })}
-          renderItem={({ item }) => {
-            return (
-              <TouchableOpacity 
-                style={styles.card}
-                activeOpacity={0.9}
-                onPress={() => {
-                  // Navigate to account details or perform action
-                }}
-              >
-                <Video
-                  source={item.cardVideo}
-                  style={styles.video}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay
-                  isLooping
-                />
-                <View style={styles.overlay} />
-                <View style={styles.headerCardContent}>
-                  <Text style={styles.accountType}>{item.accountType}</Text>
-                  <View style={styles.accountRow}>
-                    <Ionicons
-                      name="bug"
-                      size={20}
-                      color="#fff"
-                      style={{ marginRight: 8 }}
-                    />
-                    <Text style={styles.accountNumber}>{item.accountNumber}</Text>
+        {accounts.length === 0 ? (
+          <View style={[styles.card, styles.noAccountCard]}>
+            <Text style={styles.noAccountText}>No accounts found</Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={accounts}
+            keyExtractor={(item) => item.account_id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={CARD_WIDTH + 8}
+            decelerationRate="fast"
+            snapToAlignment="center"
+            onScroll={onScroll}
+            onScrollEndDrag={onScrollEndDrag}
+            scrollEventThrottle={16}
+            contentContainerStyle={{ paddingHorizontal: SPACING }}
+            getItemLayout={(data, index) => ({
+              length: CARD_WIDTH + 8,
+              offset: (CARD_WIDTH + 8) * index,
+              index,
+            })}
+            renderItem={({ item }) => {
+              const videoSource = productTypeToVideo[item.product.product_type] || 
+                                  require("../assets/videos/REC-1.mp4");
+              return (
+                <TouchableOpacity 
+                  style={styles.card}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    // Navigate to account details
+                    router.push({
+                      pathname: '/AccountDetailsScreen',
+                      params: { accountId: item.account_id }
+                    });
+                  }}
+                >
+                  <Video
+                    source={videoSource}
+                    style={styles.video}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay
+                    isLooping
+                  />
+                  <View style={styles.overlay} />
+                  <View style={styles.headerCardContent}>
+                    <Text style={styles.accountType}>{item.product.product_type}</Text>
+                    <View style={styles.accountRow}>
+                      <Ionicons
+                        name="card"
+                        size={20}
+                        color="#fff"
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={styles.accountNumber}>{item.account_id}</Text>
+                    </View>
+                    <Text style={styles.balance}>
+                      £{typeof item.starting_balance === 'number' 
+                          ? item.starting_balance.toFixed(2) 
+                          : '0.00'}
+                    </Text>
                   </View>
-                  <Text style={styles.balance}>{item.balance}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )}
         
         {/* Card page indicator */}
-        <View style={styles.paginationContainer}>
-          {accounts.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.paginationDot,
-                i === currentIndex && styles.paginationDotActive,
-              ]}
-            />
-          ))}
-        </View>
+        {accounts.length > 0 && (
+          <View style={styles.paginationContainer}>
+            {accounts.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.paginationDot,
+                  i === currentIndex && styles.paginationDotActive,
+                ]}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Widgets Section */}
@@ -430,9 +482,45 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     backgroundColor: "#f5f5f7",
   },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  welcomeHeader: {
+    backgroundColor: "#4f9f9f",
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  welcomeSubtext: {
+    fontSize: 16,
+    color: "#e0e0e0",
+    marginTop: 4,
+  },
   swipeableContainer: {
     height: CARD_HEIGHT + 20, // Added space for pagination
     marginBottom: 16,
+  },
+  noAccountCard: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: SPACING,
+    backgroundColor: '#e0e0e0',
+  },
+  noAccountText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  emptyText: {
+    textAlign: 'center',
+    padding: 20,
+    color: '#666',
   },
   paginationContainer: {
     flexDirection: "row",
@@ -585,12 +673,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-  // New styles for transaction types
   inflow: {
-    color: "#4CAF50", // Green color for inflow
+    color: "#4CAF50",
   },
   outflow: {
-    color: "#F44336", // Red color for outflow
+    color: "#F44336",
   },
   goalRow: {
     flexDirection: "row",
