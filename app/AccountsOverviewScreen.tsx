@@ -129,16 +129,6 @@ export default function AccountsOverviewScreen() {
     </View>
   );
 
-  // Create a header component that will be part of the scrollable content
-  const renderListHeader = () => (
-    <View style={styles.scrollableHeader}>
-      <Text style={styles.title}>Accounts Overview</Text>
-      <Text style={styles.subtitle}>
-        {accounts.length} {accounts.length === 1 ? 'account' : 'accounts'} available
-      </Text>
-    </View>
-  );
-
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -148,15 +138,23 @@ export default function AccountsOverviewScreen() {
     );
   }
 
+  // Update the static header to include the dynamic subtitle
   return (
     <View style={styles.container}>
+      {/* Static Header with dynamic subtitle */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Accounts Overview</Text>
+        <Text style={styles.subtitle}>
+          {accounts.length} {accounts.length === 1 ? 'account' : 'accounts'} available
+        </Text>
+      </View>
+      
       <FlatList
         data={accounts}
         renderItem={renderAccountCard}
         keyExtractor={(item) => item.account_id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={renderListHeader}
         ListEmptyComponent={renderEmptyState}
       />
     </View>
@@ -167,16 +165,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f7',
-  },
-  // Remove the old header styles
-  // header: { ... },
-  
-  // Add this new style for the scrollable header
-  scrollableHeader: {
-    padding: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
-    marginBottom: 4,
   },
   title: {
     fontSize: 24,
@@ -285,5 +273,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 20,
-  }
+  },
+// Update the headerContainer style to match the page background
+headerContainer: {
+  padding: 16,
+  paddingTop: 14,
+  paddingBottom: 14,
+  backgroundColor: '#f5f5f7', // Changed from '#fff' to match container background
+},
 });

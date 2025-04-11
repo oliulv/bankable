@@ -516,7 +516,7 @@ const InvestmentsScreen: React.FC = () => {
     
     // Prepare data for pie chart
     const chartData = Object.entries(categoryMap).map(([category, value], index) => {
-      const colors = ['#48A665', '#3498DB', '#9B59B6', '#F1C40F', '#E74C3C', '#16A085'];
+      const colors = ['#006a4d', '#3498DB', '#9B59B6', '#F1C40F', '#E74C3C', '#16A085'];
       return {
         name: category,
         value: value,
@@ -745,7 +745,8 @@ const InvestmentsScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={styles.modalScroll}
+            keyboardShouldPersistTaps='always'>
               <View style={styles.assetPriceHeader}>
                 <Text style={styles.assetDetailPrice}>£{selectedAsset.currentPrice.toFixed(2)}</Text>
                 <Text 
@@ -1030,14 +1031,12 @@ const InvestmentsScreen: React.FC = () => {
   // Main render
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#48A665', '#38805E']}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>Investments</Text>
-      </LinearGradient>
-      
+      {/* Static Header */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Investments</Text>
+        <Text style={styles.subtitle}>Take control of your financial future.</Text>
+      </View>
+
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -1058,47 +1057,10 @@ const InvestmentsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       
-      {/* Search and Sort Options */}
-      {activeTab === 'assets' && (
-        <View style={styles.filtersContainer}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#777" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search assets..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              clearButtonMode="while-editing"
-            />
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.sortButton}
-            onPress={() => {
-              // Cycle through sort options
-              const options: ('name' | 'price' | 'change')[] = ['name', 'price', 'change'];
-              const currentIndex = options.indexOf(sortOption);
-              const nextIndex = (currentIndex + 1) % options.length;
-              setSortOption(options[nextIndex]);
-            }}
-          >
-            <MaterialCommunityIcons 
-              name="sort" 
-              size={24} 
-              color="#333"
-            />
-            <Text style={styles.sortLabel}>
-              {sortOption === 'name' ? 'Name' : 
-               sortOption === 'price' ? 'Price' : 'Change'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      
       {/* Main Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#48A665" />
+          <ActivityIndicator size="large" color="#006a4d" />
           <Text style={styles.loadingText}>Loading assets...</Text>
         </View>
       ) : (
@@ -1106,6 +1068,36 @@ const InvestmentsScreen: React.FC = () => {
           {activeTab === 'assets' ? (
             /* Assets Content Container */
             <View style={{ flex: 1 }}>
+              {/* Search and Sort Options */}
+              <View style={styles.filtersContainer}>
+                <View style={styles.searchContainer}>
+                  <Ionicons name="search" size={20} color="#777" />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search assets..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    clearButtonMode="while-editing"
+                  />
+                </View>
+                
+                <TouchableOpacity 
+                  style={styles.sortButton}
+                  onPress={() => {
+                    const options: ('name' | 'price' | 'change')[] = ['name', 'price', 'change'];
+                    const currentIndex = options.indexOf(sortOption);
+                    const nextIndex = (currentIndex + 1) % options.length;
+                    setSortOption(options[nextIndex]);
+                  }}
+                >
+                  <MaterialCommunityIcons name="sort" size={24} color="#333" />
+                  <Text style={styles.sortLabel}>
+                    {sortOption === 'name' ? 'Name' : 
+                     sortOption === 'price' ? 'Price' : 'Change'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
               {/* Category Filter (fixed height) */}
               <View style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eaeaea' }}>
                 {renderCategoryFilter()}
@@ -1136,13 +1128,14 @@ const InvestmentsScreen: React.FC = () => {
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
               }
             >
+              {/* Remove the header view here */}
               {renderPortfolioAnalytics()}
               <View style={styles.holdingsContainer}>
                 <Text style={styles.sectionTitle}>Your Holdings</Text>
                 {renderHoldings()}
               </View>
             </ScrollView>
-          )}
+                      )}
         </View>
       )}
       
@@ -1155,6 +1148,27 @@ const InvestmentsScreen: React.FC = () => {
 
 // Styles
 const styles = StyleSheet.create({
+  // Add these styles to your StyleSheet
+  headerContainer: {
+    padding: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333333',
+    // Remove paddingLeft: 0 to match AccountsOverviewScreen
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 4,
+    // Remove paddingLeft: 0 to match AccountsOverviewScreen
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -1182,22 +1196,20 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 3,
-    borderBottomColor: '#48A665',
+    borderBottomColor: '#006a4d',
   },
   tabText: {
     fontSize: 16,
     color: '#777',
   },
   activeTabText: {
-    color: '#48A665',
+    color: '#006a4d',
     fontWeight: '600',
   },
   filtersContainer: {
     flexDirection: 'row',
     padding: 10,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eaeaea',
     alignItems: 'center',
   },
   searchContainer: {
@@ -1226,7 +1238,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   categoryFilterContainer: {
-    paddingVertical: 6,
+    paddingVertical: 4,
+    paddingBottom: 12,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     flexGrow: 0, // Prevent growing
@@ -1239,7 +1252,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
   },
   categoryFilterButtonActive: {
-    backgroundColor: '#48A665',
+    backgroundColor: '#006a4d',
   },
   categoryFilterText: {
     fontSize: 14,
@@ -1319,7 +1332,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   positiveChange: {
-    color: '#48A665',
+    color: '#006a4d',
   },
   negativeChange: {
     color: '#E74C3C',
