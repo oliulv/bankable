@@ -225,15 +225,18 @@ const InvestmentsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'assets' | 'portfolio'>('assets');
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'All'>('All');
   const [sortOption, setSortOption] = useState<'name' | 'price' | 'change'>('name');
+  const categoryScrollViewRef = React.useRef<ScrollView>(null);
+  const [showCategoryIndicator, setShowCategoryIndicator] = useState(true);
 
   // Load portfolio data from storage on mount
   useEffect(() => {
     loadPortfolio();
+    loadFavorites();
     
     // Simulate API fetch delay
     setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 500);
     
     // Setup periodic price updates (every 30 seconds)
     const updateInterval = setInterval(() => {
@@ -242,6 +245,26 @@ const InvestmentsScreen: React.FC = () => {
     
     return () => clearInterval(updateInterval);
   }, []);
+  
+  // Add this new effect for the category scroll animation
+  useEffect(() => {
+    // Bounce animation on first render for category scrolling
+    setTimeout(() => {
+      if (categoryScrollViewRef.current) {
+        categoryScrollViewRef.current.scrollTo({ x: 50, animated: true });
+        setTimeout(() => {
+          categoryScrollViewRef.current?.scrollTo({ x: 0, animated: true });
+        }, 800);
+      }
+    }, 500);
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Handle scroll for category filter
+  const handleCategoryScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isScrolledToEnd = layoutMeasurement.width + contentOffset.x >= contentSize.width - 20;
+    setShowCategoryIndicator(!isScrolledToEnd);
+  };
 
   // Filter assets based on category and search query
   useEffect(() => {
@@ -340,6 +363,51 @@ const InvestmentsScreen: React.FC = () => {
       asset.id === assetId ? { ...asset, favorite: !asset.favorite } : asset
     );
     setAssets(updatedAssets);
+    
+    // Also update selectedAsset if it's the one being toggled
+    if (selectedAsset && selectedAsset.id === assetId) {
+      setSelectedAsset({
+        ...selectedAsset,
+        favorite: !selectedAsset.favorite
+      });
+    }
+    
+    // Save favorites to AsyncStorage
+    saveFavorites(updatedAssets);
+  };
+
+  // Save favorites to AsyncStorage
+  const saveFavorites = (assetsList: Asset[]) => {
+    try {
+      // Extract just the IDs of favorited assets
+      const favoriteIds = assetsList
+        .filter(asset => asset.favorite)
+        .map(asset => asset.id);
+      
+      AsyncStorage.setItem('favoriteAssets', JSON.stringify(favoriteIds));
+    } catch (error) {
+      console.error('Failed to save favorites:', error);
+    }
+  };
+
+  // Load favorites from AsyncStorage and apply them to assets
+  const loadFavorites = async () => {
+    try {
+      const favoritesData = await AsyncStorage.getItem('favoriteAssets');
+      if (favoritesData) {
+        const favoriteIds = JSON.parse(favoritesData) as string[];
+        
+        // Apply favorites to current assets
+        const updatedAssets = assets.map(asset => ({
+          ...asset,
+          favorite: favoriteIds.includes(asset.id)
+        }));
+        
+        setAssets(updatedAssets);
+      }
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+    }
   };
 
   // Open asset details modal
@@ -517,10 +585,11 @@ const InvestmentsScreen: React.FC = () => {
     // Prepare data for pie chart
     const chartData = Object.entries(categoryMap).map(([category, value], index) => {
       const colors = ['#006a4d', '#3498DB', '#9B59B6', '#F1C40F', '#E74C3C', '#16A085'];
+      const percentage = (value / totalValue) * 100;
       return {
         name: category,
-        value: value,
-        percentage: (value / totalValue) * 100,
+        value: percentage, // Use percentage as the value
+        percentage: percentage, // Keep the percentage for display purposes
         color: colors[index % colors.length],
         legendFontColor: '#7F7F7F',
         legendFontSize: 12
@@ -917,31 +986,42 @@ const InvestmentsScreen: React.FC = () => {
     const categories: (AssetCategory | 'All')[] = ['All', 'Stocks', 'ETFs', 'Crypto', 'Bonds', 'Real Estate'];
     
     return (
-      <ScrollView 
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryFilterContainer}
-      >
-        {categories.map(category => (
-          <TouchableOpacity
-            key={category}
-            style={[
-              styles.categoryFilterButton,
-              selectedCategory === category && styles.categoryFilterButtonActive
-            ]}
-            onPress={() => setSelectedCategory(category)}
-          >
-            <Text 
+      <View style={styles.categoryFilterWrapper}>
+        <ScrollView 
+          ref={categoryScrollViewRef}
+          horizontal
+          showsHorizontalScrollIndicator={true}
+          contentContainerStyle={styles.categoryFilterContainer}
+          onScroll={handleCategoryScroll}
+          scrollEventThrottle={16}
+        >
+          {categories.map(category => (
+            <TouchableOpacity
+              key={category}
               style={[
-                styles.categoryFilterText,
-                selectedCategory === category && styles.categoryFilterTextActive
+                styles.categoryFilterButton,
+                selectedCategory === category && styles.categoryFilterButtonActive
               ]}
+              onPress={() => setSelectedCategory(category)}
             >
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text 
+                style={[
+                  styles.categoryFilterText,
+                  selectedCategory === category && styles.categoryFilterTextActive
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        {showCategoryIndicator && (
+          <View style={styles.scrollIndicator}>
+            <Ionicons name="chevron-forward" size={20} color="#006a4d" />
+          </View>
+        )}
+      </View>
     );
   };
   
@@ -1712,6 +1792,29 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     backgroundColor: '#555555', // Changed to dark grey
+  },
+  // Make sure these styles are in your StyleSheet
+  categoryFilterWrapper: {
+    position: 'relative',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  scrollIndicator: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Add a gradient fade effect from transparent to white
+    shadowColor: '#fff',
+    shadowOffset: { width: -15, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
+    elevation: 5,
   },
 });
 
