@@ -15,6 +15,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../context/UserContext";
 import { getAccountTransactions } from "../api/userData";
 import { useRouter } from "expo-router"; // Add this import
+import Constants from "expo-constants";
+
+// Access API Key
+const togetherAiApiKey = Constants.expoConfig?.extra?.togetherAiApiKey;
 
 interface Message {
   role: "assistant" | "user" | "system";
@@ -30,7 +34,7 @@ interface NavigationButton {
 }
 
 // TogetherAI API key - Replace with your actual key
-const TOGETHER_API_KEY = "tgp_v1_XpOfBNJFK2M1H33jFBMzNHIvznkT4HmEvt4cg25GLn4"; 
+const TOGETHER_API_KEY = togetherAiApiKey; 
 
 // Define valid screens for navigation - this improves type safety and security
 type ValidScreenPath = 
