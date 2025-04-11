@@ -56,7 +56,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
   const recentTransactions: Transaction[] = [
     {
       id: '1',
-      merchant: "Local Farmer's Market", // Use double quotes when string contains apostrophe
+      merchant: "Local Farmer's Market",
       amount: 32.50,
       date: new Date('2025-04-05'),
       category: 'Groceries',
@@ -106,7 +106,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
       description: 'Make 5 purchases from certified eco-friendly stores',
       reward: '400 eco-points',
       progress: 0.4,
-      icon: 'shopping-bag',
+      icon: 'shopping',
     },
   ];
 
@@ -143,11 +143,10 @@ const EcoFinancialImpactScreen: React.FC = () => {
     }, 1000);
   }, []);
 
-  // Update chart config to use #006a4d instead of #006a4d
   const chartConfig = {
     backgroundGradientFrom: '#fff',
     backgroundGradientTo: '#fff',
-    color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`, // Changed from #006a4d
+    color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
     strokeWidth: 2,
     barPercentage: 0.6,
     decimalPlaces: 0,
@@ -192,19 +191,19 @@ const EcoFinancialImpactScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#006a4d" /> {/* Changed from #006a4d */}
+          <ActivityIndicator size="large" color="#006a4d" />
           <Text style={styles.loadingText}>Calculating your eco impact...</Text>
         </View>
       ) : (
         <>
-          {/* Static Header - matches InvestmentsScreen */}
+          {/* Static Header */}
           <View style={styles.headerContainer}>
             <Text style={styles.title}>Eco Financial Impact</Text>
             <Text style={styles.subtitle}>Track your sustainable spending footprint</Text>
           </View>
           
           <ScrollView style={styles.scrollView}>
-            {/* Carbon Footprint Summary Card - styled like portfolio summary in InvestmentsScreen */}
+            {/* Carbon Footprint Summary Card */}
             <View style={styles.carbonSummaryContainer}>
               <View style={styles.carbonSummary}>
                 <View style={styles.carbonValueContainer}>
@@ -242,10 +241,10 @@ const EcoFinancialImpactScreen: React.FC = () => {
               </View>
             </View>
 
-            {/* Impact Metrics - styled like card items */}
+            {/* Impact Metrics */}
             <View style={styles.impactMetricsContainer}>
               <View style={styles.metricCard}>
-                <MaterialCommunityIcons name="tree" size={24} color="#006a4d" /> {/* Changed from #006a4d */}
+                <MaterialCommunityIcons name="tree" size={24} color="#006a4d" />
                 <Text style={styles.metricValue}>{impactDetails.trees}</Text>
                 <Text style={styles.metricLabel}>Trees Saved</Text>
               </View>
@@ -261,48 +260,54 @@ const EcoFinancialImpactScreen: React.FC = () => {
               </View>
             </View>
             
-            {/* Enhanced Tab Navigation - MOVED HERE */}
+            {/* Enhanced Tab Navigation */}
             <View style={styles.enhancedTabContainer}>
               <TouchableOpacity
                 style={[styles.enhancedTab, activeTab === 'impact' && styles.enhancedActiveTab]}
                 onPress={() => setActiveTab('impact')}
               >
-                <MaterialCommunityIcons 
-                  name="chart-line" 
-                  size={20} 
-                  color={activeTab === 'impact' ? "#006a4d" : "#777"} 
-                />
-                <Text style={[styles.enhancedTabText, activeTab === 'impact' && styles.enhancedActiveTabText]}>
-                  Impact
-                </Text>
+                <View style={styles.tabIconTextContainer}>
+                  <MaterialCommunityIcons 
+                    name="chart-line" 
+                    size={20} 
+                    color={activeTab === 'impact' ? "#006a4d" : "#777"} 
+                  />
+                  <Text style={[styles.enhancedTabText, activeTab === 'impact' && styles.enhancedActiveTabText]}>
+                    Impact
+                  </Text>
+                </View>
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={[styles.enhancedTab, activeTab === 'actions' && styles.enhancedActiveTab]}
                 onPress={() => setActiveTab('actions')}
               >
-                <MaterialCommunityIcons 
-                  name="lightbulb-outline" 
-                  size={20} 
-                  color={activeTab === 'actions' ? "#006a4d" : "#777"} 
-                />
-                <Text style={[styles.enhancedTabText, activeTab === 'actions' && styles.enhancedActiveTabText]}>
-                  Actions
-                </Text>
+                <View style={styles.tabIconTextContainer}>
+                  <MaterialCommunityIcons 
+                    name="lightbulb-outline" 
+                    size={20} 
+                    color={activeTab === 'actions' ? "#006a4d" : "#777"} 
+                  />
+                  <Text style={[styles.enhancedTabText, activeTab === 'actions' && styles.enhancedActiveTabText]}>
+                    Actions
+                  </Text>
+                </View>
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={[styles.enhancedTab, activeTab === 'challenges' && styles.enhancedActiveTab]}
                 onPress={() => setActiveTab('challenges')}
               >
-                <MaterialCommunityIcons 
-                  name="trophy-outline" 
-                  size={20} 
-                  color={activeTab === 'challenges' ? "#006a4d" : "#777"} 
-                />
-                <Text style={[styles.enhancedTabText, activeTab === 'challenges' && styles.enhancedActiveTabText]}>
-                  Challenges
-                </Text>
+                <View style={styles.tabIconTextContainer}>
+                  <MaterialCommunityIcons 
+                    name="trophy-outline" 
+                    size={20} 
+                    color={activeTab === 'challenges' ? "#006a4d" : "#777"} 
+                  />
+                  <Text style={[styles.enhancedTabText, activeTab === 'challenges' && styles.enhancedActiveTabText]}>
+                    Challenges
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
             
@@ -436,9 +441,12 @@ const EcoFinancialImpactScreen: React.FC = () => {
                       <Text style={styles.progressText}>{Math.round(challenge.progress * 100)}%</Text>
                     </View>
                     <View style={styles.challengeFooter}>
-                      <Text style={styles.challengeReward}>
-                        <MaterialCommunityIcons name="leaf" size={14} color="#006a4d" /> {challenge.reward}
-                      </Text>
+                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <MaterialCommunityIcons name="leaf" size={14} color="#006a4d" />
+                        <Text style={[styles.challengeReward, {marginLeft: 4}]}>
+                          {challenge.reward}
+                        </Text>
+                      </View>
                       <TouchableOpacity style={styles.challengeButton}>
                         <Text style={styles.challengeButtonText}>Details</Text>
                       </TouchableOpacity>
@@ -574,6 +582,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#FFF',
     borderRadius: 12,
+    marginHorizontal: 16, // Match the tabs container margins
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1119,23 +1128,38 @@ const styles = StyleSheet.create({
   },
   enhancedTabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eaeaea',
-    paddingVertical: 10,
+    backgroundColor: '#F9F9F9', // Match the page background color
+    marginHorizontal: 16,
+    marginVertical: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden',
   },
   enhancedTab: {
+    flex: 1,
+    paddingVertical: 14,
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
   enhancedActiveTab: {
+    backgroundColor: '#F0FAF5', // Light green background for active tab
     borderBottomWidth: 3,
     borderBottomColor: '#006a4d',
+  },
+  tabIconTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   enhancedTabText: {
     fontSize: 14,
     color: '#777',
-    marginTop: 4,
+    marginLeft: 6,
+    fontWeight: '500',
   },
   enhancedActiveTabText: {
     color: '#006a4d',
