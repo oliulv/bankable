@@ -1,4 +1,3 @@
-// InvestmentsScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
