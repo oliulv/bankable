@@ -12,7 +12,6 @@ export default function RootLayout() {
   const [isSplashFinished, setIsSplashFinished] = useState(false);
   const pathname = usePathname();
   const isLoginScreen = pathname === '/';
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsSplashFinished(true);
@@ -56,19 +55,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loginSafeContainer: {
-    backgroundColor: '#000',
+    backgroundColor: '#015f45',
   },
   defaultSafeContainer: {
-    backgroundColor: '#006a4d',
+    backgroundColor: '#015f45',
   },
   content: {
     flex: 1,
-    backgroundColor: "#006a4d",
+    backgroundColor: "#015f45",
   },
   loginContent: {
-    backgroundColor: 'transparent',
+    backgroundColor: "#015f45",
   },
   defaultContent: {
-    backgroundColor: '#006a4d',
+    backgroundColor: '#015f45',
   }
 });

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, Dimensions, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, Dimensions, SafeAreaView, TouchableOpacity, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithNames } from '../api/auth';
 import { useUser } from '../context/UserContext';
@@ -14,22 +14,41 @@ export default function IndexScreen() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const videoRef = useRef<AV.Video>(null);
+  const [splashComplete, setSplashComplete] = useState(false);
+  const videoRef = useRef<AV.Video | null>(null);
   const { width, height } = Dimensions.get('window');
 
   useEffect(() => {
-    const loadVideo = async () => {
+    const playSplashVideo = async () => {
       try {
-        await videoRef.current?.loadAsync(require('../assets/videos/VIDEO-3.mp4'));
-        await videoRef.current?.playAsync();
-        await videoRef.current?.setIsLoopingAsync(true);
+        if (videoRef.current) {
+          await videoRef.current.loadAsync(require('../assets/videos/VIDEO.mp4'));
+          await videoRef.current.playAsync();
+          await videoRef.current.setIsLoopingAsync(false);
+        }
       } catch (error) {
-        console.error("Error loading video:", error);
+        console.error("Error loading splash video:", error);
+        // If video fails to load, proceed directly to the login screen
+        setSplashComplete(true);
       }
     };
 
-    loadVideo();
+    playSplashVideo();
+    
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.unloadAsync();
+      }
+    };
   }, []);
+
+  // Handle video playback status updates
+  const onPlaybackStatusUpdate = (status: AV.AVPlaybackStatus) => {
+    if (status.isLoaded && status.didJustFinish) {
+      // Video has finished playing, transition to login screen with background image
+      setSplashComplete(true);
+    }
+  };
 
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -76,23 +95,38 @@ export default function IndexScreen() {
     router.push('/HomeScreen');
   };
 
+  // Render splash screen during video playback
+  if (!splashComplete) {
+    return (
+      <View style={styles.container}>
+        <AV.Video
+          ref={videoRef}
+          source={require('../assets/videos/VIDEO.mp4')}
+          style={styles.video}
+          resizeMode={AV.ResizeMode.COVER}
+          shouldPlay
+          isLooping={false}
+          isMuted
+          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        />
+      </View>
+    );
+  }
+
+  // Render login screen with background image after splash video completes
   return (
     <View style={styles.container}>
       <AV.Video
         ref={videoRef}
-        source={require('../assets/videos/VIDEO-3.mp4')}
-        style={[styles.video, { width, height }]}
+        source={require('../assets/videos/VIDEO.mp4')}
+        style={styles.video}
         resizeMode={AV.ResizeMode.COVER}
         shouldPlay
-        isLooping
+        isLooping={false}
         isMuted
       />
-
-      {/* Overlay Content */}
-      <SafeAreaView style={styles.overlay}>
+      <View style={styles.overlay}>
         <View style={styles.contentContainer}>
-          <Text style={styles.slogan}>Money Made Simple - Let's Begin</Text>
-          
           <TextInput
             style={styles.input}
             placeholder="User ID"
@@ -100,7 +134,6 @@ export default function IndexScreen() {
             onChangeText={setFirstName}
             placeholderTextColor="rgba(255,255,255,0.7)"
           />
-
           <TextInput
             style={styles.input}
             placeholder="Password"
@@ -109,24 +142,13 @@ export default function IndexScreen() {
             placeholderTextColor="rgba(255,255,255,0.7)"
             secureTextEntry={true}
           />
-
           <View style={styles.buttonContainer}>
-            <Button
-              onPress={handleLogin}
-              style={styles.loginButton}
-            >
+            <Button onPress={handleLogin} style={styles.loginButton}>
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </View>
-
-          {/* Dev Login Button */}
-          <TouchableOpacity onPress={handleDevLogin} style={{ marginTop: 16 }}>
-            <Text style={{ color: '#ffffffaa', fontSize: 14, textAlign: 'center' }}>
-              Dev Login
-            </Text>
-          </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -134,35 +156,24 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#277846',
   },
   video: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
+    width: '100%',
+    height: '100%',
   },
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    zIndex: 2,
-    paddingBottom: 100,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 50,
   },
   contentContainer: {
+    width: '100%',
     paddingHorizontal: 24,
     alignItems: 'center',
-  },
-  slogan: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 40,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
+    marginBottom: 200,
   },
   input: {
     height: 48,

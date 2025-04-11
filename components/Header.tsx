@@ -62,7 +62,7 @@ export default function Header() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#006a4d",
+    backgroundColor: "#015f45",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
