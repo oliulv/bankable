@@ -20,9 +20,9 @@ export default function Footer() {
       {/* Group Savings Goals */}
       <TouchableOpacity
         style={styles.iconContainer}
-        onPress={() => router.push("/GroupSavingGoalsScreen")}
+        onPress={() => router.push("/InvestmentsScreen")}
       >
-        <Ionicons name="people" size={24} color="#fff" />
+        <Ionicons name="trending-up-outline" size={24} color="#fff" />
       </TouchableOpacity>
 
       {/* Home - Center */}
