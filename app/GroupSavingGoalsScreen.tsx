@@ -141,8 +141,17 @@ export default function GroupSavingGoalsScreen() {
     );
   };
 
+  // Update the return statement to include the header
   return (
     <View style={styles.container}>
+      {/* Static Header with dynamic subtitle */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Group Savings</Text>
+        <Text style={styles.subtitle}>
+          {goals.length} {goals.length === 1 ? 'goal' : 'goals'} active
+        </Text>
+      </View>
+      
       <FlatList
         data={goals}
         renderItem={renderGoalItem}
@@ -319,5 +328,21 @@ const styles = StyleSheet.create({
   modalButtonRow: {
     flexDirection: "row",
     marginTop: 12,
+  },
+  headerContainer: {
+    padding: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 4,
   },
 });

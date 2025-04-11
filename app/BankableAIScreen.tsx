@@ -15,6 +15,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../context/UserContext";
 import { getAccountTransactions } from "../api/userData";
 import { useRouter } from "expo-router"; // Add this import
+import Constants from "expo-constants";
+
+// Access API Key
+const togetherAiApiKey = Constants.expoConfig?.extra?.togetherAiApiKey;
 
 interface Message {
   role: "assistant" | "user" | "system";
@@ -30,7 +34,7 @@ interface NavigationButton {
 }
 
 // TogetherAI API key - Replace with your actual key
-const TOGETHER_API_KEY = "tgp_v1_XpOfBNJFK2M1H33jFBMzNHIvznkT4HmEvt4cg25GLn4"; 
+const TOGETHER_API_KEY = togetherAiApiKey; 
 
 // Define valid screens for navigation - this improves type safety and security
 type ValidScreenPath = 
@@ -245,7 +249,7 @@ export default function BankableAIScreen() {
       const apiMessages = [
         {
           role: "system",
-          content: "You are Bankable AI, a personal finance assistant for Lloyd's Bank. You help users understand their finances, provide advice, and answer questions about their accounts. You have access to the user's complete transaction history and financial details. Use this data to provide highly personalized insights about spending patterns, savings opportunities, and financial health. Always be helpful, concise, and focus on personal finance topics. If asked about banking products, explain you can only provide general information and suggest visiting a branch for specific product offerings.\n\n" +
+          content: "You are Bankable AI, a personal finance assistant for Bankable. You help users understand their finances, provide advice, and answer questions about their accounts. You have access to the user's complete transaction history and financial details. Use this data to provide highly personalized insights about spending patterns, savings opportunities, and financial health. Always be helpful, concise, and focus on personal finance topics. If asked about banking products, explain you can only provide general information and suggest visiting a branch for specific product offerings.\n\n" +
           "NAVIGATION CAPABILITIES: When users ask where to find features in the app, or how to navigate to certain screens, you should provide very concise navigation instructions and add a navigation command at the end of your response.\n\n" +
           "Navigation command format: [NAVIGATE:ScreenName] or [NAVIGATE:ScreenName:param1=value1,param2=value2]\n\n" +
           "Available screens are ONLY:\n" +

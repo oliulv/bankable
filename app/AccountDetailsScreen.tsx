@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useUser } from '../context/UserContext';
 import { getAccountTransactions } from '../api/userData';
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface Transaction {
   transaction_id: string;
@@ -55,16 +56,25 @@ export default function AccountDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.accountHeader}>
-        <Text style={styles.accountType}>{account.product.product_type}</Text>
-        <Text style={styles.accountName}>{account.product.product_name}</Text>
-        <Text style={styles.balance}>
+      {/* Static Header - only show account name */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>{account.product.product_name}</Text>
+      </View>
+
+      {/* Simple Balance Display */}
+      <View style={styles.balanceContainer}>
+        <Text style={styles.balanceLabel}>Current Balance</Text>
+        <Text style={styles.balanceAmount}>
           {typeof account.starting_balance === 'number' 
             ? `£${account.starting_balance.toFixed(2)}`
             : '£0.00'}
         </Text>
       </View>
 
+      {/* Border separator */}
+      <View style={styles.separator} />
+
+      {/* Transactions Section */}
       <View style={styles.transactionsContainer}>
         <Text style={styles.sectionTitle}>Transactions</Text>
 
@@ -120,27 +130,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f7',
   },
-  accountHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: '#006a4d',
+  headerContainer: {
+    padding: 16,
+    paddingTop: 14,
+    paddingBottom: 6,
+    backgroundColor: '#f5f5f7',
   },
-  accountType: {
-    fontSize: 14,
-    color: '#e0e0e0',
-    marginBottom: 4,
-  },
-  accountName: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 8,
+    color: '#333333',
   },
-  balance: {
+  balanceContainer: {
+    padding: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    backgroundColor: '#f5f5f7',
+  },
+  balanceLabel: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  balanceAmount: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#333333',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#eaeaea',
+    marginHorizontal: 16,
   },
   transactionsContainer: {
     flex: 1,

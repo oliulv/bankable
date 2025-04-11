@@ -10,9 +10,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
+import { LinearGradient } from 'expo-linear-gradient';
+import { LineChart, PieChart } from 'react-native-chart-kit';
 
 type Transaction = {
   id: string;
@@ -56,7 +56,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
   const recentTransactions: Transaction[] = [
     {
       id: '1',
-      merchant: "Local Farmer's Market", // Use double quotes when string contains apostrophe
+      merchant: "Local Farmer's Market",
       amount: 32.50,
       date: new Date('2025-04-05'),
       category: 'Groceries',
@@ -106,7 +106,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
       description: 'Make 5 purchases from certified eco-friendly stores',
       reward: '400 eco-points',
       progress: 0.4,
-      icon: 'shopping-bag',
+      icon: 'shopping',
     },
   ];
 
@@ -146,7 +146,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
   const chartConfig = {
     backgroundGradientFrom: '#fff',
     backgroundGradientTo: '#fff',
-    color: (opacity = 1) => `rgba(72, 166, 101, ${opacity})`,
+    color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
     strokeWidth: 2,
     barPercentage: 0.6,
     decimalPlaces: 0,
@@ -167,7 +167,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
     {
       name: 'Green',
       impact: 65,
-      color: '#48A665',
+      color: '#006a4d',
       legendFontColor: '#7F7F7F',
       legendFontSize: 12,
     },
@@ -191,334 +191,378 @@ const EcoFinancialImpactScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#48A665" />
+          <ActivityIndicator size="large" color="#006a4d" />
           <Text style={styles.loadingText}>Calculating your eco impact...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.scrollView}>
-          {/* Header */}
-          <LinearGradient colors={['#48A665', '#3E8C55']} style={styles.header}>
-            <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Eco Financial Impact</Text>
-              <View style={styles.carbonSavedContainer}>
-                <Text style={styles.carbonSavedLabel}>Carbon Footprint Reduced</Text>
-                <View style={styles.carbonSavedValue}>
-                  <Text style={styles.carbonValue}>{totalCarbonSaved}</Text>
-                  <Text style={styles.carbonUnit}>kg CO₂</Text>
-                </View>
-                <View style={styles.periodSelector}>
-                  <TouchableOpacity
-                    style={[styles.periodButton, selectedPeriod === 'week' && styles.activePeriod]}
-                    onPress={() => setSelectedPeriod('week')}
-                  >
-                    <Text style={[styles.periodText, selectedPeriod === 'week' && styles.activePeriodText]}>Week</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.periodButton, selectedPeriod === 'month' && styles.activePeriod]}
-                    onPress={() => setSelectedPeriod('month')}
-                  >
-                    <Text style={[styles.periodText, selectedPeriod === 'month' && styles.activePeriodText]}>Month</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.periodButton, selectedPeriod === 'year' && styles.activePeriod]}
-                    onPress={() => setSelectedPeriod('year')}
-                  >
-                    <Text style={[styles.periodText, selectedPeriod === 'year' && styles.activePeriodText]}>Year</Text>
-                  </TouchableOpacity>
+        <>
+          {/* Static Header */}
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Eco Financial Impact</Text>
+            <Text style={styles.subtitle}>Track your sustainable spending footprint</Text>
+          </View>
+          
+          <ScrollView style={styles.scrollView}>
+            {/* Carbon Footprint Summary Card */}
+            <View style={styles.carbonSummaryContainer}>
+              <View style={styles.carbonSummary}>
+                <View style={styles.carbonValueContainer}>
+                  <Text style={styles.carbonLabel}>Carbon Footprint Reduced</Text>
+                  <Text style={styles.carbonTotalValue}>{totalCarbonSaved} kg CO₂</Text>
+                  
+                  {/* Period selector styled as filter buttons */}
+                  <View style={styles.periodSelectorContainer}>
+                    <TouchableOpacity
+                      style={[styles.periodButton, selectedPeriod === 'week' && styles.activePeriod]}
+                      onPress={() => setSelectedPeriod('week')}
+                    >
+                      <Text style={[styles.periodButtonText, selectedPeriod === 'week' && styles.activePeriodText]}>
+                        Week
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.periodButton, selectedPeriod === 'month' && styles.activePeriod]}
+                      onPress={() => setSelectedPeriod('month')}
+                    >
+                      <Text style={[styles.periodButtonText, selectedPeriod === 'month' && styles.activePeriodText]}>
+                        Month
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.periodButton, selectedPeriod === 'year' && styles.activePeriod]}
+                      onPress={() => setSelectedPeriod('year')}
+                    >
+                      <Text style={[styles.periodButtonText, selectedPeriod === 'year' && styles.activePeriodText]}>
+                        Year
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>
-          </LinearGradient>
 
-          {/* Impact Metrics */}
-          <View style={styles.impactMetricsContainer}>
-            <View style={styles.metricCard}>
-              <MaterialCommunityIcons name="tree" size={24} color="#48A665" />
-              <Text style={styles.metricValue}>{impactDetails.trees}</Text>
-              <Text style={styles.metricLabel}>Trees Saved</Text>
+            {/* Impact Metrics */}
+            <View style={styles.impactMetricsContainer}>
+              <View style={styles.metricCard}>
+                <MaterialCommunityIcons name="tree" size={24} color="#006a4d" />
+                <Text style={styles.metricValue}>{impactDetails.trees}</Text>
+                <Text style={styles.metricLabel}>Trees Saved</Text>
+              </View>
+              <View style={styles.metricCard}>
+                <MaterialCommunityIcons name="water" size={24} color="#3498DB" />
+                <Text style={styles.metricValue}>{impactDetails.water}</Text>
+                <Text style={styles.metricLabel}>Liters Water</Text>
+              </View>
+              <View style={styles.metricCard}>
+                <MaterialCommunityIcons name="lightning-bolt" size={24} color="#F39C12" />
+                <Text style={styles.metricValue}>{impactDetails.energy}</Text>
+                <Text style={styles.metricLabel}>kWh Saved</Text>
+              </View>
             </View>
-            <View style={styles.metricCard}>
-              <MaterialCommunityIcons name="water" size={24} color="#3498DB" />
-              <Text style={styles.metricValue}>{impactDetails.water}</Text>
-              <Text style={styles.metricLabel}>Liters Water</Text>
+            
+            {/* Enhanced Tab Navigation */}
+            <View style={styles.enhancedTabContainer}>
+              <TouchableOpacity
+                style={[styles.enhancedTab, activeTab === 'impact' && styles.enhancedActiveTab]}
+                onPress={() => setActiveTab('impact')}
+              >
+                <View style={styles.tabIconTextContainer}>
+                  <MaterialCommunityIcons 
+                    name="chart-line" 
+                    size={20} 
+                    color={activeTab === 'impact' ? "#006a4d" : "#777"} 
+                  />
+                  <Text style={[styles.enhancedTabText, activeTab === 'impact' && styles.enhancedActiveTabText]}>
+                    Impact
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.enhancedTab, activeTab === 'actions' && styles.enhancedActiveTab]}
+                onPress={() => setActiveTab('actions')}
+              >
+                <View style={styles.tabIconTextContainer}>
+                  <MaterialCommunityIcons 
+                    name="lightbulb-outline" 
+                    size={20} 
+                    color={activeTab === 'actions' ? "#006a4d" : "#777"} 
+                  />
+                  <Text style={[styles.enhancedTabText, activeTab === 'actions' && styles.enhancedActiveTabText]}>
+                    Actions
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.enhancedTab, activeTab === 'challenges' && styles.enhancedActiveTab]}
+                onPress={() => setActiveTab('challenges')}
+              >
+                <View style={styles.tabIconTextContainer}>
+                  <MaterialCommunityIcons 
+                    name="trophy-outline" 
+                    size={20} 
+                    color={activeTab === 'challenges' ? "#006a4d" : "#777"} 
+                  />
+                  <Text style={[styles.enhancedTabText, activeTab === 'challenges' && styles.enhancedActiveTabText]}>
+                    Challenges
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
-            <View style={styles.metricCard}>
-              <MaterialCommunityIcons name="lightning-bolt" size={24} color="#F39C12" />
-              <Text style={styles.metricValue}>{impactDetails.energy}</Text>
-              <Text style={styles.metricLabel}>kWh Saved</Text>
-            </View>
-          </View>
+            
+            {/* Tab Content */}
+            {activeTab === 'impact' && (
+              <View style={styles.tabContent}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Carbon Impact Over Time</Text>
+                  <TouchableOpacity>
+                    <Text style={styles.seeAllText}>Details</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.chartContainer}>
+                  <LineChart
+                    data={impactData}
+                    width={screenWidth - 40}
+                    height={220}
+                    chartConfig={chartConfig}
+                    bezier
+                    style={styles.chart}
+                  />
+                </View>
 
-          {/* Tab Navigation */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'impact' && styles.activeTab]}
-              onPress={() => setActiveTab('impact')}
-            >
-              <Text style={[styles.tabText, activeTab === 'impact' && styles.activeTabText]}>Impact</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'actions' && styles.activeTab]}
-              onPress={() => setActiveTab('actions')}
-            >
-              <Text style={[styles.tabText, activeTab === 'actions' && styles.activeTabText]}>Actions</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'challenges' && styles.activeTab]}
-              onPress={() => setActiveTab('challenges')}
-            >
-              <Text style={[styles.tabText, activeTab === 'challenges' && styles.activeTabText]}>Challenges</Text>
-            </TouchableOpacity>
-          </View>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Spending by Impact Category</Text>
+                  <TouchableOpacity>
+                    <Text style={styles.seeAllText}>Details</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.chartContainer}>
+                  <PieChart
+                    data={spendingCategoryData}
+                    width={screenWidth - 40}
+                    height={200}
+                    chartConfig={chartConfig}
+                    accessor="impact"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                  />
+                </View>
 
-          {/* Tab Content */}
-          {activeTab === 'impact' && (
-            <View style={styles.tabContent}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Carbon Impact Over Time</Text>
-                <TouchableOpacity>
-                  <Text style={styles.seeAllText}>Details</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Recent Eco-friendly Transactions</Text>
+                  <TouchableOpacity>
+                    <Text style={styles.seeAllText}>See All</Text>
+                  </TouchableOpacity>
+                </View>
+                {recentTransactions.map((transaction) => (
+                  <View key={transaction.id} style={styles.transactionCard}>
+                    <View style={styles.transactionIconContainer}>
+                      <MaterialCommunityIcons name={transaction.icon as any} size={24} color="#006a4d" />
+                    </View>
+                    <View style={styles.transactionDetails}>
+                      <Text style={styles.transactionMerchant}>{transaction.merchant}</Text>
+                      <Text style={styles.transactionCategory}>{transaction.category} • {transaction.date.toLocaleDateString()}</Text>
+                    </View>
+                    <View style={styles.transactionAmounts}>
+                      <Text style={styles.transactionAmount}>${transaction.amount.toFixed(2)}</Text>
+                      <Text style={styles.carbonAmount}>{transaction.carbonImpact}kg CO₂</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+            
+            {activeTab === 'actions' && (
+              <View style={styles.tabContent}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Recommended Eco Actions</Text>
+                </View>
+                {ecoActions.map((action) => (
+                  <TouchableOpacity key={action.id} style={styles.actionCard}>
+                    <View style={styles.actionIconContainer}>
+                      <MaterialCommunityIcons name={action.icon as any} size={28} color="#006a4d" />
+                    </View>
+                    <View style={styles.actionDetails}>
+                      <Text style={styles.actionTitle}>{action.title}</Text>
+                      <Text style={styles.actionDescription}>{action.description}</Text>
+                      <Text style={styles.actionImpact}>{action.impact}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={24} color="#BBB" />
+                  </TouchableOpacity>
+                ))}
+
+                <View style={styles.customBannerContainer}>
+                  <LinearGradient colors={['#006a4d', '#3E8C55']} style={styles.customBanner}>
+                    <View style={styles.bannerContent}>
+                      <MaterialCommunityIcons name="leaf" size={36} color="#FFF" />
+                      <View style={styles.bannerTextContainer}>
+                        <Text style={styles.bannerTitle}>Carbon Offset Subscription</Text>
+                        <Text style={styles.bannerDescription}>
+                          Offset your carbon footprint by just $5/month
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.bannerButton}>
+                      <Text style={styles.bannerButtonText}>Learn More</Text>
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </View>
+              </View>
+            )}
+
+            {activeTab === 'challenges' && (
+              <View style={styles.tabContent}>
+                <View style={styles.challengeHeader}>
+                  <View>
+                    <Text style={styles.sectionTitle}>My Eco Challenges</Text>
+                    <Text style={styles.challengeSubtitle}>Complete challenges to earn rewards</Text>
+                  </View>
+                  <View style={styles.ecoPointsContainer}>
+                    <MaterialCommunityIcons name="leaf" size={18} color="#006a4d" />
+                    <Text style={styles.ecoPoints}>1,250 points</Text>
+                  </View>
+                </View>
+
+                {ecoChallenges.map((challenge) => (
+                  <View key={challenge.id} style={styles.challengeCard}>
+                    <View style={styles.challengeHeader}>
+                      <View style={styles.challengeIconContainer}>
+                        <MaterialCommunityIcons name={challenge.icon as any} size={24} color="#FFF" />
+                      </View>
+                      <Text style={styles.challengeTitle}>{challenge.title}</Text>
+                    </View>
+                    <Text style={styles.challengeDescription}>{challenge.description}</Text>
+                    <View style={styles.challengeProgressContainer}>
+                      <View style={styles.progressBarContainer}>
+                        <View style={[styles.progressBar, { width: `${challenge.progress * 100}%` }]} />
+                      </View>
+                      <Text style={styles.progressText}>{Math.round(challenge.progress * 100)}%</Text>
+                    </View>
+                    <View style={styles.challengeFooter}>
+                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <MaterialCommunityIcons name="leaf" size={14} color="#006a4d" />
+                        <Text style={[styles.challengeReward, {marginLeft: 4}]}>
+                          {challenge.reward}
+                        </Text>
+                      </View>
+                      <TouchableOpacity style={styles.challengeButton}>
+                        <Text style={styles.challengeButtonText}>Details</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                <TouchableOpacity style={styles.findMoreButton}>
+                  <Text style={styles.findMoreButtonText}>Find More Challenges</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.chartContainer}>
-                <LineChart
-                  data={impactData}
-                  width={screenWidth - 40}
-                  height={220}
-                  chartConfig={chartConfig}
-                  bezier
-                  style={styles.chart}
-                />
-              </View>
+            )}
 
+            {/* Community Impact */}
+            <View style={styles.communityContainer}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Spending by Impact Category</Text>
-                <TouchableOpacity>
-                  <Text style={styles.seeAllText}>Details</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.chartContainer}>
-                <PieChart
-                  data={spendingCategoryData}
-                  width={screenWidth - 40}
-                  height={200}
-                  chartConfig={chartConfig}
-                  accessor="impact"
-                  backgroundColor="transparent"
-                  paddingLeft="15"
-                  absolute
-                />
-              </View>
-
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Eco-friendly Transactions</Text>
+                <Text style={styles.sectionTitle}>Community Impact</Text>
                 <TouchableOpacity>
                   <Text style={styles.seeAllText}>See All</Text>
                 </TouchableOpacity>
               </View>
-              {recentTransactions.map((transaction) => (
-                <View key={transaction.id} style={styles.transactionCard}>
-                  <View style={styles.transactionIconContainer}>
-                    <MaterialCommunityIcons name={transaction.icon as any} size={24} color="#48A665" />
+              <View style={styles.communityCard}>
+                <View style={styles.communityHeader}>
+                  <MaterialCommunityIcons name="earth" size={24} color="#006a4d" />
+                  <Text style={styles.communityTitle}>Our Community Impact</Text>
+                </View>
+                <View style={styles.communityStats}>
+                  <View style={styles.communityStat}>
+                    <Text style={styles.communityStatValue}>32,458</Text>
+                    <Text style={styles.communityStatLabel}>kg CO₂ Saved</Text>
                   </View>
-                  <View style={styles.transactionDetails}>
-                    <Text style={styles.transactionMerchant}>{transaction.merchant}</Text>
-                    <Text style={styles.transactionCategory}>{transaction.category} • {transaction.date.toLocaleDateString()}</Text>
+                  <View style={styles.communityStat}>
+                    <Text style={styles.communityStatValue}>1,286</Text>
+                    <Text style={styles.communityStatLabel}>Trees Planted</Text>
                   </View>
-                  <View style={styles.transactionAmounts}>
-                    <Text style={styles.transactionAmount}>${transaction.amount.toFixed(2)}</Text>
-                    <Text style={styles.carbonAmount}>{transaction.carbonImpact}kg CO₂</Text>
+                  <View style={styles.communityStat}>
+                    <Text style={styles.communityStatValue}>$94.5K</Text>
+                    <Text style={styles.communityStatLabel}>Donated</Text>
                   </View>
                 </View>
-              ))}
-            </View>
-          )}
-
-          {activeTab === 'actions' && (
-            <View style={styles.tabContent}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recommended Eco Actions</Text>
-              </View>
-              {ecoActions.map((action) => (
-                <TouchableOpacity key={action.id} style={styles.actionCard}>
-                  <View style={styles.actionIconContainer}>
-                    <MaterialCommunityIcons name={action.icon as any} size={28} color="#48A665" />
-                  </View>
-                  <View style={styles.actionDetails}>
-                    <Text style={styles.actionTitle}>{action.title}</Text>
-                    <Text style={styles.actionDescription}>{action.description}</Text>
-                    <Text style={styles.actionImpact}>{action.impact}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={24} color="#BBB" />
+                <TouchableOpacity style={styles.communityButton}>
+                  <Text style={styles.communityButtonText}>Join Community Projects</Text>
                 </TouchableOpacity>
-              ))}
-
-              <View style={styles.customBannerContainer}>
-                <LinearGradient colors={['#48A665', '#3E8C55']} style={styles.customBanner}>
-                  <View style={styles.bannerContent}>
-                    <MaterialCommunityIcons name="leaf" size={36} color="#FFF" />
-                    <View style={styles.bannerTextContainer}>
-                      <Text style={styles.bannerTitle}>Carbon Offset Subscription</Text>
-                      <Text style={styles.bannerDescription}>
-                        Offset your carbon footprint by just $5/month
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.bannerButton}>
-                    <Text style={styles.bannerButtonText}>Learn More</Text>
-                  </TouchableOpacity>
-                </LinearGradient>
               </View>
             </View>
-          )}
 
-          {activeTab === 'challenges' && (
-            <View style={styles.tabContent}>
-              <View style={styles.challengeHeader}>
-                <View>
-                  <Text style={styles.sectionTitle}>My Eco Challenges</Text>
-                  <Text style={styles.challengeSubtitle}>Complete challenges to earn rewards</Text>
-                </View>
-                <View style={styles.ecoPointsContainer}>
-                  <MaterialCommunityIcons name="leaf" size={18} color="#48A665" />
-                  <Text style={styles.ecoPoints}>1,250 points</Text>
-                </View>
+            {/* Tips and Education */}
+            <View style={styles.tipsContainer}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Eco Finance Tips</Text>
+                <TouchableOpacity>
+                  <Text style={styles.seeAllText}>More Tips</Text>
+                </TouchableOpacity>
               </View>
-
-              {ecoChallenges.map((challenge) => (
-                <View key={challenge.id} style={styles.challengeCard}>
-                  <View style={styles.challengeHeader}>
-                    <View style={styles.challengeIconContainer}>
-                      <MaterialCommunityIcons name={challenge.icon as any} size={24} color="#FFF" />
-                    </View>
-                    <Text style={styles.challengeTitle}>{challenge.title}</Text>
-                  </View>
-                  <Text style={styles.challengeDescription}>{challenge.description}</Text>
-                  <View style={styles.challengeProgressContainer}>
-                    <View style={styles.progressBarContainer}>
-                      <View style={[styles.progressBar, { width: `${challenge.progress * 100}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>{Math.round(challenge.progress * 100)}%</Text>
-                  </View>
-                  <View style={styles.challengeFooter}>
-                    <Text style={styles.challengeReward}>
-                      <MaterialCommunityIcons name="leaf" size={14} color="#48A665" /> {challenge.reward}
-                    </Text>
-                    <TouchableOpacity style={styles.challengeButton}>
-                      <Text style={styles.challengeButtonText}>Details</Text>
-                    </TouchableOpacity>
-                  </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tipsScrollView}>
+                <View style={styles.tipCard}>
+                  <Image
+                    source={{ uri: 'https://placehold.co/120x80?text=Eco+Investing' }}
+                    style={styles.tipImage}
+                  />
+                  <Text style={styles.tipTitle}>Sustainable Investing</Text>
+                  <Text style={styles.tipDescription}>How to build an eco-friendly portfolio</Text>
                 </View>
-              ))}
+                <View style={styles.tipCard}>
+                  <Image
+                    source={{ uri: 'https://placehold.co/120x80?text=Green+Home' }}
+                    style={styles.tipImage}
+                  />
+                  <Text style={styles.tipTitle}>Green Home Savings</Text>
+                  <Text style={styles.tipDescription}>Eco upgrades that save money</Text>
+                </View>
+                <View style={styles.tipCard}>
+                  <Image
+                    source={{ uri: 'https://placehold.co/120x80?text=Carbon+Budget' }}
+                    style={styles.tipImage}
+                  />
+                  <Text style={styles.tipTitle}>Carbon Budgeting</Text>
+                  <Text style={styles.tipDescription}>Track and reduce your footprint</Text>
+                </View>
+              </ScrollView>
+            </View>
 
-              <TouchableOpacity style={styles.findMoreButton}>
-                <Text style={styles.findMoreButtonText}>Find More Challenges</Text>
+            {/* Settings and Preferences */}
+            <View style={styles.settingsContainer}>
+              <Text style={styles.sectionTitle}>Settings & Preferences</Text>
+              <TouchableOpacity style={styles.settingRow}>
+                <View style={styles.settingLabelContainer}>
+                  <MaterialCommunityIcons name="cog" size={20} color="#555" />
+                  <Text style={styles.settingLabel}>Impact Calculation Settings</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#BBB" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.settingRow}>
+                <View style={styles.settingLabelContainer}>
+                  <MaterialCommunityIcons name="bell" size={20} color="#555" />
+                  <Text style={styles.settingLabel}>Eco Alerts & Notifications</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#BBB" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.settingRow}>
+                <View style={styles.settingLabelContainer}>
+                  <MaterialCommunityIcons name="clipboard-list" size={20} color="#555" />
+                  <Text style={styles.settingLabel}>Carbon Offset Preferences</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#BBB" />
               </TouchableOpacity>
             </View>
-          )}
 
-          {/* Community Impact */}
-          <View style={styles.communityContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Community Impact</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                Your eco impact is calculated based on transaction data and industry-standard carbon metrics.
+              </Text>
             </View>
-            <View style={styles.communityCard}>
-              <View style={styles.communityHeader}>
-                <MaterialCommunityIcons name="earth" size={24} color="#48A665" />
-                <Text style={styles.communityTitle}>Our Community Impact</Text>
-              </View>
-              <View style={styles.communityStats}>
-                <View style={styles.communityStat}>
-                  <Text style={styles.communityStatValue}>32,458</Text>
-                  <Text style={styles.communityStatLabel}>kg CO₂ Saved</Text>
-                </View>
-                <View style={styles.communityStat}>
-                  <Text style={styles.communityStatValue}>1,286</Text>
-                  <Text style={styles.communityStatLabel}>Trees Planted</Text>
-                </View>
-                <View style={styles.communityStat}>
-                  <Text style={styles.communityStatValue}>$94.5K</Text>
-                  <Text style={styles.communityStatLabel}>Donated</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.communityButton}>
-                <Text style={styles.communityButtonText}>Join Community Projects</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Tips and Education */}
-          <View style={styles.tipsContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Eco Finance Tips</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAllText}>More Tips</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tipsScrollView}>
-              <View style={styles.tipCard}>
-                <Image
-                  source={{ uri: 'https://placehold.co/120x80?text=Eco+Investing' }}
-                  style={styles.tipImage}
-                />
-                <Text style={styles.tipTitle}>Sustainable Investing</Text>
-                <Text style={styles.tipDescription}>How to build an eco-friendly portfolio</Text>
-              </View>
-              <View style={styles.tipCard}>
-                <Image
-                  source={{ uri: 'https://placehold.co/120x80?text=Green+Home' }}
-                  style={styles.tipImage}
-                />
-                <Text style={styles.tipTitle}>Green Home Savings</Text>
-                <Text style={styles.tipDescription}>Eco upgrades that save money</Text>
-              </View>
-              <View style={styles.tipCard}>
-                <Image
-                  source={{ uri: 'https://placehold.co/120x80?text=Carbon+Budget' }}
-                  style={styles.tipImage}
-                />
-                <Text style={styles.tipTitle}>Carbon Budgeting</Text>
-                <Text style={styles.tipDescription}>Track and reduce your footprint</Text>
-              </View>
-            </ScrollView>
-          </View>
-
-          {/* Settings and Preferences */}
-          <View style={styles.settingsContainer}>
-            <Text style={styles.sectionTitle}>Settings & Preferences</Text>
-            <TouchableOpacity style={styles.settingRow}>
-              <View style={styles.settingLabelContainer}>
-                <MaterialCommunityIcons name="cog" size={20} color="#555" />
-                <Text style={styles.settingLabel}>Impact Calculation Settings</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#BBB" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingRow}>
-              <View style={styles.settingLabelContainer}>
-                <MaterialCommunityIcons name="bell" size={20} color="#555" />
-                <Text style={styles.settingLabel}>Eco Alerts & Notifications</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#BBB" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingRow}>
-              <View style={styles.settingLabelContainer}>
-                <MaterialCommunityIcons name="clipboard-list" size={20} color="#555" />
-                <Text style={styles.settingLabel}>Carbon Offset Preferences</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#BBB" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              Your eco impact is calculated based on transaction data and industry-standard carbon metrics.
-            </Text>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </>
       )}
     </SafeAreaView>
   );
@@ -534,6 +578,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  tabContent: {
+    padding: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginHorizontal: 16, // Match the tabs container margins
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
@@ -542,73 +598,109 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
-    paddingTop: 20,
-    paddingBottom: 25,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+  // New header styling to match InvestmentsScreen
+  headerContainer: {
+    padding: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
   },
-  headerContent: {
-    alignItems: 'center',
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333333',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFF',
-    marginBottom: 15,
-  },
-  carbonSavedContainer: {
-    alignItems: 'center',
-  },
-  carbonSavedLabel: {
+  subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 5,
+    color: '#666666',
+    marginTop: 4,
   },
-  carbonSavedValue: {
+  // Tab styling to match InvestmentsScreen
+  tabContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
   },
-  carbonValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#FFF',
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
   },
-  carbonUnit: {
+  activeTab: {
+    borderBottomWidth: 3,
+    borderBottomColor: '#006a4d', // Changed from #006a4d
+  },
+  tabText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 8,
-    marginLeft: 4,
+    color: '#777',
   },
-  periodSelector: {
+  activeTabText: {
+    color: '#006a4d', // Changed from #006a4d
+    fontWeight: '600',
+  },
+  // Carbon summary styling to match portfolio summary in InvestmentsScreen
+  carbonSummaryContainer: {
+    padding: 16,
+    paddingBottom: 0,
+  },
+  carbonSummary: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  carbonValueContainer: {
+    alignItems: 'center',
+  },
+  carbonLabel: {
+    fontSize: 14,
+    color: '#777',
+  },
+  carbonTotalValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginVertical: 4,
+  },
+  // Period selector styled like category filters
+  periodSelectorContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    padding: 4,
+    marginTop: 10,
+    backgroundColor: '#fff',
   },
   periodButton: {
-    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#f0f0f0',
   },
   activePeriod: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#006a4d', // Changed from #006a4d
   },
-  periodText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 12,
-    fontWeight: '500',
+  periodButtonText: {
+    fontSize: 14,
+    color: '#555',
   },
   activePeriodText: {
-    color: '#48A665',
+    color: '#fff',
+    fontWeight: '600',
   },
+  // Impact metrics styling to match cards in InvestmentsScreen
   impactMetricsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginTop: -25,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 16,
   },
   metricCard: {
     backgroundColor: '#FFF',
@@ -618,9 +710,9 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
     elevation: 2,
   },
   metricValue: {
@@ -634,35 +726,8 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 2,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    marginTop: 20,
-    paddingHorizontal: 20,
-    marginBottom: 5,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#48A665',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#888',
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#48A665',
-    fontWeight: '600',
-  },
-  tabContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
+  
+  // Rest of styles remain the same but with color updates from #006a4d to #006a4d
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -677,7 +742,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: '#48A665',
+    color: '#006a4d',
   },
   chartContainer: {
     backgroundColor: '#FFF',
@@ -737,7 +802,7 @@ const styles = StyleSheet.create({
   },
   carbonAmount: {
     fontSize: 13,
-    color: '#48A665',
+    color: '#006a4d',
     marginTop: 2,
   },
   actionCard: {
@@ -774,7 +839,7 @@ const styles = StyleSheet.create({
   },
   actionImpact: {
     fontSize: 13,
-    color: '#48A665',
+    color: '#006a4d',
     marginTop: 4,
   },
   customBannerContainer: {
@@ -811,7 +876,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   bannerButtonText: {
-    color: '#48A665',
+    color: '#006a4d',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -838,7 +903,7 @@ const styles = StyleSheet.create({
   ecoPoints: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#48A665',
+    color: '#006a4d',
     marginLeft: 4,
   },
   challengeCard: {
@@ -853,7 +918,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   challengeIconContainer: {
-    backgroundColor: '#48A665',
+    backgroundColor: '#006a4d',
     borderRadius: 8,
     padding: 6,
     marginRight: 10,
@@ -883,13 +948,13 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#48A665',
+    backgroundColor: '#006a4d',
     borderRadius: 4,
   },
   progressText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#48A665',
+    color: '#006a4d',
     width: 40,
     textAlign: 'right',
   },
@@ -912,12 +977,12 @@ const styles = StyleSheet.create({
   challengeButtonText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#48A665',
+    color: '#006a4d',
   },
   findMoreButton: {
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#48A665',
+    borderColor: '#006a4d',
     borderRadius: 24,
     paddingVertical: 12,
     alignItems: 'center',
@@ -927,7 +992,7 @@ const styles = StyleSheet.create({
   findMoreButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#48A665',
+    color: '#006a4d',
   },
   communityContainer: {
     paddingHorizontal: 20,
@@ -975,7 +1040,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   communityButton: {
-    backgroundColor: '#48A665',
+    backgroundColor: '#006a4d',
     borderRadius: 24,
     paddingVertical: 12,
     alignItems: 'center',
@@ -1060,6 +1125,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
     textAlign: 'center',
+  },
+  enhancedTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F9F9F9', // Match the page background color
+    marginHorizontal: 16,
+    marginVertical: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  enhancedTab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  enhancedActiveTab: {
+    backgroundColor: '#F0FAF5', // Light green background for active tab
+    borderBottomWidth: 3,
+    borderBottomColor: '#006a4d',
+  },
+  tabIconTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  enhancedTabText: {
+    fontSize: 14,
+    color: '#777',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  enhancedActiveTabText: {
+    color: '#006a4d',
+    fontWeight: '600',
   },
 });
 
