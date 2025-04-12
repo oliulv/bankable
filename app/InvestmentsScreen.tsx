@@ -22,6 +22,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const screenWidth = Dimensions.get('window').width;
 
+// API Constants - add these at the top of your file
+const FINNHUB_API_KEY = 'YOUR_FINNHUB_API_KEY'; // Replace with your actual key
+const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
+const cryptoIdMap = {
+  'BTC': 'bitcoin',
+  'ETH': 'ethereum',
+  // Add more mappings as needed
+};
+
 // Types
 interface Asset {
   id: string;
@@ -228,22 +237,48 @@ const InvestmentsScreen: React.FC = () => {
   const categoryScrollViewRef = React.useRef<ScrollView>(null);
   const [showCategoryIndicator, setShowCategoryIndicator] = useState(true);
 
+  // Add this to your interface/types
+  interface ChartData {
+    isLoading: boolean;
+    labels: string[];
+    prices: number[];
+  }
+
+  // In your component
+  const [chartData, setChartData] = useState<ChartData>({
+    isLoading: false,
+    labels: [],
+    prices: []
+  });
+
   // Load portfolio data from storage on mount
   useEffect(() => {
-    loadPortfolio();
-    loadFavorites();
+    const initialize = async () => {
+      try {
+        // Start loading data
+        setLoading(true);
+        
+        // Load stored data (portfolio, favorites)
+        await loadPortfolio();
+        await loadFavorites();
+        
+        // Load real-time data
+        await updateAssetPrices();
+        
+        // Done loading
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing data:', error);
+        setLoading(false);
+      }
+    };
     
-    // Simulate API fetch delay
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
+    initialize();
     
-    // Setup periodic price updates (every 30 seconds)
-    const updateInterval = setInterval(() => {
-      updateAssetPrices();
-    }, 30000);
+    // Set up refresh interval - 60 seconds
+    const refreshInterval = setInterval(updateAssetPrices, 60000);
     
-    return () => clearInterval(updateInterval);
+    return () => clearInterval(refreshInterval);
   }, []);
   
   // Add this new effect for the category scroll animation
@@ -332,22 +367,98 @@ const InvestmentsScreen: React.FC = () => {
   };
 
   // Update asset prices periodically
-  const updateAssetPrices = () => {
-    // In a real app, this would fetch fresh prices from an API
-    // For demo purposes, we'll simulate small random price changes
-    const updatedAssets = assets.map(asset => {
-      const changePercent = (Math.random() * 2 - 1) * 0.5; // Random change between -0.5% and +0.5%
-      const priceChange = asset.currentPrice * (changePercent / 100);
+  const updateAssetPrices = async () => {
+    try {
+      setRefreshing(true);
       
-      return {
-        ...asset,
-        currentPrice: parseFloat((asset.currentPrice + priceChange).toFixed(2)),
-        priceChange24h: parseFloat((asset.priceChange24h + priceChange).toFixed(2)),
-        priceChangePercentage24h: parseFloat((asset.priceChangePercentage24h + changePercent).toFixed(2))
-      };
-    });
-    
-    setAssets(updatedAssets);
+      // Get exchange rate
+      const exchangeRateResponse = await fetch(
+        `https://finnhub.io/api/v1/forex/rates?base=USD&token=${FINNHUB_API_KEY}`
+      );
+      const exchangeRateData = await exchangeRateResponse.json();
+      const exchangeRate = exchangeRateData?.quote?.GBP || 0.75; 
+  
+      // Process all assets in parallel for faster updates
+      const updatedAssets = await Promise.all(assets.map(async (asset) => {
+        try {
+          if (asset.category === 'Crypto') {
+            // CRYPTO: Use CoinGecko
+            const cryptoId = cryptoIdMap[asset.symbol as keyof typeof cryptoIdMap];
+            if (!cryptoId) return asset;
+            
+            const response = await fetch(
+              `${COINGECKO_API_BASE}/coins/${cryptoId}?localization=false&tickers=false&community_data=false&developer_data=false`
+            );
+            
+            if (!response.ok) {
+              console.error(`Error fetching ${asset.name} data:`, response.status);
+              return asset;
+            }
+            
+            const data = await response.json();
+            
+            if (data?.market_data) {
+              return {
+                ...asset,
+                currentPrice: data.market_data.current_price.usd * exchangeRate,
+                priceChange24h: data.market_data.price_change_24h_in_currency?.usd * exchangeRate || 0,
+                priceChangePercentage24h: data.market_data.price_change_percentage_24h || 0,
+                marketCap: data.market_data.market_cap.usd || 0,
+                volume24h: data.market_data.total_volume.usd || 0
+              };
+            }
+          } else {
+            // STOCKS/ETFs: Use Finnhub
+            // Get quote data (price, change)
+            const quoteResponse = await fetch(
+              `https://finnhub.io/api/v1/quote?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
+            );
+            
+            // Get company profile (market cap)
+            const profileResponse = await fetch(
+              `https://finnhub.io/api/v1/stock/profile2?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
+            );
+  
+            // Get 24h volume data
+            const volumeResponse = await fetch(
+              `https://finnhub.io/api/v1/stock/candle?symbol=${asset.symbol}&resolution=D&from=${Math.floor(Date.now()/1000 - 86400)}&to=${Math.floor(Date.now()/1000)}&token=${FINNHUB_API_KEY}`
+            );
+            
+            const quoteData = quoteResponse.ok ? await quoteResponse.json() : null;
+            const profileData = profileResponse.ok ? await profileResponse.json() : null;
+            const volumeData = volumeResponse.ok ? await volumeResponse.json() : null;
+            
+            return {
+              ...asset,
+              currentPrice: (quoteData?.c || asset.currentPrice) * exchangeRate,
+              priceChange24h: (quoteData?.d || 0) * exchangeRate,
+              priceChangePercentage24h: quoteData?.dp || 0,
+              marketCap: (profileData?.marketCapitalization || 0) * 1000000, // Convert from millions
+              volume24h: volumeData?.v?.[0] || 0
+            };
+          }
+        } catch (err) {
+          console.error(`Error updating ${asset.name}:`, err);
+        }
+        
+        // Return original asset if update failed
+        return asset;
+      }));
+      
+      // Update assets state
+      setAssets(updatedAssets);
+      setFilteredAssets(updatedAssets.filter(asset => {
+        const matchesCategory = selectedCategory === 'All' || asset.category === selectedCategory;
+        const matchesQuery = !searchQuery || asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || asset.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesQuery;
+      }));
+      setRefreshing(false);
+      
+      console.log('Assets updated with real-time data');
+    } catch (error) {
+      console.error('Failed to update asset prices:', error);
+      setRefreshing(false);
+    }
   };
 
   // Pull-to-refresh handler
@@ -638,59 +749,80 @@ const InvestmentsScreen: React.FC = () => {
   };
 
   // Render asset list item
-  const renderAssetItem = ({ item }: { item: Asset }) => (
-    <TouchableOpacity 
-      style={styles.assetCard}
-      onPress={() => openAssetDetails(item)}
-    >
-      <View style={styles.assetHeader}>
-        <View style={styles.assetInfo}>
-          <Text style={styles.assetSymbol}>{item.symbol}</Text>
-          <Text style={styles.assetName}>{item.name}</Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.favoriteButton}
-          onPress={() => toggleFavorite(item.id)}
-        >
-          <Ionicons 
-            name={item.favorite ? "star" : "star-outline"} 
-            size={20} 
-            color={item.favorite ? "#FFC700" : "#BBBBBB"}
-          />
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.assetDetails}>
-        <View style={styles.priceContainer}>
-          <Text style={styles.assetPrice}>£{item.currentPrice.toFixed(2)}</Text>
-          <Text 
-            style={[
-              styles.priceChange,
-              item.priceChangePercentage24h >= 0 ? styles.positiveChange : styles.negativeChange
-            ]}
+  const renderAssetItem = ({ item: asset }: { item: Asset }) => {
+    // Calculate if asset is in portfolio and quantity
+    const holding = portfolio.assets[asset.id];
+    const hasHolding = holding && holding.quantity > 0;
+    const holdingValue = hasHolding ? holding.quantity * asset.currentPrice : 0;
+    
+    return (
+      <TouchableOpacity 
+        style={styles.assetCard} 
+        onPress={() => openAssetDetails(asset)}
+      >
+        <View style={styles.assetHeader}>
+          <View style={styles.assetTitleContainer}>
+            <Text style={styles.assetSymbol}>{asset.symbol}</Text>
+            <Text style={styles.assetName}>{asset.name}</Text>
+            <View style={[styles.categoryTag, getCategoryStyle(asset.category)]}>
+              <Text style={styles.categoryText}>{asset.category}</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={() => toggleFavorite(asset.id)}
           >
-            {item.priceChangePercentage24h >= 0 ? '+' : ''}
-            {item.priceChangePercentage24h.toFixed(2)}%
-          </Text>
+            <Ionicons
+              name={asset.favorite ? 'star' : 'star-outline'}
+              size={20}
+              color={asset.favorite ? '#FFC700' : '#BBBBBB'}
+            />
+          </TouchableOpacity>
         </View>
         
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{item.category}</Text>
+        <View style={styles.assetDetails}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.assetPrice}>£{asset.currentPrice.toFixed(2)}</Text>
+            <Text
+              style={[
+                styles.priceChange,
+                asset.priceChangePercentage24h >= 0
+                  ? styles.positiveChange
+                  : styles.negativeChange,
+              ]}
+            >
+              {asset.priceChangePercentage24h >= 0 ? '↑' : '↓'}{' '}
+              {Math.abs(asset.priceChangePercentage24h).toFixed(2)}%
+            </Text>
+          </View>
+          
+          <View style={styles.marketInfoContainer}>
+            <View style={styles.marketInfoItem}>
+              <Text style={styles.marketInfoLabel}>Market Cap</Text>
+              <Text style={styles.marketInfoValue}>
+                £{(asset.marketCap / 1000000000).toFixed(2)}B
+              </Text>
+            </View>
+            <View style={styles.marketInfoItem}>
+              <Text style={styles.marketInfoLabel}>24h Vol</Text>
+              <Text style={styles.marketInfoValue}>
+                £{(asset.volume24h / 1000000).toFixed(1)}M
+              </Text>
+            </View>
+          </View>
         </View>
-      </View>
-      
-      {portfolio.assets[item.id] && (
-        <View style={styles.holdingInfo}>
-          <Text style={styles.holdingText}>
-            You own: {portfolio.assets[item.id].quantity.toFixed(6)} {item.symbol}
-          </Text>
-          <Text style={styles.holdingValue}>
-            Value: £{(portfolio.assets[item.id].quantity * item.currentPrice).toFixed(2)}
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+        
+        {hasHolding && (
+          <View style={styles.holdingInfo}>
+            <Text style={styles.holdingText}>
+              You own: {holding.quantity.toFixed(holding.quantity < 1 ? 6 : 2)} {asset.symbol}
+            </Text>
+            <Text style={styles.holdingValue}>£{holdingValue.toFixed(2)}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   // Render transaction list item
   const renderTransactionItem = ({ item }: { item: Transaction }) => {
@@ -1226,6 +1358,24 @@ const InvestmentsScreen: React.FC = () => {
   );
 };
 
+// Function to get category-specific styles
+const getCategoryStyle = (category: AssetCategory) => {
+  switch (category) {
+    case 'Stocks':
+      return { backgroundColor: '#3498DB' };
+    case 'ETFs':
+      return { backgroundColor: '#9B59B6' };
+    case 'Crypto':
+      return { backgroundColor: '#F1C40F' };
+    case 'Bonds':
+      return { backgroundColor: '#16A085' };
+    case 'Real Estate':
+      return { backgroundColor: '#E74C3C' };
+    default:
+      return { backgroundColor: '#CCCCCC' };
+  }
+};
+
 // Styles
 const styles = StyleSheet.create({
   // Add these styles to your StyleSheet
@@ -1236,6 +1386,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eaeaea',
+  },
+  assetDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  favoriteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,
@@ -1362,86 +1524,95 @@ const styles = StyleSheet.create({
     paddingTop: 4, // Reduced padding
   },
   assetCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 2,
   },
   assetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  assetInfo: {
+  assetTitleContainer: {
     flex: 1,
   },
   assetSymbol: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#333',
   },
   assetName: {
     fontSize: 14,
-    color: '#777',
-    marginTop: 2,
+    color: '#666',
+    marginBottom: 4,
   },
-  favoriteButton: {
-    padding: 6,
+  categoryTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
   },
-  assetDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#fff',
   },
   priceContainer: {
-    flex: 1,
+    marginBottom: 8,
   },
   assetPrice: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#333',
   },
   priceChange: {
     fontSize: 14,
-    marginTop: 2,
+    fontWeight: '600',
   },
   positiveChange: {
-    color: '#006a4d',
+    color: '#00B16A',
   },
   negativeChange: {
-    color: '#E74C3C',
+    color: '#FF5454',
   },
-  categoryBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
+  marketInfoContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
   },
-  categoryText: {
+  marketInfoItem: {
+    marginRight: 16,
+  },
+  marketInfoLabel: {
     fontSize: 12,
-    color: '#555',
+    color: '#999',
+  },
+  marketInfoValue: {
+    fontSize: 14,
+    color: '#333',
   },
   holdingInfo: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   holdingText: {
     fontSize: 14,
-    color: '#555',
+    color: '#666',
   },
   holdingValue: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginTop: 2,
   },
   emptyState: {
     alignItems: 'center',
@@ -1509,13 +1680,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chartContainer: {
-    marginHorizontal: 20,
-    marginVertical: 5, // Reduced from 10
-    alignItems: 'center',
+    backgroundColor: "#fafafa",
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 16,
+    marginHorizontal: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   chart: {
+    marginVertical: 8,
     borderRadius: 16,
-    marginVertical: 5, // Reduced from 8
   },
   assetStatsContainer: {
     flexDirection: 'row',
@@ -1668,10 +1846,35 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   chartTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  chartTimeframe: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+  },
+  chartLoadingContainer: {
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartLoadingText: {
+    marginTop: 12,
+    color: '#666',
+    fontSize: 14,
+  },
+  noChartDataContainer: {
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noChartDataText: {
+    color: '#999',
+    fontSize: 16,
   },
   transactionsContainer: {
     backgroundColor: '#fff',
