@@ -7,12 +7,13 @@ import { useUser } from '../context/UserContext';
 // Define type for screen paths to match Expo Router's expected types
 type AppScreenPath =  
   | "/HomeScreen"
+  | "/EducationalReels"
   | "/AccountsOverviewScreen"
   | "/GroupSavingGoalsScreen" 
   | "/InvestmentsScreen"
   | "/DynamicBudgetCalendarScreen"
   | "/EcoFinancialImpactScreen"
-  | "/Loans"
+  | "/LoansScreen"
   | "/BankableVirtualPetScreen"
   | "/BankableAIScreen"
   | "/LifeEventSupportScreen"
@@ -73,9 +74,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
           onPress={() => navigateTo("/InvestmentsScreen")} 
         />
         <MenuItem 
-          icon="calendar-outline" 
-          title="Budget Calendar" 
-          onPress={() => navigateTo("/DynamicBudgetCalendarScreen")} 
+          icon="logo-tiktok" 
+          title="Educational Tips" 
+          onPress={() => navigateTo("/EducationalReels")} 
         />
         <MenuItem 
           icon="leaf-outline" 
@@ -85,7 +86,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
         <MenuItem 
           icon="cash-outline" 
           title="Loans" 
-          onPress={() => navigateTo("/Loans")} 
+          onPress={() => navigateTo("/LoansScreen")} 
         />
         <MenuItem 
           icon="bug-outline" 
