@@ -216,6 +216,10 @@ const initialPortfolio: Portfolio = {
   transactions: [],
 };
 
+const DAYS = 30; // Use 30-day history
+const now = Math.floor(Date.now() / 1000);
+const startTime = now - DAYS * 24 * 3600;
+
 const InvestmentsScreen: React.FC = () => {
   // States
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
@@ -369,81 +373,98 @@ const InvestmentsScreen: React.FC = () => {
     try {
       setRefreshing(true);
       
-      // Get exchange rate
+      // Get exchange rate (if needed)
       const exchangeRateResponse = await fetch(
         `https://finnhub.io/api/v1/forex/rates?base=USD&token=${FINNHUB_API_KEY}`
       );
       const exchangeRateData = await exchangeRateResponse.json();
       const exchangeRate = exchangeRateData?.quote?.GBP || 0.75; 
-  
-      // Process all assets in parallel for faster updates
+      
+      // Process all assets in parallel for updates
       const updatedAssets = await Promise.all(assets.map(async (asset) => {
         try {
+          // For Crypto assets: update current price and historical data
           if (asset.category === 'Crypto') {
-            // CRYPTO: Use CoinGecko
             const cryptoId = cryptoIdMap[asset.symbol as keyof typeof cryptoIdMap];
             if (!cryptoId) return asset;
             
+            // Update current price and 24h changes as before
             const response = await fetch(
               `${COINGECKO_API_BASE}/coins/${cryptoId}?localization=false&tickers=false&community_data=false&developer_data=false`
             );
-            
             if (!response.ok) {
               console.error(`Error fetching ${asset.name} data:`, response.status);
               return asset;
             }
-            
             const data = await response.json();
-            
-            if (data?.market_data) {
-              return {
-                ...asset,
-                currentPrice: data.market_data.current_price.usd * exchangeRate,
-                priceChange24h: data.market_data.price_change_24h_in_currency?.usd * exchangeRate || 0,
-                priceChangePercentage24h: data.market_data.price_change_percentage_24h || 0,
-                marketCap: data.market_data.market_cap.usd || 0,
-                volume24h: data.market_data.total_volume.usd || 0
-              };
+            let newHistoricalData = asset.historicalData;
+            // Fetch historical data from market_chart endpoint
+            const historyResponse = await fetch(
+              `${COINGECKO_API_BASE}/coins/${cryptoId}/market_chart?vs_currency=usd&days=${DAYS}`
+            );
+            const historyData = await historyResponse.json();
+            if (historyData?.prices) {
+              const labels = historyData.prices.map((item: number[]) => {
+                return new Date(item[0]).toLocaleDateString('en-GB');
+              });
+              const prices = historyData.prices.map((item: number[]) => item[1] * exchangeRate);
+              newHistoricalData = { labels, prices };
             }
+            return {
+              ...asset,
+              currentPrice: data.market_data.current_price.usd * exchangeRate,
+              priceChange24h: data.market_data.price_change_24h_in_currency?.usd * exchangeRate || 0,
+              priceChangePercentage24h: data.market_data.price_change_percentage_24h || 0,
+              marketCap: data.market_data.market_cap.usd || 0,
+              volume24h: data.market_data.total_volume.usd || 0,
+              historicalData: newHistoricalData,
+            };
           } else {
-            // STOCKS/ETFs: Use Finnhub
-            // Get quote data (price, change)
+            // For Stocks and ETFs: update using Finnhub endpoints
+            // Fetch current quote
             const quoteResponse = await fetch(
               `https://finnhub.io/api/v1/quote?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
             );
-            
-            // Get company profile (market cap)
+            // Fetch profile data (for market cap)
             const profileResponse = await fetch(
               `https://finnhub.io/api/v1/stock/profile2?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
             );
-  
-            // Get 24h volume data
-            const volumeResponse = await fetch(
-              `https://finnhub.io/api/v1/stock/candle?symbol=${asset.symbol}&resolution=D&from=${Math.floor(Date.now()/1000 - 86400)}&to=${Math.floor(Date.now()/1000)}&token=${FINNHUB_API_KEY}`
+            // Update historical chart by fetching candle data for the last 30 days
+            const candleResponse = await fetch(
+              `https://finnhub.io/api/v1/stock/candle?symbol=${asset.symbol}&resolution=D&from=${startTime}&to=${now}&token=${FINNHUB_API_KEY}`
             );
-            
             const quoteData = quoteResponse.ok ? await quoteResponse.json() : null;
             const profileData = profileResponse.ok ? await profileResponse.json() : null;
-            const volumeData = volumeResponse.ok ? await volumeResponse.json() : null;
+            let newHistoricalData = asset.historicalData;
+            if (candleResponse.ok) {
+              const candleData = await candleResponse.json();
+              if (candleData.s === 'ok' && candleData.t && candleData.c) {
+                const labels = candleData.t.map((timestamp: number) =>
+                  new Date(timestamp * 1000).toLocaleDateString('en-GB')
+                );
+                const prices = candleData.c.map((price: number) => price * exchangeRate);
+                newHistoricalData = { labels, prices };
+              }
+            }
             
             return {
               ...asset,
               currentPrice: (quoteData?.c || asset.currentPrice) * exchangeRate,
               priceChange24h: (quoteData?.d || 0) * exchangeRate,
               priceChangePercentage24h: quoteData?.dp || 0,
-              marketCap: (profileData?.marketCapitalization || 0) * 1000000, // Convert from millions
-              volume24h: volumeData?.v?.[0] || 0
+              marketCap: (profileData?.marketCapitalization || 0) * 1000000, // converting millions
+              // Use the first candle’s volume as a fallback (you may decide to process the entire array)
+              volume24h: asset.volume24h,  
+              historicalData: newHistoricalData,
             };
           }
         } catch (err) {
           console.error(`Error updating ${asset.name}:`, err);
         }
-        
-        // Return original asset if update failed
         return asset;
       }));
       
-      // Update assets state
+      // Update state with the new data
       setAssets(updatedAssets);
       setFilteredAssets(updatedAssets.filter(asset => {
         const matchesCategory = selectedCategory === 'All' || asset.category === selectedCategory;
@@ -451,8 +472,7 @@ const InvestmentsScreen: React.FC = () => {
         return matchesCategory && matchesQuery;
       }));
       setRefreshing(false);
-      
-      console.log('Assets updated with real-time data');
+      console.log('Assets updated with real-time data and historical charts');
     } catch (error) {
       console.error('Failed to update asset prices:', error);
       setRefreshing(false);
@@ -944,8 +964,7 @@ const InvestmentsScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.modalScroll}
-            keyboardShouldPersistTaps='always'>
+            <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps='always'>
               <View style={styles.assetPriceHeader}>
                 <Text style={styles.assetDetailPrice}>£{selectedAsset.currentPrice.toFixed(2)}</Text>
                 <Text 
@@ -967,6 +986,7 @@ const InvestmentsScreen: React.FC = () => {
                       datasets: [
                         {
                           data: selectedAsset.historicalData.prices,
+                          // Custom dot styling can be removed with "withDots" if desired
                           color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
                           strokeWidth: 2
                         }
@@ -977,11 +997,14 @@ const InvestmentsScreen: React.FC = () => {
                     yAxisLabel="£"
                     chartConfig={chartConfig}
                     bezier
+                    // Remove dots on the graph by setting this prop to false
+                    withDots={false}
                     style={styles.chart}
                   />
                 )}
               </View>
               
+              {/* … rest of the modal remains unchanged */}
               <View style={styles.assetStatsContainer}>
                 <View style={styles.assetStat}>
                   <Text style={styles.assetStatLabel}>Market Cap</Text>
@@ -997,6 +1020,7 @@ const InvestmentsScreen: React.FC = () => {
                 </View>
                 <View style={styles.assetStat}>
                   <Text style={styles.assetStatLabel}>Category</Text>
+                  <Text style={styles.assetStatValue}>{selectedAsset.category}</Text>
                 </View>
               </View>
               
