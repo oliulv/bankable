@@ -20,13 +20,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const screenWidth = Dimensions.get('window').width;
 
-// API Constants - add these at the top of your file
-const FINNHUB_API_KEY = 'cvt0bkpr01qhup0tfu70cvt0bkpr01qhup0tfu7g'; // Replace with your actual key
+// API Constants - update these at the top of your file
+const FINNHUB_API_KEY = 'cvt0bkpr01qhup0tfu70cvt0bkpr01qhup0tfu7g'; // Your current key
 const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
 const cryptoIdMap = {
   'BTC': 'bitcoin',
   'ETH': 'ethereum',
-  // Add more mappings as needed
+  'DOGE': 'dogecoin',
+  'XRP': 'ripple',
+  'ADA': 'cardano',
+  'SOL': 'solana',
+  'DOT': 'polkadot',
+  'SHIB': 'shiba-inu',
+  'MATIC': 'matic-network',
+  'LTC': 'litecoin',
+  'AVAX': 'avalanche-2',
+  'LINK': 'chainlink',
 };
 
 // Types
@@ -257,28 +266,33 @@ const InvestmentsScreen: React.FC = () => {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Start loading data
         setLoading(true);
         
-        // Load stored data (portfolio, favorites)
-        await loadPortfolio();
-        await loadFavorites();
+        // Load stored data
+        await Promise.all([
+          loadPortfolio(),
+          loadFavorites()
+        ]);
         
-        // Load real-time data
+        // Load real-time data - this needs to succeed
         await updateAssetPrices();
         
-        // Done loading
         setLoading(false);
       } catch (error) {
         console.error('Error initializing data:', error);
+        // Even if it fails, still stop the loading screen
         setLoading(false);
       }
     };
     
     initialize();
     
-    // Set up refresh interval - 60 seconds
-    const refreshInterval = setInterval(updateAssetPrices, 60000);
+    // Auto-refresh every 60 seconds
+    const refreshInterval = setInterval(() => {
+      if (!showAssetModal && !showTransactionModal) {
+        updateAssetPrices();
+      }
+    }, 60000);
     
     return () => clearInterval(refreshInterval);
   }, []);
@@ -372,107 +386,193 @@ const InvestmentsScreen: React.FC = () => {
   const updateAssetPrices = async () => {
     try {
       setRefreshing(true);
-      
-      // Get exchange rate (if needed)
-      const exchangeRateResponse = await fetch(
-        `https://finnhub.io/api/v1/forex/rates?base=USD&token=${FINNHUB_API_KEY}`
-      );
-      const exchangeRateData = await exchangeRateResponse.json();
-      const exchangeRate = exchangeRateData?.quote?.GBP || 0.75; 
+      console.log('Starting asset price update...');
       
       // Process all assets in parallel for updates
       const updatedAssets = await Promise.all(assets.map(async (asset) => {
         try {
-          // For Crypto assets: update current price and historical data
+          // For Crypto assets: use CoinGecko
           if (asset.category === 'Crypto') {
             const cryptoId = cryptoIdMap[asset.symbol as keyof typeof cryptoIdMap];
-            if (!cryptoId) return asset;
-            
-            // Update current price and 24h changes as before
-            const response = await fetch(
-              `${COINGECKO_API_BASE}/coins/${cryptoId}?localization=false&tickers=false&community_data=false&developer_data=false`
-            );
-            if (!response.ok) {
-              console.error(`Error fetching ${asset.name} data:`, response.status);
+            if (!cryptoId) {
+              console.warn(`No mapping found for crypto symbol: ${asset.symbol}`);
               return asset;
             }
-            const data = await response.json();
-            let newHistoricalData = asset.historicalData;
-            // Fetch historical data from market_chart endpoint
-            const historyResponse = await fetch(
-              `${COINGECKO_API_BASE}/coins/${cryptoId}/market_chart?vs_currency=usd&days=${DAYS}`
+            
+            // Get current market data
+            console.log(`Fetching data for ${asset.name} (${cryptoId})...`);
+            const marketResponse = await fetch(
+              `${COINGECKO_API_BASE}/coins/${cryptoId}?localization=false&tickers=false&community_data=false&developer_data=false`
             );
-            const historyData = await historyResponse.json();
-            if (historyData?.prices) {
-              const labels = historyData.prices.map((item: number[]) => {
-                return new Date(item[0]).toLocaleDateString('en-GB');
-              });
-              const prices = historyData.prices.map((item: number[]) => item[1] * exchangeRate);
-              newHistoricalData = { labels, prices };
+            
+            if (!marketResponse.ok) {
+              console.error(`Error fetching market data for ${asset.name}: ${marketResponse.status}`);
+              return asset;
             }
+            
+            const marketData = await marketResponse.json();
+            
+            // Get historical price data
+            const historyResponse = await fetch(
+              `${COINGECKO_API_BASE}/coins/${cryptoId}/market_chart?vs_currency=gbp&days=30`
+            );
+            
+            let historicalData = asset.historicalData;
+            if (historyResponse.ok) {
+              const historyData = await historyResponse.json();
+              if (historyData?.prices && historyData.prices.length > 0) {
+                // Use only visible points to avoid overcrowding (every 3rd point)
+                const filteredPrices: [number, number][] = historyData.prices.filter((_: number[], i: number) => i % 3 === 0);
+                const labels = filteredPrices.map((item) => {
+                  const date = new Date(item[0]);
+                  return `${date.getDate()}/${date.getMonth() + 1}`;
+                });
+                
+                const prices = filteredPrices.map((item) => item[1]);
+                historicalData = { labels, prices };
+              }
+            } else {
+              console.error(`Error fetching history for ${asset.name}: ${historyResponse.status}`);
+            }
+            
+            // Ensure we have market data
+            if (!marketData.market_data) {
+              console.error(`No market data returned for ${asset.name}`);
+              return asset;
+            }
+            
+            console.log(`Successfully updated ${asset.name} with real-time data`);
+            
+            // Return updated asset with real data
             return {
               ...asset,
-              currentPrice: data.market_data.current_price.usd * exchangeRate,
-              priceChange24h: data.market_data.price_change_24h_in_currency?.usd * exchangeRate || 0,
-              priceChangePercentage24h: data.market_data.price_change_percentage_24h || 0,
-              marketCap: data.market_data.market_cap.usd || 0,
-              volume24h: data.market_data.total_volume.usd || 0,
-              historicalData: newHistoricalData,
+              currentPrice: marketData.market_data.current_price.gbp || asset.currentPrice,
+              priceChange24h: marketData.market_data.price_change_24h_in_currency?.gbp || asset.priceChange24h,
+              priceChangePercentage24h: marketData.market_data.price_change_percentage_24h || asset.priceChangePercentage24h,
+              marketCap: marketData.market_data.market_cap.gbp || asset.marketCap,
+              volume24h: marketData.market_data.total_volume.gbp || asset.volume24h,
+              historicalData: historicalData,
             };
           } else {
-            // For Stocks and ETFs: update using Finnhub endpoints
+            // STOCKS/ETFs: Use Finnhub
+            console.log(`Fetching stock data for ${asset.symbol}...`);
+            
             // Fetch current quote
-            const quoteResponse = await fetch(
-              `https://finnhub.io/api/v1/quote?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
-            );
-            // Fetch profile data (for market cap)
-            const profileResponse = await fetch(
-              `https://finnhub.io/api/v1/stock/profile2?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
-            );
-            // Update historical chart by fetching candle data for the last 30 days
-            const candleResponse = await fetch(
-              `https://finnhub.io/api/v1/stock/candle?symbol=${asset.symbol}&resolution=D&from=${startTime}&to=${now}&token=${FINNHUB_API_KEY}`
-            );
-            const quoteData = quoteResponse.ok ? await quoteResponse.json() : null;
-            const profileData = profileResponse.ok ? await profileResponse.json() : null;
-            let newHistoricalData = asset.historicalData;
-            if (candleResponse.ok) {
-              const candleData = await candleResponse.json();
-              if (candleData.s === 'ok' && candleData.t && candleData.c) {
-                const labels = candleData.t.map((timestamp: number) =>
-                  new Date(timestamp * 1000).toLocaleDateString('en-GB')
-                );
-                const prices = candleData.c.map((price: number) => price * exchangeRate);
-                newHistoricalData = { labels, prices };
+            let currentPrice = asset.currentPrice;
+            let priceChange24h = asset.priceChange24h;
+            let priceChangePercentage24h = asset.priceChangePercentage24h;
+            let volume24h = asset.volume24h;
+            
+            try {
+              const quoteResponse = await fetch(
+                `https://finnhub.io/api/v1/quote?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
+              );
+              
+              if (quoteResponse.ok) {
+                const quoteData = await quoteResponse.json();
+                if (quoteData && typeof quoteData.c === 'number') {
+                  currentPrice = quoteData.c;
+                  priceChange24h = quoteData.d || 0;
+                  priceChangePercentage24h = quoteData.dp || 0;
+                  volume24h = quoteData.v || asset.volume24h;
+                  console.log(`Got quote for ${asset.symbol}: £${currentPrice}`);
+                } else {
+                  console.warn(`Invalid quote data for ${asset.symbol}:`, quoteData);
+                }
+              } else {
+                console.error(`Failed to fetch quote for ${asset.symbol}: ${quoteResponse.status}`);
               }
+            } catch (error) {
+              console.error(`Error fetching quote for ${asset.symbol}:`, error);
+            }
+            
+            // Fetch market cap from company profile
+            let marketCap = asset.marketCap;
+            try {
+              const profileResponse = await fetch(
+                `https://finnhub.io/api/v1/stock/profile2?symbol=${asset.symbol}&token=${FINNHUB_API_KEY}`
+              );
+              
+              if (profileResponse.ok) {
+                const profileData = await profileResponse.json();
+                if (profileData && typeof profileData.marketCapitalization === 'number') {
+                  marketCap = profileData.marketCapitalization * 1000000; // Convert from millions
+                  console.log(`Got market cap for ${asset.symbol}: £${marketCap}`);
+                } else {
+                  console.warn(`Invalid profile data for ${asset.symbol}:`, profileData);
+                }
+              } else {
+                console.error(`Failed to fetch profile for ${asset.symbol}: ${profileResponse.status}`);
+              }
+            } catch (error) {
+              console.error(`Error fetching profile for ${asset.symbol}:`, error);
+            }
+            
+            // Update historical data
+            let historicalData = asset.historicalData;
+            try {
+              const to = Math.floor(Date.now() / 1000);
+              const from = to - 30 * 24 * 3600; // 30 days
+              
+              const candleResponse = await fetch(
+                `https://finnhub.io/api/v1/stock/candle?symbol=${asset.symbol}&resolution=D&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`
+              );
+              
+              if (candleResponse.ok) {
+                const candleData = await candleResponse.json();
+                if (candleData.s === 'ok' && candleData.c && candleData.t) {
+                  // Filter to reduce number of points (every 2nd point)
+                    const filteredIndices: number[] = candleData.t.map((_: number, i: number) => i).filter((i: number) => i % 2 === 0);
+                  
+                  const labels = filteredIndices.map(i => {
+                    const date = new Date(candleData.t[i] * 1000);
+                    return `${date.getDate()}/${date.getMonth() + 1}`;
+                  });
+                  
+                  const prices = filteredIndices.map(i => candleData.c[i]);
+                  
+                  historicalData = { labels, prices };
+                  console.log(`Got historical data for ${asset.symbol}: ${prices.length} points`);
+                } else {
+                  console.warn(`Invalid candle data for ${asset.symbol}:`, candleData);
+                }
+              } else {
+                console.error(`Failed to fetch candles for ${asset.symbol}: ${candleResponse.status}`);
+              }
+            } catch (error) {
+              console.error(`Error fetching candles for ${asset.symbol}:`, error);
             }
             
             return {
               ...asset,
-              currentPrice: (quoteData?.c || asset.currentPrice) * exchangeRate,
-              priceChange24h: (quoteData?.d || 0) * exchangeRate,
-              priceChangePercentage24h: quoteData?.dp || 0,
-              marketCap: (profileData?.marketCapitalization || 0) * 1000000, // converting millions
-              // Use the first candle’s volume as a fallback (you may decide to process the entire array)
-              volume24h: asset.volume24h,  
-              historicalData: newHistoricalData,
+              currentPrice,
+              priceChange24h,
+              priceChangePercentage24h,
+              marketCap,
+              volume24h,
+              historicalData,
             };
           }
         } catch (err) {
           console.error(`Error updating ${asset.name}:`, err);
+          return asset; // Return original asset if update failed
         }
-        return asset;
       }));
       
-      // Update state with the new data
+      console.log('Asset updates completed.');
       setAssets(updatedAssets);
-      setFilteredAssets(updatedAssets.filter(asset => {
+      
+      // Apply current filters to updated assets
+      const filtered = updatedAssets.filter(asset => {
         const matchesCategory = selectedCategory === 'All' || asset.category === selectedCategory;
-        const matchesQuery = !searchQuery || asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || asset.symbol.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesQuery;
-      }));
+        const matchesSearch = !searchQuery || 
+          asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          asset.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+      
+      setFilteredAssets(filtered);
       setRefreshing(false);
-      console.log('Assets updated with real-time data and historical charts');
     } catch (error) {
       console.error('Failed to update asset prices:', error);
       setRefreshing(false);
@@ -543,6 +643,83 @@ const InvestmentsScreen: React.FC = () => {
   const openAssetDetails = (asset: Asset) => {
     setSelectedAsset(asset);
     setShowAssetModal(true);
+    
+    // Force refresh this specific asset data
+    (async () => {
+      try {
+        // Show loading indicator
+        if (!asset.historicalData || asset.historicalData.prices.length === 0) {
+          const updatedAsset = {...asset};
+          updatedAsset.historicalData = { labels: [], prices: [] };
+          setSelectedAsset(updatedAsset);
+        }
+        
+        // Fetch fresh data for this asset
+        if (asset.category === 'Crypto') {
+          const cryptoId = cryptoIdMap[asset.symbol as keyof typeof cryptoIdMap];
+          if (cryptoId) {
+            // Get fresh historical data
+            const historyResponse = await fetch(
+              `${COINGECKO_API_BASE}/coins/${cryptoId}/market_chart?vs_currency=gbp&days=30`
+            );
+            
+            if (historyResponse.ok) {
+              const historyData = await historyResponse.json();
+              if (historyData?.prices) {
+                const filteredPrices: [number, number][] = historyData.prices.filter((item: [number, number], i: number) => i % 3 === 0);
+                const labels: string[] = filteredPrices.map((item: [number, number]) => {
+                  const date: Date = new Date(item[0]);
+                  return `${date.getDate()}/${date.getMonth() + 1}`;
+                });
+                const prices: number[] = filteredPrices.map((item: [number, number]) => item[1]);
+                
+                const freshAsset = {
+                  ...asset,
+                  historicalData: { labels, prices }
+                };
+                
+                setSelectedAsset(freshAsset);
+                
+                // Update in the main assets array too
+                setAssets(prev => prev.map(a => a.id === asset.id ? freshAsset : a));
+              }
+            }
+          }
+        } else {
+          // For stocks/ETFs
+          const to = Math.floor(Date.now() / 1000);
+          const from = to - 30 * 24 * 3600;
+          
+          const candleResponse = await fetch(
+            `https://finnhub.io/api/v1/stock/candle?symbol=${asset.symbol}&resolution=D&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`
+          );
+          
+          if (candleResponse.ok) {
+            const candleData = await candleResponse.json();
+            if (candleData.s === 'ok' && candleData.c && candleData.t) {
+                const filteredIndices: number[] = candleData.t.map((_: number, i: number) => i).filter((i: number) => i % 2 === 0);
+              const labels = filteredIndices.map(i => {
+                const date = new Date(candleData.t[i] * 1000);
+                return `${date.getDate()}/${date.getMonth() + 1}`;
+              });
+              const prices = filteredIndices.map(i => candleData.c[i]);
+              
+              const freshAsset = {
+                ...asset,
+                historicalData: { labels, prices }
+              };
+              
+              setSelectedAsset(freshAsset);
+              
+              // Update in the main assets array too
+              setAssets(prev => prev.map(a => a.id === asset.id ? freshAsset : a));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing asset data:', error);
+      }
+    })();
   };
 
   // Open transaction modal
@@ -979,28 +1156,57 @@ const InvestmentsScreen: React.FC = () => {
               </View>
               
               <View style={styles.chartContainer}>
-                {selectedAsset.historicalData && (
-                  <LineChart
-                    data={{
-                      labels: selectedAsset.historicalData.labels,
-                      datasets: [
-                        {
-                          data: selectedAsset.historicalData.prices,
-                          // Custom dot styling can be removed with "withDots" if desired
-                          color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
-                          strokeWidth: 2
+                {selectedAsset.historicalData && selectedAsset.historicalData.prices.length > 0 ? (
+                  <View style={styles.chartWrapper}>
+                    <LineChart
+                      data={{
+                        labels: [], // Hide x-axis labels to prevent overlapping
+                        datasets: [
+                          {
+                            data: selectedAsset.historicalData.prices,
+                            color: (opacity = 1) => selectedAsset.priceChangePercentage24h >= 0 
+                              ? `rgba(0, 177, 106, ${opacity})` 
+                              : `rgba(255, 84, 84, ${opacity})`,
+                            strokeWidth: 2
+                          }
+                        ]
+                      }}
+                      width={screenWidth - 40}
+                      height={220}
+                      yAxisLabel="£"
+                      yAxisSuffix=""
+                      chartConfig={{
+                        backgroundColor: "#fafafa",
+                        backgroundGradientFrom: "#fafafa",
+                        backgroundGradientTo: "#ffffff",
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                        propsForDots: {
+                          r: "0", // Hide dots completely
+                          strokeWidth: "0",
+                        },
+                        propsForBackgroundLines: {
+                          strokeWidth: 1,
+                          stroke: "rgba(0,0,0,0.1)",
+                        },
+                        formatYLabel: (value) => {
+                          const num = parseFloat(value);
+                          if (num >= 1000) return `${Math.round(num/1000)}k`;
+                          return `${Math.round(num)}`;
                         }
-                      ]
-                    }}
-                    width={screenWidth - 40}
-                    height={220}
-                    yAxisLabel="£"
-                    chartConfig={chartConfig}
-                    bezier
-                    // Remove dots on the graph by setting this prop to false
-                    withDots={false}
-                    style={styles.chart}
-                  />
+                      }}
+                      bezier
+                      withDots={false}
+                      style={styles.chart}
+                    />
+                    <Text style={styles.chartTimeframe}>Last 30 days</Text>
+                  </View>
+                ) : (
+                  <View style={styles.chartLoadingContainer}>
+                    <ActivityIndicator size="large" color="#006a4d" />
+                    <Text style={styles.chartLoadingText}>Loading chart data...</Text>
+                  </View>
                 )}
               </View>
               
@@ -1400,7 +1606,17 @@ const getCategoryStyle = (category: AssetCategory) => {
 
 // Styles
 const styles = StyleSheet.create({
-  // Add these styles to your StyleSheet
+  chartWrapper: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   headerContainer: {
     padding: 16,
     paddingTop: 14,
