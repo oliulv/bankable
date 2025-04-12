@@ -8,14 +8,12 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
-  Image,
   TextInput,
   Modal,
   SafeAreaView,
   Alert,
   FlatList,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,7 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const screenWidth = Dimensions.get('window').width;
 
 // API Constants - add these at the top of your file
-const FINNHUB_API_KEY = 'YOUR_FINNHUB_API_KEY'; // Replace with your actual key
+const FINNHUB_API_KEY = 'cvt0bkpr01qhup0tfu70cvt0bkpr01qhup0tfu7g'; // Replace with your actual key
 const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
 const cryptoIdMap = {
   'BTC': 'bitcoin',
