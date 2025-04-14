@@ -1,27 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { View, StyleSheet, SafeAreaView } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import SplashScreen from "./SplashScreen";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { UserProvider } from "../context/UserContext";
 
 export default function RootLayout() {
-  const [isSplashFinished, setIsSplashFinished] = useState(false);
   const pathname = usePathname();
   const isLoginScreen = pathname === '/';
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsSplashFinished(true);
-    }, 7000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!isSplashFinished) {
-    return <SplashScreen />;
-  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
