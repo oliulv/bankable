@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect, useCallback, useRef } from "react"
 import {
   View,
@@ -322,6 +323,7 @@ const BudgetCalendar: React.FC = () => {
   const [showAddTransaction, setShowAddTransaction] = useState<boolean>(false)
   const [showEditTransaction, setShowEditTransaction] = useState<boolean>(false)
   const [showRecurringOptions, setShowRecurringOptions] = useState<boolean>(false)
+  const [showBudgetPlanner, setShowBudgetPlanner] = useState<boolean>(false)
 
   const [newCategory, setNewCategory] = useState<{
     name: string
@@ -352,6 +354,51 @@ const BudgetCalendar: React.FC = () => {
     isRecurring: false,
   })
 
+  const [budgetGoal, setBudgetGoal] = useState<{
+    name: string
+    targetAmount: string
+    currentAmount: string
+    deadline: string
+    category: string
+  }>({
+    name: "New Goal",
+    targetAmount: "0",
+    currentAmount: "0",
+    deadline: "",
+    category: "",
+  })
+
+  const [budgetGoals, setBudgetGoals] = useState<
+    Array<{
+      id: string
+      name: string
+      targetAmount: number
+      currentAmount: number
+      deadline: string
+      category: string
+      color: string
+    }>
+  >([
+    {
+      id: "1",
+      name: "Vacation Fund",
+      targetAmount: 2000,
+      currentAmount: 500,
+      deadline: "2025-08-01",
+      category: "Travel",
+      color: "#8B5CF6",
+    },
+    {
+      id: "2",
+      name: "Emergency Fund",
+      targetAmount: 5000,
+      currentAmount: 2500,
+      deadline: "2025-12-31",
+      category: "Savings",
+      color: "#10B981",
+    },
+  ])
+
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
@@ -368,6 +415,11 @@ const BudgetCalendar: React.FC = () => {
         const storedData = await AsyncStorage.getItem("budgetCalendarData")
         if (storedData) {
           setAppState(JSON.parse(storedData))
+        }
+
+        const storedGoals = await AsyncStorage.getItem("budgetGoals")
+        if (storedGoals) {
+          setBudgetGoals(JSON.parse(storedGoals))
         }
 
         // Start animations
@@ -399,6 +451,7 @@ const BudgetCalendar: React.FC = () => {
     const saveData = async () => {
       try {
         await AsyncStorage.setItem("budgetCalendarData", JSON.stringify(appState))
+        await AsyncStorage.setItem("budgetGoals", JSON.stringify(budgetGoals))
       } catch (error) {
         console.error("Error saving data:", error)
       }
@@ -407,7 +460,7 @@ const BudgetCalendar: React.FC = () => {
     if (!isLoading) {
       saveData()
     }
-  }, [appState, isLoading])
+  }, [appState, budgetGoals, isLoading])
 
   // Format date as YYYY-MM-DD
   const formatDate = (year: number, month: number, day: number): string => {
@@ -489,6 +542,39 @@ const BudgetCalendar: React.FC = () => {
 
       setNewCategory({ name: "", budgeted: "0", color: "#006A4D", icon: "📦" })
       setShowAddCategory(false)
+    }
+  }
+
+  // Add a new budget goal
+  const handleAddBudgetGoal = () => {
+    if (
+      budgetGoal.name &&
+      Number.parseFloat(budgetGoal.targetAmount) > 0 &&
+      budgetGoal.deadline &&
+      budgetGoal.category
+    ) {
+      const newId = Date.now().toString()
+      const category = appState.categories.find((c) => c.name === budgetGoal.category)
+
+      const newGoal = {
+        id: newId,
+        name: budgetGoal.name,
+        targetAmount: Number.parseFloat(budgetGoal.targetAmount),
+        currentAmount: Number.parseFloat(budgetGoal.currentAmount) || 0,
+        deadline: budgetGoal.deadline,
+        category: budgetGoal.category,
+        color: category?.color || "#006A4D",
+      }
+
+      setBudgetGoals([...budgetGoals, newGoal])
+      setBudgetGoal({
+        name: "New Goal",
+        targetAmount: "0",
+        currentAmount: "0",
+        deadline: "",
+        category: "",
+      })
+      setShowBudgetPlanner(false)
     }
   }
 
@@ -785,7 +871,7 @@ const BudgetCalendar: React.FC = () => {
       <View style={styles.viewContainer}>
         <View style={styles.monthHeader}>
           <TouchableOpacity onPress={goToPrevMonth} style={styles.monthNavButton}>
-            <Text style={{ color: theme.primary, fontSize: 20 }}>‹</Text>
+            <Text style={{ color: theme.primary, fontSize: 24 }}>‹</Text>
           </TouchableOpacity>
 
           <Text style={[styles.monthTitle, { color: theme.text }]}>
@@ -793,7 +879,7 @@ const BudgetCalendar: React.FC = () => {
           </Text>
 
           <TouchableOpacity onPress={goToNextMonth} style={styles.monthNavButton}>
-            <Text style={{ color: theme.primary, fontSize: 20 }}>›</Text>
+            <Text style={{ color: theme.primary, fontSize: 24 }}>›</Text>
           </TouchableOpacity>
         </View>
 
@@ -866,12 +952,12 @@ const BudgetCalendar: React.FC = () => {
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: theme.primary }]}
           onPress={() => {
-            setShowAddTransaction(true)
             if (!selectedDate) {
               const today = formatDate(currentYear, currentMonth, currentDate.getDate())
               setSelectedDate(today)
               setNewTransaction({ ...newTransaction, date: today })
             }
+            setShowAddTransaction(true)
           }}
         >
           <Text style={styles.addButtonText}>+ Add Transaction</Text>
@@ -887,7 +973,7 @@ const BudgetCalendar: React.FC = () => {
             </View>
 
             {getTransactionsForDate(selectedDate).length > 0 ? (
-              <View style={styles.transactionsList}>
+              <ScrollView style={styles.transactionsList} contentContainerStyle={{ paddingBottom: 20 }}>
                 {getTransactionsForDate(selectedDate).map((tx) => {
                   const category = appState.categories.find((c) => c.name === tx.category)
                   return (
@@ -933,7 +1019,7 @@ const BudgetCalendar: React.FC = () => {
                     </View>
                   )
                 })}
-              </View>
+              </ScrollView>
             ) : (
               <View style={styles.emptyTransactions}>
                 <Text style={[styles.emptyTransactionsText, { color: theme.secondaryText }]}>
@@ -1012,6 +1098,70 @@ const BudgetCalendar: React.FC = () => {
     )
   }
 
+  // Render Budget Goals
+  const renderBudgetGoals = () => {
+    return (
+      <View style={styles.goalsContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Goals</Text>
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: theme.primary }]}
+            onPress={() => setShowBudgetPlanner(true)}
+          >
+            <Text style={styles.addButtonText}>+ Add Goal</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.goalsScroll}>
+          {budgetGoals.map((goal) => {
+            const progress = (goal.currentAmount / goal.targetAmount) * 100
+            const daysLeft = Math.ceil(
+              (new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+            )
+
+            return (
+              <View key={goal.id} style={[styles.goalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <View style={styles.goalHeader}>
+                  <Text style={[styles.goalTitle, { color: theme.text }]}>{goal.name}</Text>
+                  <View style={[styles.goalCategoryBadge, { backgroundColor: `${goal.color}30` }]}>
+                    <Text style={[styles.goalCategoryText, { color: goal.color }]}>{goal.category}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.goalAmounts}>
+                  <Text style={[styles.goalCurrentAmount, { color: theme.text }]}>
+                    ${goal.currentAmount.toFixed(0)}
+                    <Text style={{ color: theme.secondaryText, fontSize: 14 }}> / ${goal.targetAmount.toFixed(0)}</Text>
+                  </Text>
+                </View>
+
+                <View style={[styles.progressBarBg, { backgroundColor: `${theme.background}80` }]}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        backgroundColor: goal.color,
+                        width: `${Math.min(progress, 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <Text style={[styles.goalDeadline, { color: theme.secondaryText }]}>
+                  {daysLeft > 0 ? `${daysLeft} days left` : "Deadline passed"}
+                </Text>
+
+                <TouchableOpacity style={[styles.contributeButton, { borderColor: goal.color, borderWidth: 1 }]}>
+                  <Text style={{ color: goal.color }}>Contribute</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          })}
+        </ScrollView>
+      </View>
+    )
+  }
+
   // Render Analytics View
   const renderAnalyticsView = () => {
     // Calculate percentages for the simple chart
@@ -1078,6 +1228,8 @@ const BudgetCalendar: React.FC = () => {
             {spendingPercentage.toFixed(0)}% of budget used
           </Text>
         </View>
+
+        {renderBudgetGoals()}
 
         <View style={[styles.analyticsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Daily Spending</Text>
@@ -1163,98 +1315,100 @@ const BudgetCalendar: React.FC = () => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
-              <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Category</Text>
+              <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}>
+                <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Category</Text>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category Name</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newCategory.name}
-                    onChangeText={(text) => setNewCategory({ ...newCategory, name: text })}
-                    placeholder="e.g., Groceries"
-                    placeholderTextColor={theme.secondaryText}
-                  />
-                </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category Name</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={newCategory.name}
+                      onChangeText={(text) => setNewCategory({ ...newCategory, name: text })}
+                      placeholder="e.g., Groceries"
+                      placeholderTextColor={theme.secondaryText}
+                    />
+                  </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Monthly Budget</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newCategory.budgeted}
-                    onChangeText={(text) => setNewCategory({ ...newCategory, budgeted: text })}
-                    placeholder="0.00"
-                    placeholderTextColor={theme.secondaryText}
-                    keyboardType="numeric"
-                  />
-                </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Monthly Budget</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={newCategory.budgeted}
+                      onChangeText={(text) => setNewCategory({ ...newCategory, budgeted: text })}
+                      placeholder="0.00"
+                      placeholderTextColor={theme.secondaryText}
+                      keyboardType="numeric"
+                    />
+                  </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Icon</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconSelector}>
-                    {Object.entries(categoryIcons).map(([name, icon]) => (
-                      <TouchableOpacity
-                        key={icon}
-                        style={[
-                          styles.iconOption,
-                          newCategory.icon === icon && [styles.selectedIcon, { borderColor: theme.primary }],
-                        ]}
-                        onPress={() => setNewCategory({ ...newCategory, icon })}
-                      >
-                        <Text style={styles.iconText}>{icon}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Icon</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconSelector}>
+                      {Object.entries(categoryIcons).map(([name, icon]) => (
+                        <TouchableOpacity
+                          key={icon}
+                          style={[
+                            styles.iconOption,
+                            newCategory.icon === icon && [styles.selectedIcon, { borderColor: theme.primary }],
+                          ]}
+                          onPress={() => setNewCategory({ ...newCategory, icon })}
+                        >
+                          <Text style={styles.iconText}>{icon}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Color</Text>
-                  <View style={styles.colorSelector}>
-                    {[
-                      "#006A4D",
-                      "#4F46E5",
-                      "#10B981",
-                      "#F59E0B",
-                      "#EC4899",
-                      "#6366F1",
-                      "#8B5CF6",
-                      "#14B8A6",
-                      "#64748B",
-                    ].map((color) => (
-                      <TouchableOpacity
-                        key={color}
-                        style={[
-                          styles.colorOption,
-                          { backgroundColor: color },
-                          newCategory.color === color && styles.selectedColor,
-                        ]}
-                        onPress={() => setNewCategory({ ...newCategory, color })}
-                      />
-                    ))}
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Color</Text>
+                    <View style={styles.colorSelector}>
+                      {[
+                        "#006A4D",
+                        "#4F46E5",
+                        "#10B981",
+                        "#F59E0B",
+                        "#EC4899",
+                        "#6366F1",
+                        "#8B5CF6",
+                        "#14B8A6",
+                        "#64748B",
+                      ].map((color) => (
+                        <TouchableOpacity
+                          key={color}
+                          style={[
+                            styles.colorOption,
+                            { backgroundColor: color },
+                            newCategory.color === color && styles.selectedColor,
+                          ]}
+                          onPress={() => setNewCategory({ ...newCategory, color })}
+                        />
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
+                      onPress={() => setShowAddCategory(false)}
+                    >
+                      <Text style={{ color: theme.secondaryText }}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                      onPress={handleAddCategory}
+                    >
+                      <Text style={styles.confirmButtonText}>Add Category</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
-                    onPress={() => setShowAddCategory(false)}
-                  >
-                    <Text style={{ color: theme.secondaryText }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
-                    onPress={handleAddCategory}
-                  >
-                    <Text style={styles.confirmButtonText}>Add Category</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+              </ScrollView>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
@@ -1274,175 +1428,310 @@ const BudgetCalendar: React.FC = () => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
-              <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Transaction</Text>
+              <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}>
+                <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Transaction</Text>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Date</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newTransaction.date}
-                    onChangeText={(text) => setNewTransaction({ ...newTransaction, date: text })}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={theme.secondaryText}
-                  />
-                  <Text style={[styles.inputHint, { color: theme.secondaryText }]}>
-                    Format: YYYY-MM-DD (e.g., 2025-04-15)
-                  </Text>
-                </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Date</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={newTransaction.date}
+                      onChangeText={(text) => setNewTransaction({ ...newTransaction, date: text })}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={theme.secondaryText}
+                    />
+                    <Text style={[styles.inputHint, { color: theme.secondaryText }]}>
+                      Format: YYYY-MM-DD (e.g., 2025-04-15)
+                    </Text>
+                  </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Amount</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newTransaction.amount}
-                    onChangeText={(text) => setNewTransaction({ ...newTransaction, amount: text })}
-                    placeholder="0.00"
-                    placeholderTextColor={theme.secondaryText}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category</Text>
-                  <View
-                    style={[styles.categoryPicker, { backgroundColor: theme.background, borderColor: theme.border }]}
-                  >
-                    <FlatList
-                      data={appState.categories}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      keyExtractor={(item) => item.id}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={[
-                            styles.categoryChip,
-                            {
-                              backgroundColor: newTransaction.category === item.name ? item.color : `${item.color}30`,
-                            },
-                          ]}
-                          onPress={() => setNewTransaction({ ...newTransaction, category: item.name })}
-                        >
-                          <Text
-                            style={[
-                              styles.categoryChipText,
-                              { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
-                            ]}
-                          >
-                            <Text>{item.icon}</Text> {item.name}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Amount</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={newTransaction.amount}
+                      onChangeText={(text) => setNewTransaction({ ...newTransaction, amount: text })}
+                      placeholder="0.00"
+                      placeholderTextColor={theme.secondaryText}
+                      keyboardType="numeric"
                     />
                   </View>
-                </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Description</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newTransaction.description}
-                    onChangeText={(text) => setNewTransaction({ ...newTransaction, description: text })}
-                    placeholder="e.g., Grocery shopping"
-                    placeholderTextColor={theme.secondaryText}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <View style={styles.recurringContainer}>
-                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Recurring Transaction</Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.recurringToggle,
-                        { backgroundColor: newTransaction.isRecurring ? theme.primary : theme.background },
-                      ]}
-                      onPress={() => setNewTransaction({ ...newTransaction, isRecurring: !newTransaction.isRecurring })}
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category</Text>
+                    <View
+                      style={[styles.categoryPicker, { backgroundColor: theme.background, borderColor: theme.border }]}
                     >
-                      <View
-                        style={[
-                          styles.toggleCircle,
-                          {
-                            backgroundColor: theme.card,
-                            transform: [{ translateX: newTransaction.isRecurring ? 20 : 0 }],
-                          },
-                        ]}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  {newTransaction.isRecurring && (
-                    <View style={styles.recurringOptions}>
-                      <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Frequency</Text>
-                      <View style={styles.recurringTypeContainer}>
-                        {(["daily", "weekly", "monthly", "yearly"] as const).map((type) => (
+                      <FlatList
+                        data={appState.categories}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
                           <TouchableOpacity
-                            key={type}
                             style={[
-                              styles.recurringTypeButton,
+                              styles.categoryChip,
                               {
-                                backgroundColor:
-                                  newTransaction.recurringType === type ? theme.primary : theme.background,
-                                borderColor: theme.border,
+                                backgroundColor: newTransaction.category === item.name ? item.color : `${item.color}30`,
                               },
                             ]}
-                            onPress={() => setNewTransaction({ ...newTransaction, recurringType: type })}
+                            onPress={() => setNewTransaction({ ...newTransaction, category: item.name })}
                           >
                             <Text
                               style={[
-                                styles.recurringTypeText,
-                                { color: newTransaction.recurringType === type ? "#FFFFFF" : theme.text },
+                                styles.categoryChipText,
+                                { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
                               ]}
                             >
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                              <Text>{item.icon}</Text> {item.name}
                             </Text>
                           </TouchableOpacity>
-                        ))}
-                      </View>
-
-                      <Text style={[styles.inputLabel, { color: theme.secondaryText, marginTop: 10 }]}>
-                        End Date (Optional)
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.textInput,
-                          { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                        ]}
-                        value={newTransaction.recurringEndDate}
-                        onChangeText={(text) => setNewTransaction({ ...newTransaction, recurringEndDate: text })}
-                        placeholder="YYYY-MM-DD"
-                        placeholderTextColor={theme.secondaryText}
+                        )}
                       />
-                      <Text style={[styles.inputHint, { color: theme.secondaryText }]}>
-                        Leave blank for indefinite recurring
-                      </Text>
                     </View>
-                  )}
-                </View>
+                  </View>
 
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
-                    onPress={() => setShowAddTransaction(false)}
-                  >
-                    <Text style={{ color: theme.secondaryText }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
-                    onPress={handleAddTransaction}
-                  >
-                    <Text style={styles.confirmButtonText}>Add Transaction</Text>
-                  </TouchableOpacity>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Description</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={newTransaction.description}
+                      onChangeText={(text) => setNewTransaction({ ...newTransaction, description: text })}
+                      placeholder="e.g., Grocery shopping"
+                      placeholderTextColor={theme.secondaryText}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <View style={styles.recurringContainer}>
+                      <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Recurring Transaction</Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.recurringToggle,
+                          { backgroundColor: newTransaction.isRecurring ? theme.primary : theme.background },
+                        ]}
+                        onPress={() =>
+                          setNewTransaction({ ...newTransaction, isRecurring: !newTransaction.isRecurring })
+                        }
+                      >
+                        <View
+                          style={[
+                            styles.toggleCircle,
+                            {
+                              backgroundColor: theme.card,
+                              transform: [{ translateX: newTransaction.isRecurring ? 20 : 0 }],
+                            },
+                          ]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {newTransaction.isRecurring && (
+                      <View style={styles.recurringOptions}>
+                        <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Frequency</Text>
+                        <View style={styles.recurringTypeContainer}>
+                          {(["daily", "weekly", "monthly", "yearly"] as const).map((type) => (
+                            <TouchableOpacity
+                              key={type}
+                              style={[
+                                styles.recurringTypeButton,
+                                {
+                                  backgroundColor:
+                                    newTransaction.recurringType === type ? theme.primary : theme.background,
+                                  borderColor: theme.border,
+                                },
+                              ]}
+                              onPress={() => setNewTransaction({ ...newTransaction, recurringType: type })}
+                            >
+                              <Text
+                                style={[
+                                  styles.recurringTypeText,
+                                  { color: newTransaction.recurringType === type ? "#FFFFFF" : theme.text },
+                                ]}
+                              >
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+
+                        <Text style={[styles.inputLabel, { color: theme.secondaryText, marginTop: 10 }]}>
+                          End Date (Optional)
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.textInput,
+                            { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                          ]}
+                          value={newTransaction.recurringEndDate}
+                          onChangeText={(text) => setNewTransaction({ ...newTransaction, recurringEndDate: text })}
+                          placeholder="YYYY-MM-DD"
+                          placeholderTextColor={theme.secondaryText}
+                        />
+                        <Text style={[styles.inputHint, { color: theme.secondaryText }]}>
+                          Leave blank for indefinite recurring
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
+                      onPress={() => setShowAddTransaction(false)}
+                    >
+                      <Text style={{ color: theme.secondaryText }}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                      onPress={handleAddTransaction}
+                    >
+                      <Text style={styles.confirmButtonText}>Add Transaction</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    )
+  }
+
+  // Render Budget Planner Modal
+  const renderBudgetPlannerModal = () => {
+    return (
+      <Modal
+        visible={showBudgetPlanner}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowBudgetPlanner(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
+              <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}>
+                <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Create Budget Goal</Text>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Goal Name</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={budgetGoal.name}
+                      onChangeText={(text) => setBudgetGoal({ ...budgetGoal, name: text })}
+                      placeholder="e.g., Vacation Fund"
+                      placeholderTextColor={theme.secondaryText}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Target Amount</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={budgetGoal.targetAmount}
+                      onChangeText={(text) => setBudgetGoal({ ...budgetGoal, targetAmount: text })}
+                      placeholder="0.00"
+                      placeholderTextColor={theme.secondaryText}
+                      keyboardType="numeric"
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Current Amount (Optional)</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={budgetGoal.currentAmount}
+                      onChangeText={(text) => setBudgetGoal({ ...budgetGoal, currentAmount: text })}
+                      placeholder="0.00"
+                      placeholderTextColor={theme.secondaryText}
+                      keyboardType="numeric"
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Deadline</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={budgetGoal.deadline}
+                      onChangeText={(text) => setBudgetGoal({ ...budgetGoal, deadline: text })}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={theme.secondaryText}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category</Text>
+                    <View
+                      style={[styles.categoryPicker, { backgroundColor: theme.background, borderColor: theme.border }]}
+                    >
+                      <FlatList
+                        data={appState.categories}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            style={[
+                              styles.categoryChip,
+                              {
+                                backgroundColor: budgetGoal.category === item.name ? item.color : `${item.color}30`,
+                              },
+                            ]}
+                            onPress={() => setBudgetGoal({ ...budgetGoal, category: item.name })}
+                          >
+                            <Text
+                              style={[
+                                styles.categoryChipText,
+                                { color: budgetGoal.category === item.name ? "#FFFFFF" : item.color },
+                              ]}
+                            >
+                              <Text>{item.icon}</Text> {item.name}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
+                      onPress={() => setShowBudgetPlanner(false)}
+                    >
+                      <Text style={{ color: theme.secondaryText }}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                      onPress={handleAddBudgetGoal}
+                    >
+                      <Text style={styles.confirmButtonText}>Create Goal</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
@@ -1462,169 +1751,173 @@ const BudgetCalendar: React.FC = () => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
-              <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Transaction</Text>
+              <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}>
+                <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Transaction</Text>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Date</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newTransaction.date}
-                    onChangeText={(text) => setNewTransaction({ ...newTransaction, date: text })}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={theme.secondaryText}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Amount</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newTransaction.amount}
-                    onChangeText={(text) => setNewTransaction({ ...newTransaction, amount: text })}
-                    placeholder="0.00"
-                    placeholderTextColor={theme.secondaryText}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category</Text>
-                  <View
-                    style={[styles.categoryPicker, { backgroundColor: theme.background, borderColor: theme.border }]}
-                  >
-                    <FlatList
-                      data={appState.categories}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      keyExtractor={(item) => item.id}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={[
-                            styles.categoryChip,
-                            {
-                              backgroundColor: newTransaction.category === item.name ? item.color : `${item.color}30`,
-                            },
-                          ]}
-                          onPress={() => setNewTransaction({ ...newTransaction, category: item.name })}
-                        >
-                          <Text
-                            style={[
-                              styles.categoryChipText,
-                              { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
-                            ]}
-                          >
-                            <Text>{item.icon}</Text> {item.name}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Date</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={newTransaction.date}
+                      onChangeText={(text) => setNewTransaction({ ...newTransaction, date: text })}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={theme.secondaryText}
                     />
                   </View>
-                </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Description</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                    ]}
-                    value={newTransaction.description}
-                    onChangeText={(text) => setNewTransaction({ ...newTransaction, description: text })}
-                    placeholder="e.g., Grocery shopping"
-                    placeholderTextColor={theme.secondaryText}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <View style={styles.recurringContainer}>
-                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Recurring Transaction</Text>
-                    <TouchableOpacity
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Amount</Text>
+                    <TextInput
                       style={[
-                        styles.recurringToggle,
-                        { backgroundColor: newTransaction.isRecurring ? theme.primary : theme.background },
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
                       ]}
-                      onPress={() => setNewTransaction({ ...newTransaction, isRecurring: !newTransaction.isRecurring })}
-                    >
-                      <View
-                        style={[
-                          styles.toggleCircle,
-                          {
-                            backgroundColor: theme.card,
-                            transform: [{ translateX: newTransaction.isRecurring ? 20 : 0 }],
-                          },
-                        ]}
-                      />
-                    </TouchableOpacity>
+                      value={newTransaction.amount}
+                      onChangeText={(text) => setNewTransaction({ ...newTransaction, amount: text })}
+                      placeholder="0.00"
+                      placeholderTextColor={theme.secondaryText}
+                      keyboardType="numeric"
+                    />
                   </View>
 
-                  {newTransaction.isRecurring && (
-                    <View style={styles.recurringOptions}>
-                      <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Frequency</Text>
-                      <View style={styles.recurringTypeContainer}>
-                        {(["daily", "weekly", "monthly", "yearly"] as const).map((type) => (
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category</Text>
+                    <View
+                      style={[styles.categoryPicker, { backgroundColor: theme.background, borderColor: theme.border }]}
+                    >
+                      <FlatList
+                        data={appState.categories}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
                           <TouchableOpacity
-                            key={type}
                             style={[
-                              styles.recurringTypeButton,
+                              styles.categoryChip,
                               {
-                                backgroundColor:
-                                  newTransaction.recurringType === type ? theme.primary : theme.background,
-                                borderColor: theme.border,
+                                backgroundColor: newTransaction.category === item.name ? item.color : `${item.color}30`,
                               },
                             ]}
-                            onPress={() => setNewTransaction({ ...newTransaction, recurringType: type })}
+                            onPress={() => setNewTransaction({ ...newTransaction, category: item.name })}
                           >
                             <Text
                               style={[
-                                styles.recurringTypeText,
-                                { color: newTransaction.recurringType === type ? "#FFFFFF" : theme.text },
+                                styles.categoryChipText,
+                                { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
                               ]}
                             >
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                              <Text>{item.icon}</Text> {item.name}
                             </Text>
                           </TouchableOpacity>
-                        ))}
-                      </View>
-
-                      <Text style={[styles.inputLabel, { color: theme.secondaryText, marginTop: 10 }]}>
-                        End Date (Optional)
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.textInput,
-                          { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
-                        ]}
-                        value={newTransaction.recurringEndDate}
-                        onChangeText={(text) => setNewTransaction({ ...newTransaction, recurringEndDate: text })}
-                        placeholder="YYYY-MM-DD"
-                        placeholderTextColor={theme.secondaryText}
+                        )}
                       />
                     </View>
-                  )}
-                </View>
+                  </View>
 
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
-                    onPress={() => setShowEditTransaction(false)}
-                  >
-                    <Text style={{ color: theme.secondaryText }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
-                    onPress={handleEditTransaction}
-                  >
-                    <Text style={styles.confirmButtonText}>Save Changes</Text>
-                  </TouchableOpacity>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Description</Text>
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                      ]}
+                      value={newTransaction.description}
+                      onChangeText={(text) => setNewTransaction({ ...newTransaction, description: text })}
+                      placeholder="e.g., Grocery shopping"
+                      placeholderTextColor={theme.secondaryText}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <View style={styles.recurringContainer}>
+                      <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Recurring Transaction</Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.recurringToggle,
+                          { backgroundColor: newTransaction.isRecurring ? theme.primary : theme.background },
+                        ]}
+                        onPress={() =>
+                          setNewTransaction({ ...newTransaction, isRecurring: !newTransaction.isRecurring })
+                        }
+                      >
+                        <View
+                          style={[
+                            styles.toggleCircle,
+                            {
+                              backgroundColor: theme.card,
+                              transform: [{ translateX: newTransaction.isRecurring ? 20 : 0 }],
+                            },
+                          ]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {newTransaction.isRecurring && (
+                      <View style={styles.recurringOptions}>
+                        <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Frequency</Text>
+                        <View style={styles.recurringTypeContainer}>
+                          {(["daily", "weekly", "monthly", "yearly"] as const).map((type) => (
+                            <TouchableOpacity
+                              key={type}
+                              style={[
+                                styles.recurringTypeButton,
+                                {
+                                  backgroundColor:
+                                    newTransaction.recurringType === type ? theme.primary : theme.background,
+                                  borderColor: theme.border,
+                                },
+                              ]}
+                              onPress={() => setNewTransaction({ ...newTransaction, recurringType: type })}
+                            >
+                              <Text
+                                style={[
+                                  styles.recurringTypeText,
+                                  { color: newTransaction.recurringType === type ? "#FFFFFF" : theme.text },
+                                ]}
+                              >
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+
+                        <Text style={[styles.inputLabel, { color: theme.secondaryText, marginTop: 10 }]}>
+                          End Date (Optional)
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.textInput,
+                            { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                          ]}
+                          value={newTransaction.recurringEndDate}
+                          onChangeText={(text) => setNewTransaction({ ...newTransaction, recurringEndDate: text })}
+                          placeholder="YYYY-MM-DD"
+                          placeholderTextColor={theme.secondaryText}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
+                      onPress={() => setShowEditTransaction(false)}
+                    >
+                      <Text style={{ color: theme.secondaryText }}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                      onPress={handleEditTransaction}
+                    >
+                      <Text style={styles.confirmButtonText}>Save Changes</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
+              </ScrollView>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
@@ -1743,6 +2036,7 @@ const BudgetCalendar: React.FC = () => {
           {renderAddCategoryModal()}
           {renderAddTransactionModal()}
           {renderEditTransactionModal()}
+          {renderBudgetPlannerModal()}
         </Animated.View>
       )}
     </SafeAreaView>
@@ -1752,7 +2046,7 @@ const BudgetCalendar: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -1764,47 +2058,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   overviewCards: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 20,
+    gap: 12,
   },
   overviewCard: {
     flex: 1,
-    padding: 12,
-    borderRadius: 12,
-    marginHorizontal: 4,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,// Use theme color instead of hardcoded "white"
-    overflow: "hidden", // Add overflow hidden
+    shadowRadius: 2,
+    overflow: "hidden",
   },
   tabBar: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   tab: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginRight: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginRight: 12,
   },
   activeTab: {
-    borderBottomWidth: 2,
+    borderBottomWidth: 3,
   },
   tabText: {
-    fontWeight: "500",
+    fontWeight: "600",
+    fontSize: 16,
   },
   contentCard: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
     elevation: 2,
@@ -1814,7 +2109,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   scrollContent: {
-    padding: 12,
+    padding: 16,
   },
   viewContainer: {
     paddingBottom: 20,
@@ -1823,29 +2118,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
   },
   monthHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   monthNavButton: {
-    padding: 8,
+    padding: 10,
   },
   monthTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
   weekdayHeader: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   weekdayText: {
     width: 40,
@@ -1861,14 +2156,14 @@ const styles = StyleSheet.create({
   emptyDay: {
     width: "13.5%",
     aspectRatio: 1,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   calendarDay: {
     width: "13.5%",
     aspectRatio: 1,
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 8,
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 10,
     borderWidth: 1,
   },
   dayHeader: {
@@ -1887,9 +2182,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   transactionBadge: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1918,21 +2213,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignSelf: "flex-start",
-    marginTop: 12,
+    marginTop: 16,
   },
   addButtonText: {
     color: "white",
-    fontWeight: "500",
+    fontWeight: "600",
     fontSize: 14,
   },
   selectedDateCard: {
-    marginTop: 16,
-    borderRadius: 12,
-    padding: 16,
+    marginTop: 20,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     elevation: 2,
     shadowColor: "#000",
@@ -1945,25 +2240,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   selectedDateTitle: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 18,
   },
   closeButton: {
-    fontSize: 14,
+    fontSize: 16,
   },
   transactionsList: {
-    marginTop: 8,
+    maxHeight: 300,
   },
   transactionItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 10,
     borderWidth: 1,
   },
   transactionInfo: {
@@ -1972,17 +2267,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 12,
   },
   categoryName: {
-    fontWeight: "500",
-    marginBottom: 2,
+    fontWeight: "600",
+    marginBottom: 4,
+    fontSize: 16,
   },
   transactionDescription: {
-    fontSize: 12,
+    fontSize: 14,
   },
   transactionActions: {
     flexDirection: "row",
@@ -1990,32 +2286,33 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: "row",
-    marginLeft: 8,
+    marginLeft: 12,
   },
   editButton: {
-    padding: 6,
-    marginRight: 4,
+    padding: 8,
+    marginRight: 6,
   },
   deleteButton: {
-    padding: 6,
+    padding: 8,
   },
   transactionAmount: {
     fontWeight: "bold",
+    fontSize: 16,
   },
   emptyTransactions: {
-    padding: 20,
+    padding: 30,
     alignItems: "center",
   },
   emptyTransactionsText: {
-    fontSize: 14,
+    fontSize: 16,
   },
   categoriesList: {
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   categoryCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
     elevation: 2,
     shadowColor: "#000",
@@ -2028,44 +2325,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   categoryNameContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   categoryColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 12,
   },
   categoryTitle: {
-    fontWeight: "500",
+    fontWeight: "600",
+    fontSize: 16,
   },
   categoryBudget: {
     alignItems: "flex-end",
   },
   budgetText: {
     fontWeight: "bold",
-    marginBottom: 2,
+    marginBottom: 4,
+    fontSize: 16,
   },
   percentText: {
-    fontSize: 12,
+    fontSize: 14,
   },
   progressBarBg: {
-    height: 8,
-    borderRadius: 4,
+    height: 10,
+    borderRadius: 5,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 5,
   },
   summaryCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
     elevation: 2,
     shadowColor: "#000",
@@ -2075,9 +2374,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   analyticsCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
     elevation: 2,
     shadowColor: "#000",
@@ -2088,27 +2387,28 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 20,
+    fontSize: 18,
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 16,
   },
   summaryValue: {
     fontWeight: "bold",
-    fontSize: 14,
+    fontSize: 16,
   },
   summaryDivider: {
     borderTopWidth: 1,
-    marginVertical: 8,
+    marginVertical: 12,
   },
   chart: {
-    marginVertical: 8,
-    borderRadius: 8,
+    marginVertical: 12,
+    borderRadius: 12,
   },
   emptyChartContainer: {
     height: 220,
@@ -2116,46 +2416,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyChartText: {
-    fontSize: 14,
+    fontSize: 16,
   },
   categoriesLegend: {
-    marginTop: 16,
+    marginTop: 20,
   },
   legendItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   legendItemLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 12,
   },
   legendText: {
-    fontSize: 14,
+    fontSize: 16,
   },
   legendPercent: {
-    fontWeight: "500",
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    padding: 20,
   },
   modalContainer: {
-    width: "90%",
-    maxWidth: 400,
-    borderRadius: 12,
-    padding: 16,
-    maxHeight: "80%", // Use theme color
+    width: "100%",
+    maxWidth: 450,
+    borderRadius: 16,
+    padding: 24,
+    maxHeight: "90%",
     overflow: "hidden",
     elevation: 5,
     shadowColor: "#000",
@@ -2164,40 +2464,40 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 14,
-    marginBottom: 6,
+    fontSize: 16,
+    marginBottom: 8,
   },
   inputHint: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 14,
+    marginTop: 6,
   },
   textInput: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     fontSize: 16,
   },
   colorSelector: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 8,
+    marginTop: 12,
   },
   colorOption: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    margin: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    margin: 6,
   },
   selectedColor: {
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: "white",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -2207,69 +2507,69 @@ const styles = StyleSheet.create({
   },
   iconSelector: {
     flexDirection: "row",
-    marginTop: 8,
-    maxHeight: 50,
+    marginTop: 12,
+    maxHeight: 60,
   },
   iconOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    margin: 4,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    margin: 6,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#f0f0f0",
   },
   selectedIcon: {
-    borderWidth: 2,
+    borderWidth: 3,
   },
   iconText: {
-    fontSize: 20,
+    fontSize: 24,
   },
   categoryPicker: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
+    borderRadius: 12,
+    padding: 12,
     flexDirection: "row",
   },
   categoryChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginRight: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 10,
   },
   categoryChipText: {
-    fontWeight: "500",
+    fontWeight: "600",
   },
   modalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 16,
+    marginTop: 24,
   },
   modalButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginLeft: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginLeft: 12,
   },
   cancelButton: {
     borderWidth: 1,
   },
   confirmButton: {
-    minWidth: 100,
+    minWidth: 120,
   },
   confirmButtonText: {
     color: "white",
-    fontWeight: "500",
+    fontWeight: "600",
     textAlign: "center",
   },
   recurringContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   recurringToggle: {
-    width: 50,
+    width: 56,
     height: 30,
     borderRadius: 15,
     padding: 5,
@@ -2280,35 +2580,35 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   recurringOptions: {
-    marginTop: 10,
+    marginTop: 12,
   },
   recurringTypeContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 8,
+    marginTop: 10,
   },
   recurringTypeButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginRight: 8,
-    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginRight: 10,
+    marginBottom: 10,
     borderWidth: 1,
   },
   recurringTypeText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   recurringBadge: {
-    marginTop: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     backgroundColor: "#f0f0f0",
     alignSelf: "flex-start",
   },
   recurringText: {
-    fontSize: 10,
+    fontSize: 12,
     color: "#666",
   },
   overviewContent: {
@@ -2317,22 +2617,77 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   overviewLabel: {
-    fontSize: 12,
-    marginBottom: 4,
+    fontSize: 14,
+    marginBottom: 6,
   },
   overviewValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
   },
   icon: {
-    fontSize: 20,
+    fontSize: 24,
+  },
+  goalsContainer: {
+    marginBottom: 20,
+  },
+  goalsScroll: {
+    marginTop: 10,
+  },
+  goalCard: {
+    width: 280,
+    borderRadius: 16,
+    padding: 20,
+    marginRight: 16,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  goalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  goalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  goalCategoryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  goalCategoryText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  goalAmounts: {
+    marginBottom: 12,
+  },
+  goalCurrentAmount: {
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  goalDeadline: {
+    fontSize: 14,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  contributeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
   },
 })
 
