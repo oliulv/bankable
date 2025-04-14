@@ -1129,7 +1129,7 @@ const InvestmentsScreen: React.FC = () => {
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
-          keyboardVerticalOffset={50} // Give more space
+          keyboardVerticalOffset={10} // Reduced from 50 to 10
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <SafeAreaView style={styles.modalContainer}>
@@ -1146,16 +1146,29 @@ const InvestmentsScreen: React.FC = () => {
                     <Text style={styles.assetInfoLabel}>Current Price:</Text>
                     <Text style={styles.assetInfoValue}>£{selectedAsset.currentPrice.toFixed(2)}</Text>
                   </View>
-                  <View style={styles.assetInfoContainer}>
-                    <Text style={styles.assetInfoLabel}>Available Balance:</Text>
-                    <Text style={styles.assetInfoValue}>£{portfolio.balance.toFixed(2)}</Text>
-                  </View>
-                  {transactionType === 'sell' && portfolio.assets[selectedAsset.id] && (
+                  
+                  {transactionType === 'buy' ? (
                     <View style={styles.assetInfoContainer}>
-                      <Text style={styles.assetInfoLabel}>Available {selectedAsset.symbol}:</Text>
-                      <Text style={styles.assetInfoValue}>{portfolio.assets[selectedAsset.id].quantity.toFixed(6)} {selectedAsset.symbol}</Text>
+                      <Text style={styles.assetInfoLabel}>Available Balance:</Text>
+                      <Text style={styles.assetInfoValue}>£{portfolio.balance.toFixed(2)}</Text>
                     </View>
+                  ) : (
+                    portfolio.assets[selectedAsset.id] && (
+                      <>
+                        <View style={styles.assetInfoContainer}>
+                          <Text style={styles.assetInfoLabel}>Available {selectedAsset.symbol}:</Text>
+                          <Text style={styles.assetInfoValue}>{portfolio.assets[selectedAsset.id].quantity.toFixed(6)} {selectedAsset.symbol}</Text>
+                        </View>
+                        <View style={styles.assetInfoContainer}>
+                          <Text style={styles.assetInfoLabel}>Total Value:</Text>
+                          <Text style={styles.assetInfoValue}>
+                            £{(portfolio.assets[selectedAsset.id].quantity * selectedAsset.currentPrice).toFixed(2)}
+                          </Text>
+                        </View>
+                      </>
+                    )
                   )}
+                  
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Amount to {transactionType} (£):</Text>
                     <View style={styles.improvedInputWrapper}>
@@ -1171,6 +1184,7 @@ const InvestmentsScreen: React.FC = () => {
                       />
                     </View>
                   </View>
+                  
                   {parseFloat(transactionAmount) > 0 && (
                     <View style={styles.estimatedContainer}>
                       <Text style={styles.estimatedLabel}>Estimated {selectedAsset.symbol}:</Text>
@@ -1179,8 +1193,13 @@ const InvestmentsScreen: React.FC = () => {
                       </Text>
                     </View>
                   )}
+                  
                   <TouchableOpacity
-                    style={styles.improvedTransactionButton}
+                    style={[
+                      styles.improvedTransactionButton,
+                      transactionType === 'sell' ? styles.sellButton : null,
+                      { marginTop: 15 }
+                    ]}
                     activeOpacity={0.8}
                     onPress={processTransaction}
                   >
@@ -1633,9 +1652,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden',
-    marginTop: 65, // Adjust to give more space
-    marginBottom: 30,
-    maxHeight: '80%', // Limit max height
+    marginTop: 20, // Adjust to give more space
+    marginBottom: 10,
+    maxHeight: '100%', // Limit max height
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1977,7 +1996,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#006a4d',
     paddingVertical: 16,
     borderRadius: 12,
-    marginTop: 30,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -2029,11 +2047,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   improvedAmountInput: {
-    fontSize: 28, // Larger font
-    paddingVertical: 16, // More vertical padding
+    fontSize: 20, // Larger font
+    paddingVertical: 10, // More vertical padding
     paddingHorizontal: 16,
     textAlign: 'center',
-    minHeight: 70, // Ensure enough height
+    minHeight: 50, // Ensure enough height
   },
   holdingsList: {
     maxHeight: 300, // Set a fixed height for scrolling
