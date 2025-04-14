@@ -1043,6 +1043,7 @@ const InvestmentsScreen: React.FC = () => {
               
               {/* Simplified chart container structure */}
               {selectedAsset.historicalData && selectedAsset.historicalData.prices.length > 0 ? (
+                // Update the LineChart in renderAssetDetailModal function
                 <View style={styles.cleanChartContainer}>
                   <LineChart
                     data={{
@@ -1058,38 +1059,49 @@ const InvestmentsScreen: React.FC = () => {
                         }
                       ]
                     }}
-                    width={screenWidth - 48}
-                    height={180} // Reduced height
+                    width={screenWidth - 38}
+                    height={220}
                     yAxisLabel="£"
+                    yAxisSuffix=""
                     chartConfig={{
                       backgroundColor: "#ffffff",
                       backgroundGradientFrom: "#ffffff",
                       backgroundGradientTo: "#ffffff",
                       decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                      propsForDots: { r: "0" }, // Remove dots
+                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.5})`,
+                      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.5})`,
+                      propsForDots: { r: "0" },
                       strokeWidth: 2.5,
                       propsForBackgroundLines: { 
                         strokeWidth: 0.5, 
                         stroke: "rgba(0,0,0,0.05)",
-                        strokeDasharray: "5, 5" // Dashed lines
+                        strokeDasharray: "5, 5"
                       },
-                      propsForVerticalLabels: {
+                      propsForLabels: {
                         fontSize: 10,
+                        opacity: 0.8,
+                        fill: "#666"
                       },
                       formatYLabel: (value) => {
                         const num = parseFloat(value);
-                        return num >= 1000 ? `${Math.round(num/1000)}k` : `${Math.round(num)}`;
+                        if (num >= 1000000) return `£${(num/1000000).toFixed(1)}M`;
+                        if (num >= 1000) return `£${(num/1000).toFixed(1)}k`;
+                        return `£${Math.round(num)}`;
                       }
                     }}
                     bezier
                     withDots={false}
-                    withInnerLines={false} // Remove inner grid lines
+                    withInnerLines={false}
                     withOuterLines={true}
-                    withVerticalLines={false} // Remove vertical grid lines
-                    withVerticalLabels={false} // Remove vertical labels
+                    withVerticalLines={false}
+                    withVerticalLabels={false}
+                    withHorizontalLabels={true}
+                    withHorizontalLines={true}
+                    horizontalLabelRotation={0}
+                    yLabelsOffset={5}
+                    segments={4}
                     style={styles.cleanChart}
+                    fromZero={false}
                   />
                   <Text style={styles.chartTimeframe}>Last 30 days</Text>
                 </View>
@@ -1678,7 +1690,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden',
-    marginTop: 20, // Adjust to give more space
+    marginTop: 10, // Adjust to give more space
     marginBottom: 10,
     maxHeight: '90%', // Slightly increased from before
   },
@@ -1752,7 +1764,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   transactionButton: {
-    marginTop: 12, // Reduced from 30
+    marginTop: 10,
+    marginBottom: 10, // Reduced from 30
     paddingVertical: 14, // Reduced from 16
     borderRadius: 8,
     alignItems: 'center',
@@ -2077,20 +2090,23 @@ const styles = StyleSheet.create({
   cleanChartContainer: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 12,
+    padding: 8,
+    paddingLeft: 0, // Reduced to give more space for y-axis labels
+    paddingRight: 12,
+    marginHorizontal: 0,
     marginVertical: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
-    overflow: 'hidden', // Ensure chart doesn't overflow
+    overflow: 'hidden',
   },
   cleanChart: {
     marginVertical: 4,
     borderRadius: 8,
-    paddingRight: 0, // Remove right padding to prevent overflow
+    paddingLeft: 10, // Add padding for y-axis labels
+    marginRight: -10, // Compensate for right padding
   },
   
   // More compact styles for asset modal
