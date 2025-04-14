@@ -695,13 +695,14 @@ const InvestmentsScreen: React.FC = () => {
       const backgroundColor = colorStyle.backgroundColor;
       
       const percentage = (value / totalValue) * 100;
-      const roundedPercentage = percentage.toFixed(1); // Use rounded integer for cleaner display
+      // Format to exactly one decimal place
+      const roundedPercentage = percentage.toFixed(1); 
       
       return {
-        name: `${category}: ${roundedPercentage}%`, // Format as "58% Stocks"
-        value: percentage,
-        legend: `${category}: ${roundedPercentage}%`, // Same format for legend
-        color: backgroundColor, // Use matching color from asset cards
+        name: `% ${category}`,
+        value: parseFloat(roundedPercentage), // Use the rounded value here, not the raw percentage
+        legend: `% ${category}`,
+        color: backgroundColor,
         legendFontColor: '#333333',
         legendFontSize: 12
       };
