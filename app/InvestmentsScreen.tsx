@@ -13,6 +13,10 @@ import {
   SafeAreaView,
   Alert,
   FlatList,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, PieChart } from 'react-native-chart-kit';
@@ -74,6 +78,17 @@ interface Portfolio {
 }
 
 type AssetCategory = 'Stocks' | 'ETFs' | 'Crypto' | 'Bonds' | 'Real Estate';
+
+// Add this type definition near your other interfaces
+interface HoldingDataItem {
+  assetId: string;
+  asset: Asset;
+  holding: {
+    quantity: number;
+    averagePrice: number;
+  };
+  value: number;
+}
 
 // --- Chart configuration ---
 const chartConfig = {
@@ -556,9 +571,20 @@ const InvestmentsScreen: React.FC = () => {
         return;
       }
     }
-    setTransactionType(type);
-    setTransactionAmount('');
-    setShowTransactionModal(true);
+    
+    // Store the selected asset in a temporary variable
+    const asset = selectedAsset;
+    
+    // Close the first modal
+    setShowAssetModal(false);
+    
+    // Open the transaction modal with a delay
+    setTimeout(() => {
+      setSelectedAsset(asset); // Restore the selected asset
+      setTransactionType(type);
+      setTransactionAmount('');
+      setShowTransactionModal(true);
+    }, 300);
   };
 
   // --- Process transaction ---
@@ -645,9 +671,11 @@ const InvestmentsScreen: React.FC = () => {
     return ((totalCurrentValue - totalInvested) / totalInvested) * 100;
   };
 
+  // Update the getPortfolioAllocationData function to fix label format and use matching colors
   const getPortfolioAllocationData = () => {
     const categoryMap: Record<string, number> = {};
     let totalValue = 0;
+    
     Object.entries(portfolio.assets).forEach(([assetId, holding]) => {
       const asset = assets.find(a => a.id === assetId);
       if (asset) {
@@ -660,43 +688,94 @@ const InvestmentsScreen: React.FC = () => {
         }
       }
     });
-    const chartData = Object.entries(categoryMap).map(([category, value], index) => {
-      const colors = ['#006a4d', '#3498DB', '#9B59B6', '#F1C40F', '#E74C3C', '#16A085'];
+    
+    const chartData = Object.entries(categoryMap).map(([category, value]) => {
+      // Get the same color used in asset cards for consistency
+      const colorStyle = getCategoryStyle(category as AssetCategory);
+      const backgroundColor = colorStyle.backgroundColor;
+      
       const percentage = (value / totalValue) * 100;
+      // Format to exactly one decimal place
+      const roundedPercentage = percentage.toFixed(1); 
+      
       return {
-        name: category,
-        value: percentage,
-        percentage: percentage,
-        color: colors[index % colors.length],
-        legendFontColor: '#7F7F7F',
+        name: `% ${category}`,
+        value: parseFloat(roundedPercentage), // Use the rounded value here, not the raw percentage
+        legend: `% ${category}`,
+        color: backgroundColor,
+        legendFontColor: '#333333',
         legendFontSize: 12
       };
     });
+    
     return chartData;
   };
 
   const getPortfolioPerformanceData = () => {
-    const transactions = portfolio.transactions.slice(0, 6).reverse();
-    const labels = transactions.map(t => {
-      const date = new Date(t.date);
-      return `${date.getDate()}/${date.getMonth() + 1}`;
-    });
-    if (labels.length === 0) {
+    // Create historical portfolio value data based on transactions
+    
+    if (portfolio.transactions.length === 0) {
       return {
-        labels: ['Start'],
-        datasets: [{ data: [portfolio.balance] }]
+        labels: ['Today'],
+        datasets: [{ 
+          data: [portfolio.balance],
+          color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
+          strokeWidth: 2.5
+        }]
       };
     }
-    const startValue = portfolio.balance;
-    const endValue = calculateTotalPortfolioValue();
-    const difference = endValue - startValue;
-    const data = transactions.map((t, i) => startValue + (difference * (i / transactions.length)));
-    if (data.length === 0) {
-      data.push(portfolio.balance);
+  
+    // Calculate estimated portfolio value at different points in time
+    const dataPoints: {date: Date, value: number}[] = [];
+    let runningBalance = portfolio.balance;
+    let runningAssets: {[assetId: string]: {quantity: number, averagePrice: number}} = {};
+    
+    // Start with current state and work backwards
+    dataPoints.push({
+      date: new Date(),
+      value: calculateTotalPortfolioValue()
+    });
+  
+    // Generate points based on transaction history (last 6 transactions max)
+    const recentTransactions = portfolio.transactions.slice(0, 6);
+    for (let i = 0; i < recentTransactions.length; i++) {
+      const transaction = recentTransactions[i];
+      const asset = assets.find(a => a.id === transaction.assetId);
+      if (!asset) continue;
+      
+      // Approximate the portfolio value right before this transaction
+      let estimatedValue = dataPoints[dataPoints.length - 1].value;
+      
+      if (transaction.type === 'buy') {
+        estimatedValue -= asset.currentPrice * transaction.quantity;
+      } else {
+        estimatedValue += asset.currentPrice * transaction.quantity;
+      }
+      
+      dataPoints.push({
+        date: new Date(transaction.date),
+        value: Math.max(estimatedValue, 0) // Ensure non-negative value
+      });
     }
+    
+    // Sort by date (oldest first)
+    dataPoints.sort((a, b) => a.date.getTime() - b.date.getTime());
+    
+    // Format for chart
+    const labels = dataPoints.map(dp => {
+      const d = new Date(dp.date);
+      return `${d.getDate()}/${d.getMonth() + 1}`;
+    });
+    
+    const values = dataPoints.map(dp => dp.value);
+    
     return {
-      labels: labels.length > 0 ? labels : ['Start'],
-      datasets: [{ data }]
+      labels,
+      datasets: [{ 
+        data: values,
+        color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
+        strokeWidth: 2.5
+      }]
     };
   };
 
@@ -774,51 +853,160 @@ const InvestmentsScreen: React.FC = () => {
     );
   };
 
-  const renderHoldings = () => {
-    const holdings = Object.entries(portfolio.assets)
-      .map(([assetId, holding]) => {
+  const renderPortfolioAnalytics = () => {
+    const totalValue = calculateTotalPortfolioValue();
+    const performance = calculatePortfolioPerformance();
+    const allocationData = getPortfolioAllocationData();
+    const performanceData = getPortfolioPerformanceData();
+    
+    // Get holdings data for the list
+    const holdingsData = Object.entries(portfolio.assets)
+      .map(([assetId, holding]): HoldingDataItem | null => {
         const asset = assets.find(a => a.id === assetId);
         if (!asset) return null;
         const currentValue = asset.currentPrice * holding.quantity;
-        const investedValue = holding.averagePrice * holding.quantity;
-        const profit = currentValue - investedValue;
-        const profitPercentage = (profit / investedValue) * 100;
-        return (
-          <View key={assetId} style={styles.holdingCard}>
-            <View style={styles.holdingHeader}>
-              <Text style={styles.holdingSymbol}>{asset.symbol}</Text>
-              <Text style={styles.holdingName}>{asset.name}</Text>
-            </View>
-            <View style={styles.holdingDetails}>
-              <View style={styles.holdingQuantity}>
-                <Text style={styles.holdingLabel}>Quantity</Text>
-                <Text style={styles.holdingValue}>{holding.quantity.toFixed(6)}</Text>
-              </View>
-              <View style={styles.holdingCurrentValue}>
-                <Text style={styles.holdingLabel}>Current Value</Text>
-                <Text style={styles.holdingValue}>£{currentValue.toFixed(2)}</Text>
-              </View>
-              <View style={styles.holdingProfit}>
-                <Text style={styles.holdingLabel}>Profit/Loss</Text>
-                <Text style={[styles.holdingValue, profit >= 0 ? styles.positiveChange : styles.negativeChange]}>
-                  {profit >= 0 ? '+' : ''}£{profit.toFixed(2)} ({profitPercentage.toFixed(2)}%)
-                </Text>
-              </View>
+        return { assetId, asset, holding, value: currentValue };
+      })
+      .filter((item): item is HoldingDataItem => item !== null)
+      .sort((a, b) => b.value - a.value); // Sort by value (highest first)
+    
+    return (
+      <View style={styles.portfolioAnalyticsContainer}>
+        {/* Portfolio Summary section */}
+        <View style={styles.portfolioSummary}>
+          <View style={styles.portfolioValueContainer}>
+            <Text style={styles.portfolioLabel}>Total Value</Text>
+            <Text style={styles.portfolioTotalValue}>£{totalValue.toFixed(2)}</Text>
+            <View style={styles.portfolioPerformanceContainer}>
+              <Text style={[styles.portfolioPerformance, performance >= 0 ? styles.positiveChange : styles.negativeChange]}>
+                {performance >= 0 ? '+' : ''}{performance.toFixed(2)}%
+              </Text>
+              <Text style={styles.portfolioTimeframe}>All time</Text>
             </View>
           </View>
-        );
-      })
-      .filter(Boolean);
-    if (holdings.length === 0) {
-      return (
-        <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="finance" size={48} color="#BBBBBB" />
-          <Text style={styles.emptyStateText}>You don't have any investments yet.</Text>
-          <Text style={styles.emptyStateSubtext}>Start investing by exploring assets!</Text>
+          <View style={styles.portfolioCashContainer}>
+            <Text style={styles.portfolioLabel}>Available Cash</Text>
+            <Text style={styles.portfolioCashValueAdjusted}>£{portfolio.balance.toFixed(2)}</Text>
+          </View>
         </View>
-      );
-    }
-    return holdings;
+
+        {/* Portfolio Performance section */}
+        <View style={styles.portfolioChartContainer}>
+          <Text style={styles.chartTitle}>Portfolio Performance</Text>
+          {performanceData.datasets[0].data.length > 0 && (
+            <LineChart
+              data={performanceData}
+              width={screenWidth - 40}
+              height={220}
+              yAxisLabel="£"
+              chartConfig={{
+                ...chartConfig,
+                propsForDots: { r: "0" }, // Remove dots
+                strokeWidth: 2.5,
+                fillShadowGradientFrom: "#006a4d",
+                fillShadowGradientTo: "#ffffff",
+                fillShadowGradientOpacity: 0.2,
+              }}
+              bezier
+              withDots={false}
+              withShadow={true}
+              style={styles.improvedChart}
+            />
+          )}
+        </View>
+        
+        {/* Asset Allocation section */}
+        {allocationData.length > 0 && (
+          <View style={styles.portfolioChartContainer}>
+            <Text style={styles.chartTitle}>Asset Allocation</Text>
+            <PieChart
+              data={allocationData}
+              width={screenWidth - 40}
+              height={220}
+              chartConfig={chartConfig}
+              accessor="value"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+            />
+          </View>
+        )}
+
+        {/* Holdings section - modified to be scrollable and show top 3 */}
+        <View style={styles.holdingsContainer}>
+          <Text style={styles.sectionTitle}>Your Holdings</Text>
+          {holdingsData.length > 0 ? (
+            <FlatList
+              data={holdingsData}
+              renderItem={({ item }) => {
+                const { assetId, asset, holding } = item;
+                const currentValue = asset.currentPrice * holding.quantity;
+                const investedValue = holding.averagePrice * holding.quantity;
+                const profit = currentValue - investedValue;
+                const profitPercentage = (profit / investedValue) * 100;
+                
+                return (
+                  <TouchableOpacity 
+                    key={assetId} 
+                    style={styles.holdingCard} 
+                    onPress={() => openAssetDetails(asset)}
+                  >
+                    <View style={styles.holdingHeader}>
+                      <Text style={styles.holdingSymbol}>{asset.symbol}</Text>
+                      <Text style={styles.holdingName}>{asset.name}</Text>
+                    </View>
+                    <View style={styles.holdingDetails}>
+                      <View style={styles.holdingQuantity}>
+                        <Text style={styles.holdingLabel}>Quantity</Text>
+                        <Text style={styles.holdingValue}>{holding.quantity.toFixed(6)}</Text>
+                      </View>
+                      <View style={styles.holdingCurrentValue}>
+                        <Text style={styles.holdingLabel}>Current Value</Text>
+                        <Text style={styles.holdingValue}>£{currentValue.toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.holdingProfit}>
+                        <Text style={styles.holdingLabel}>Profit/Loss</Text>
+                        <Text style={[styles.holdingValue, profit >= 0 ? styles.positiveChange : styles.negativeChange]}>
+                          {profit >= 0 ? '+' : ''}£{profit.toFixed(2)} ({profitPercentage.toFixed(2)}%)
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              keyExtractor={item => item?.assetId || 'unknown'}
+              style={styles.holdingsList}
+              scrollEnabled={true}
+              nestedScrollEnabled={true}
+            />
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="finance" size={48} color="#BBBBBB" />
+              <Text style={styles.emptyStateText}>You don't have any investments yet.</Text>
+              <Text style={styles.emptyStateSubtext}>Start investing by exploring assets!</Text>
+            </View>
+          )}
+        </View>
+        
+        {/* Transactions section - modified to show top 3 instead of 4 */}
+        <View style={styles.transactionsContainer}>
+          <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          {portfolio.transactions.length > 0 ? (
+            <FlatList
+              data={portfolio.transactions} // Show ALL transactions, not just 3
+              renderItem={renderTransactionItem}
+              keyExtractor={item => item.id}
+              style={styles.transactionsList}
+              initialNumToRender={3} // Initially render only 3
+              scrollEnabled={true}
+              nestedScrollEnabled={true}
+            />
+          ) : (
+            <Text style={styles.emptyStateSubtext}>No transactions yet</Text>
+          )}
+        </View>
+      </View>
+    );
   };
 
   const renderAssetDetailModal = () => {
@@ -852,54 +1040,80 @@ const InvestmentsScreen: React.FC = () => {
                   {selectedAsset.priceChangePercentage24h >= 0 ? '+' : ''}{selectedAsset.priceChangePercentage24h.toFixed(2)}% (24h)
                 </Text>
               </View>
-              <View style={styles.chartContainer}>
-                {selectedAsset.historicalData && selectedAsset.historicalData.prices.length > 0 ? (
-                  <View style={styles.chartWrapper}>
-                    <LineChart
-                      data={{
-                        labels: [],
-                        datasets: [
-                          {
-                            data: selectedAsset.historicalData.prices,
-                            color: (opacity = 1) =>
-                              selectedAsset.priceChangePercentage24h >= 0
-                                ? `rgba(0, 177, 106, ${opacity})`
-                                : `rgba(255, 84, 84, ${opacity})`,
-                            strokeWidth: 2
-                          }
-                        ]
-                      }}
-                      width={screenWidth - 40}
-                      height={220}
-                      yAxisLabel="£"
-                      chartConfig={{
-                        backgroundColor: "#fafafa",
-                        backgroundGradientFrom: "#fafafa",
-                        backgroundGradientTo: "#ffffff",
-                        decimalPlaces: 0,
-                        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                        propsForDots: { r: "0", strokeWidth: "0" },
-                        propsForBackgroundLines: { strokeWidth: 1, stroke: "rgba(0,0,0,0.1)" },
-                        formatYLabel: (value) => {
-                          const num = parseFloat(value);
-                          return num >= 1000 ? `${Math.round(num/1000)}k` : `${Math.round(num)}`;
+              
+              {/* Simplified chart container structure */}
+              {selectedAsset.historicalData && selectedAsset.historicalData.prices.length > 0 ? (
+                // Update the LineChart in renderAssetDetailModal function
+                <View style={styles.cleanChartContainer}>
+                  <LineChart
+                    data={{
+                      labels: [],
+                      datasets: [
+                        {
+                          data: selectedAsset.historicalData.prices,
+                          color: (opacity = 1) =>
+                            selectedAsset.priceChangePercentage24h >= 0
+                              ? `rgba(0, 177, 106, ${opacity})`
+                              : `rgba(255, 84, 84, ${opacity})`,
+                          strokeWidth: 2.5
                         }
-                      }}
-                      bezier
-                      withDots={false}
-                      style={styles.chart}
-                    />
-                    <Text style={styles.chartTimeframe}>Last 30 days</Text>
-                  </View>
-                ) : (
-                  <View style={styles.chartLoadingContainer}>
-                    <ActivityIndicator size="large" color="#006a4d" />
-                    <Text style={styles.chartLoadingText}>Loading chart data...</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.assetStatsContainer}>
+                      ]
+                    }}
+                    width={screenWidth - 38}
+                    height={220}
+                    yAxisLabel="£"
+                    yAxisSuffix=""
+                    chartConfig={{
+                      backgroundColor: "#ffffff",
+                      backgroundGradientFrom: "#ffffff",
+                      backgroundGradientTo: "#ffffff",
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.5})`,
+                      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.5})`,
+                      propsForDots: { r: "0" },
+                      strokeWidth: 2.5,
+                      propsForBackgroundLines: { 
+                        strokeWidth: 0.5, 
+                        stroke: "rgba(0,0,0,0.05)",
+                        strokeDasharray: "5, 5"
+                      },
+                      propsForLabels: {
+                        fontSize: 10,
+                        opacity: 0.8,
+                        fill: "#666"
+                      },
+                      formatYLabel: (value) => {
+                        const num = parseFloat(value);
+                        if (num >= 1000000) return `£${(num/1000000).toFixed(1)}M`;
+                        if (num >= 1000) return `£${(num/1000).toFixed(1)}k`;
+                        return `£${Math.round(num)}`;
+                      }
+                    }}
+                    bezier
+                    withDots={false}
+                    withInnerLines={false}
+                    withOuterLines={true}
+                    withVerticalLines={false}
+                    withVerticalLabels={false}
+                    withHorizontalLabels={true}
+                    withHorizontalLines={true}
+                    horizontalLabelRotation={0}
+                    yLabelsOffset={5}
+                    segments={4}
+                    style={styles.cleanChart}
+                    fromZero={false}
+                  />
+                  <Text style={styles.chartTimeframe}>Last 30 days</Text>
+                </View>
+              ) : (
+                <View style={styles.chartLoadingContainer}>
+                  <ActivityIndicator size="large" color="#006a4d" />
+                  <Text style={styles.chartLoadingText}>Loading chart data...</Text>
+                </View>
+              )}
+              
+              {/* Asset stats with more compact layout */}
+              <View style={styles.compactStatsContainer}>
                 <View style={styles.assetStat}>
                   <Text style={styles.assetStatLabel}>Market Cap</Text>
                   <Text style={styles.assetStatValue}>£{(selectedAsset.marketCap / 1000000000).toFixed(2)}B</Text>
@@ -913,8 +1127,10 @@ const InvestmentsScreen: React.FC = () => {
                   <Text style={styles.assetStatValue}>{selectedAsset.category}</Text>
                 </View>
               </View>
-              <Text style={styles.assetDescription}>{selectedAsset.description}</Text>
-              <View style={styles.transactionButtons}>
+              
+              <Text style={styles.compactAssetDescription}>{selectedAsset.description}</Text>
+              
+              <View style={styles.compactTransactionButtons}>
                 <TouchableOpacity style={[styles.transactionButton, styles.buyButton]} activeOpacity={0.8} onPress={() => openTransactionModal('buy')}>
                   <Text style={styles.transactionButtonText}>Buy</Text>
                 </TouchableOpacity>
@@ -938,61 +1154,92 @@ const InvestmentsScreen: React.FC = () => {
         transparent={true}
         onRequestClose={() => setShowTransactionModal(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity style={styles.closeButton} onPress={() => setShowTransactionModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>{transactionType === 'buy' ? 'Buy' : 'Sell'} {selectedAsset.symbol}</Text>
-              <View style={{ width: 24 }} />
-            </View>
-            <View style={styles.transactionForm}>
-              <View style={styles.assetInfoContainer}>
-                <Text style={styles.assetInfoLabel}>Current Price:</Text>
-                <Text style={styles.assetInfoValue}>£{selectedAsset.currentPrice.toFixed(2)}</Text>
-              </View>
-              <View style={styles.assetInfoContainer}>
-                <Text style={styles.assetInfoLabel}>Available Balance:</Text>
-                <Text style={styles.assetInfoValue}>£{portfolio.balance.toFixed(2)}</Text>
-              </View>
-              {transactionType === 'sell' && portfolio.assets[selectedAsset.id] && (
-                <View style={styles.assetInfoContainer}>
-                  <Text style={styles.assetInfoLabel}>Available {selectedAsset.symbol}:</Text>
-                  <Text style={styles.assetInfoValue}>{portfolio.assets[selectedAsset.id].quantity.toFixed(6)} {selectedAsset.symbol}</Text>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={10} // Reduced from 50 to 10
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity style={styles.closeButton} onPress={() => setShowTransactionModal(false)}>
+                    <Ionicons name="close" size={24} color="#333" />
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>{transactionType === 'buy' ? 'Buy' : 'Sell'} {selectedAsset.symbol}</Text>
+                  <View style={{ width: 24 }} />
                 </View>
-              )}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Amount to {transactionType} (£):</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  value={transactionAmount}
-                  onChangeText={setTransactionAmount}
-                  placeholder="Enter amount"
-                  keyboardType="decimal-pad"
-                  autoFocus
-                />
-              </View>
-              {parseFloat(transactionAmount) > 0 && (
-                <View style={styles.estimatedContainer}>
-                  <Text style={styles.estimatedLabel}>Estimated {selectedAsset.symbol}:</Text>
-                  <Text style={styles.estimatedValue}>
-                    {(parseFloat(transactionAmount) / selectedAsset.currentPrice).toFixed(6)} {selectedAsset.symbol}
-                  </Text>
+                <View style={styles.transactionForm}>
+                  <View style={styles.assetInfoContainer}>
+                    <Text style={styles.assetInfoLabel}>Current Price:</Text>
+                    <Text style={styles.assetInfoValue}>£{selectedAsset.currentPrice.toFixed(2)}</Text>
+                  </View>
+                  
+                  {transactionType === 'buy' ? (
+                    <View style={styles.assetInfoContainer}>
+                      <Text style={styles.assetInfoLabel}>Available Balance:</Text>
+                      <Text style={styles.assetInfoValue}>£{portfolio.balance.toFixed(2)}</Text>
+                    </View>
+                  ) : (
+                    portfolio.assets[selectedAsset.id] && (
+                      <>
+                        <View style={styles.assetInfoContainer}>
+                          <Text style={styles.assetInfoLabel}>Available {selectedAsset.symbol}:</Text>
+                          <Text style={styles.assetInfoValue}>{portfolio.assets[selectedAsset.id].quantity.toFixed(6)} {selectedAsset.symbol}</Text>
+                        </View>
+                        <View style={styles.assetInfoContainer}>
+                          <Text style={styles.assetInfoLabel}>Total Value:</Text>
+                          <Text style={styles.assetInfoValue}>
+                            £{(portfolio.assets[selectedAsset.id].quantity * selectedAsset.currentPrice).toFixed(2)}
+                          </Text>
+                        </View>
+                      </>
+                    )
+                  )}
+                  
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Amount to {transactionType} (£):</Text>
+                    <View style={styles.improvedInputWrapper}>
+                      <TextInput
+                        style={styles.improvedAmountInput}
+                        value={transactionAmount}
+                        onChangeText={setTransactionAmount}
+                        placeholder="Enter amount"
+                        keyboardType="decimal-pad"
+                        autoFocus
+                        returnKeyType="done"
+                        onSubmitEditing={Keyboard.dismiss}
+                      />
+                    </View>
+                  </View>
+                  
+                  {parseFloat(transactionAmount) > 0 && (
+                    <View style={styles.estimatedContainer}>
+                      <Text style={styles.estimatedLabel}>Estimated {selectedAsset.symbol}:</Text>
+                      <Text style={styles.estimatedValue}>
+                        {(parseFloat(transactionAmount) / selectedAsset.currentPrice).toFixed(6)} {selectedAsset.symbol}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.improvedTransactionButton,
+                      transactionType === 'sell' ? styles.sellButton : null,
+                      { marginTop: 15 }
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={processTransaction}
+                  >
+                    <Text style={styles.improvedTransactionButtonText}>
+                      {transactionType === 'buy' ? 'Buy' : 'Sell'} {selectedAsset.symbol}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              )}
-              <TouchableOpacity
-                style={[styles.transactionButton, { backgroundColor: transactionType === 'buy' ? '#006a4d' : '#555555' }]}
-                activeOpacity={0.8}
-                onPress={processTransaction}
-              >
-                <Text style={styles.transactionButtonText}>
-                  {transactionType === 'buy' ? 'Buy' : 'Sell'} {selectedAsset.symbol}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
+              </View>
+            </SafeAreaView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     );
   };
@@ -1032,75 +1279,6 @@ const InvestmentsScreen: React.FC = () => {
             <Ionicons name="chevron-forward" size={20} color="#006a4d" />
           </View>
         )}
-      </View>
-    );
-  };
-
-  const renderPortfolioAnalytics = () => {
-    const totalValue = calculateTotalPortfolioValue();
-    const performance = calculatePortfolioPerformance();
-    const allocationData = getPortfolioAllocationData();
-    const performanceData = getPortfolioPerformanceData();
-    return (
-      <View style={styles.portfolioAnalyticsContainer}>
-        <View style={styles.portfolioSummary}>
-          <View style={styles.portfolioValueContainer}>
-            <Text style={styles.portfolioLabel}>Total Value</Text>
-            <Text style={styles.portfolioTotalValue}>£{totalValue.toFixed(2)}</Text>
-            <View style={styles.portfolioPerformanceContainer}>
-              <Text style={[styles.portfolioPerformance, performance >= 0 ? styles.positiveChange : styles.negativeChange]}>
-                {performance >= 0 ? '+' : ''}{performance.toFixed(2)}%
-              </Text>
-              <Text style={styles.portfolioTimeframe}>All time</Text>
-            </View>
-          </View>
-          <View style={styles.portfolioCashContainer}>
-            <Text style={styles.portfolioLabel}>Available Cash</Text>
-            <Text style={styles.portfolioCashValue}>£{portfolio.balance.toFixed(2)}</Text>
-          </View>
-        </View>
-        <View style={styles.portfolioChartContainer}>
-          <Text style={styles.chartTitle}>Portfolio Performance</Text>
-          {performanceData.datasets[0].data.length > 0 && (
-            <LineChart
-              data={performanceData}
-              width={screenWidth - 40}
-              height={220}
-              yAxisLabel="£"
-              chartConfig={chartConfig}
-              bezier
-              style={styles.chart}
-            />
-          )}
-        </View>
-        {allocationData.length > 0 && (
-          <View style={styles.portfolioChartContainer}>
-            <Text style={styles.chartTitle}>Asset Allocation</Text>
-            <PieChart
-              data={allocationData}
-              width={screenWidth - 40}
-              height={220}
-              chartConfig={chartConfig}
-              accessor="value"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              absolute
-            />
-          </View>
-        )}
-        <View style={styles.transactionsContainer}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          {portfolio.transactions.length > 0 ? (
-            <FlatList
-              data={portfolio.transactions.slice(0, 5)}
-              renderItem={renderTransactionItem}
-              keyExtractor={item => item.id}
-              scrollEnabled={false}
-            />
-          ) : (
-            <Text style={styles.emptyStateSubtext}>No transactions yet</Text>
-          )}
-        </View>
       </View>
     );
   };
@@ -1181,10 +1359,6 @@ const InvestmentsScreen: React.FC = () => {
           ) : (
             <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
               {renderPortfolioAnalytics()}
-              <View style={styles.holdingsContainer}>
-                <Text style={styles.sectionTitle}>Your Holdings</Text>
-                {renderHoldings()}
-              </View>
             </ScrollView>
           )}
         </View>
@@ -1225,6 +1399,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  assetDetailPrice: {
+    fontSize: 24, 
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  assetDetailPriceChange: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 4,
   },
   buyButton: {
     backgroundColor: '#006a4d',
@@ -1339,7 +1523,7 @@ const styles = StyleSheet.create({
   },
   categoryFilterContainer: {
     paddingVertical: 4,
-    paddingBottom: 12,
+    paddingBottom: 6,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     flexGrow: 0,
@@ -1506,8 +1690,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden',
-    marginTop: 75,
-    marginBottom: 50,
+    marginTop: 10, // Adjust to give more space
+    marginBottom: 10,
+    maxHeight: '90%', // Slightly increased from before
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1526,20 +1711,11 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   modalScroll: {
-    maxHeight: 1000,
+    maxHeight: 600, // Limit max height to ensure it fits on screen
   },
   assetPriceHeader: {
     alignItems: 'center',
-    paddingVertical: 20,
-  },
-  assetDetailPrice: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  assetDetailPriceChange: {
-    fontSize: 18,
-    marginTop: 4,
+    paddingVertical: 12, // Reduced from 20
   },
   chartContainer: {
     backgroundColor: "#fafafa",
@@ -1564,18 +1740,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   assetStat: {
-    width: '50%',
-    paddingVertical: 6,
+    width: '33%', // Changed from 50% to fit 3 in a row
+    paddingVertical: 4, // Reduced padding
   },
   assetStatLabel: {
-    fontSize: 14,
+    fontSize: 12, // Smaller font
     color: '#777',
   },
   assetStatValue: {
-    fontSize: 16,
+    fontSize: 14, // Smaller font
     fontWeight: '600',
     color: '#333',
-    marginTop: 4,
+    marginTop: 2, // Reduced from 4
   },
   assetDescription: {
     padding: 16,
@@ -1588,8 +1764,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   transactionButton: {
-    marginTop: 30,
-    paddingVertical: 16,
+    marginTop: 10,
+    marginBottom: 10, // Reduced from 30
+    paddingVertical: 14, // Reduced from 16
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1603,6 +1780,7 @@ const styles = StyleSheet.create({
   },
   transactionForm: {
     padding: 20,
+    paddingBottom: 30, // Add more padding at the bottom
   },
   assetInfoContainer: {
     flexDirection: 'row',
@@ -1636,6 +1814,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     textAlign: 'center',
+    flex: 1,
   },
   estimatedContainer: {
     flexDirection: 'row',
@@ -1727,9 +1906,9 @@ const styles = StyleSheet.create({
   },
   chartTimeframe: {
     textAlign: 'center',
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
+    fontSize: 12, // Smaller font
+    color: '#888',
+    marginTop: 4, // Reduced from 8
   },
   chartLoadingContainer: {
     height: 220,
@@ -1791,8 +1970,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   holdingsContainer: {
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     padding: 16,
-    paddingTop: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   holdingCard: {
     backgroundColor: '#fff',
@@ -1835,6 +2021,114 @@ const styles = StyleSheet.create({
   holdingLabel: {
     fontSize: 12,
     color: '#777',
+  },
+  improvedTransactionButton: {
+    backgroundColor: '#006a4d',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  improvedTransactionButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  portfolioCashValueAdjusted: {
+    fontSize: 20, // Reduced from 24
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 4,
+  },
+  improvedChart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  transactionsList: {
+    maxHeight: 250, // Fixed height to enable scrolling
+  },
+    // In your StyleSheet
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+  },
+  doneButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    color: '#006a4d',
+    fontWeight: '600',
+  },
+  improvedInputWrapper: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    marginBottom: 8,
+  },
+  improvedAmountInput: {
+    fontSize: 20, // Larger font
+    paddingVertical: 10, // More vertical padding
+    paddingHorizontal: 16,
+    textAlign: 'center',
+    minHeight: 50, // Ensure enough height
+  },
+  holdingsList: {
+    maxHeight: 300, // Set a fixed height for scrolling
+  },
+  // New cleaner chart styles
+  cleanChartContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 8,
+    paddingLeft: 0, // Reduced to give more space for y-axis labels
+    paddingRight: 12,
+    marginHorizontal: 0,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    overflow: 'hidden',
+  },
+  cleanChart: {
+    marginVertical: 4,
+    borderRadius: 8,
+    paddingLeft: 10, // Add padding for y-axis labels
+    marginRight: -10, // Compensate for right padding
+  },
+  
+  // More compact styles for asset modal
+  compactStatsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginTop: 0,
+  },
+  compactAssetDescription: {
+    padding: 16,
+    paddingTop: 8,
+    fontSize: 14,
+    color: '#555',
+    maxHeight: 120, // Limit description height
+  },
+  compactTransactionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
 });
 

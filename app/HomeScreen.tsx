@@ -10,11 +10,10 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Video, ResizeMode } from "expo-av";
 import { useUser } from "../context/UserContext";
-import { AccountInfo } from "../context/UserContext";
 import { useRouter } from "expo-router";
 import { getAccountTransactions } from "../api/userData";
 
@@ -31,12 +30,12 @@ interface Transaction {
   type: "inflow" | "outflow";
 }
 
-// Map to convert product types to card videos
-const productTypeToVideo: Record<string, any> = {
-  "Personal Current Account": require("../assets/videos/REC-1.mp4"),
-  "Savings": require("../assets/videos/REC-2.mp4"),
-  "Credit Card": require("../assets/videos/REC-3.mp4"),
-  "Overdraft": require("../assets/videos/REC-1.mp4"), // Fallback
+// Map to convert product types to card images
+const productTypeToImage: Record<string, any> = {
+  "Personal Current Account": require("../assets/images/accountcard.png"),
+  "Savings": require("../assets/images/accountcard.png"),
+  "Credit Card": require("../assets/images/accountcard.png"),
+  "Overdraft": require("../assets/images/accountcard.png"),
 };
 
 // Map transaction categories to icons
@@ -387,8 +386,8 @@ export default function HomeScreen(): JSX.Element {
             directionalLockEnabled={true} // Lock to horizontal scrolling only
             scrollToOverflowEnabled={true} // Better behavior near edges
             renderItem={({ item }) => {
-              const videoSource = productTypeToVideo[item.product.product_type] || 
-                                  require("../assets/videos/REC-1.mp4");
+              const imageSource = productTypeToImage[item.product.product_type] || 
+                                  require("../assets/images/accountcard.png");
               return (
                 <TouchableOpacity 
                   style={styles.card}
@@ -401,12 +400,10 @@ export default function HomeScreen(): JSX.Element {
                     });
                   }}
                 >
-                  <Video
-                    source={videoSource}
-                    style={styles.video}
-                    resizeMode={ResizeMode.COVER}
-                    shouldPlay
-                    isLooping
+                  <Image
+                    source={imageSource}
+                    style={styles.cardImage}
+                    resizeMode="cover"
                   />
                   <View style={styles.overlay} />
                   <View style={styles.headerCardContent}>
@@ -550,8 +547,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
   },
-  video: {
+  cardImage: {
     ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
