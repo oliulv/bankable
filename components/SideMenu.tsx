@@ -65,14 +65,19 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
             onPress={() => navigateTo("/AccountsOverviewScreen")} 
           />
           <MenuItem 
-            icon="people-outline" 
-            title="Group Saving" 
-            onPress={() => navigateTo("/GroupSavingGoalsScreen")} 
+            icon="cash-outline" 
+            title="Loans" 
+            onPress={() => navigateTo("/LoansScreen")} 
           />
           <MenuItem 
             icon="trending-up-outline" 
             title="Investments" 
             onPress={() => navigateTo("/InvestmentsScreen")} 
+          />
+          <MenuItem 
+            icon="bulb-outline" 
+            title="Bankable AI" 
+            onPress={() => navigateTo("/BankableAIScreen")} 
           />
           <MenuItem 
             icon="book-outline" 
@@ -85,25 +90,15 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
             onPress={() => navigateTo("/EcoFinancialImpactScreen")} 
           />
           <MenuItem 
-            icon="cash-outline" 
-            title="Loans" 
-            onPress={() => navigateTo("/LoansScreen")} 
+            icon="people-outline" 
+            title="Group Saving" 
+            onPress={() => navigateTo("/GroupSavingGoalsScreen")} 
           />
           <MenuItem 
-            icon="bug-outline" 
-            title="Virtual Pet" 
-            onPress={() => navigateTo("/BankableVirtualPetScreen")} 
-          />
-          <MenuItem 
-            icon="bulb-outline" 
-            title="Bankable AI" 
-            onPress={() => navigateTo("/BankableAIScreen")} 
-          />
-          <MenuItem 
-            icon="heart-outline" 
-            title="Life Events" 
-            onPress={() => navigateTo("/LifeEventSupportScreen")} 
-          />
+              icon="bug-outline" 
+              title="Virtual Pet" 
+              onPress={() => navigateTo("/BankableVirtualPetScreen")} 
+            />
         </View>
         
         {/* Settings section with space above it */}
