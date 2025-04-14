@@ -1,1410 +1,1757 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import type React from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  TextInput,
+  ScrollView,
   Modal,
+  TextInput,
+  StyleSheet,
+  SafeAreaView,
+  FlatList,
   Dimensions,
   Animated,
-  ActivityIndicator,
+  Keyboard,
+  TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native"
-import { LineChart, PieChart } from "react-native-chart-kit"
+import { useColorScheme } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { Swipeable } from "react-native-gesture-handler"
-import {
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  DollarSign,
-  Edit2,
-  Plus,
-  Search,
-  Trash2,
-  TrendingUp,
-  X,
-} from "@expo/vector-icons/Feather"
+import { LineChart, PieChart } from "react-native-chart-kit"
 
-const { width } = Dimensions.get("window")
-const screenWidth = Dimensions.get("window").width
-
-// Types
-interface Transaction {
-  id: string
-  amount: number
-  description: string
-  category: string
-  date: string // ISO string
-  type: "income" | "expense"
-  isRecurring?: boolean
-  recurringFrequency?: "daily" | "weekly" | "monthly" | "yearly"
-}
-
-interface Budget {
-  id: string
-  category: string
-  amount: number
-  spent: number
-  period: "weekly" | "monthly" | "yearly"
-  color: string
-}
-
-interface FinancialGoal {
-  id: string
-  name: string
-  targetAmount: number
-  currentAmount: number
-  deadline: Date
-  category: string
-  color: string
-}
-
-interface BudgetSummary {
-  totalBudget: number
-  totalSpent: number
-  remainingBudget: number
-  savingsRate: number
-  monthlyIncome: number
-  monthlyExpenses: number
-}
-
+// Define TypeScript interfaces
 interface Category {
   id: string
   name: string
   color: string
-  budget: number
+  budgeted: number
+  spent: number
   icon: string
 }
 
-// Default categories with colors and icons
-const defaultCategories: Category[] = [
-  { id: "1", name: "Housing", color: "#4A6FA5", budget: 1200, icon: "🏠" },
-  { id: "2", name: "Food", color: "#FF6B6B", budget: 500, icon: "🍔" },
-  { id: "3", name: "Transportation", color: "#4ECDC4", budget: 300, icon: "🚗" },
-  { id: "4", name: "Entertainment", color: "#FFD166", budget: 200, icon: "🎬" },
-  { id: "5", name: "Shopping", color: "#C38D9E", budget: 300, icon: "🛍️" },
-  { id: "6", name: "Utilities", color: "#E76F51", budget: 150, icon: "💡" },
-  { id: "7", name: "Healthcare", color: "#1D3557", budget: 100, icon: "🏥" },
-  { id: "8", name: "Personal", color: "#06D6A0", budget: 150, icon: "👤" },
-  { id: "9", name: "Salary", color: "#52B788", budget: 0, icon: "💰" },
-  { id: "10", name: "Investments", color: "#118AB2", budget: 0, icon: "📈" },
-  { id: "11", name: "Gifts", color: "#9C6644", budget: 0, icon: "🎁" },
-  { id: "12", name: "Other", color: "#6C757D", budget: 200, icon: "📝" },
+interface Transaction {
+  id: string
+  date: string
+  amount: number
+  category: string
+  description: string
+  isRecurring: boolean
+  recurringType?: "daily" | "weekly" | "monthly" | "yearly"
+  recurringEndDate?: string
+}
+
+interface BudgetPeriod {
+  id: string
+  startDate: string
+  endDate: string
+  name: string
+  categories: { [categoryId: string]: number } // budgeted amounts
+}
+
+interface AppState {
+  categories: Category[]
+  transactions: Transaction[]
+  budgetPeriods: BudgetPeriod[]
+  activeBudgetPeriodId: string
+}
+
+// Month names array
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ]
 
-// Sample transactions for demo
-const sampleTransactions: Transaction[] = [
-  {
-    id: "1",
-    amount: 2500,
-    description: "Monthly Salary",
-    category: "Salary",
-    date: new Date(2025, 3, 1).toISOString(),
-    type: "income",
+// Day names array
+const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+// Screen dimensions
+const screenWidth = Dimensions.get("window").width
+
+// Define color palette
+const colors = {
+  light: {
+    background: "#F5F7FA",
+    card: "#FFFFFF",
+    text: "#1A202C",
+    secondaryText: "#718096",
+    border: "#E2E8F0",
+    primary: "#006A4D", // Main green from investment screen
+    secondary: "#3B82F6",
+    success: "#10B981",
+    warning: "#F59E0B",
+    danger: "#EF4444",
+    accent: "#F0FDF4",
+    muted: "#F1F5F9",
+    highlight: "#E6FFFA",
   },
-  {
-    id: "2",
-    amount: 1000,
-    description: "Rent Payment",
-    category: "Housing",
-    date: new Date(2025, 3, 5).toISOString(),
-    type: "expense",
+  dark: {
+    background: "#1A202C",
+    card: "#2D3748",
+    text: "#F7FAFC",
+    secondaryText: "#A0AEC0",
+    border: "#4A5568",
+    primary: "#00A36C", // Brighter green for dark mode
+    secondary: "#3B82F6",
+    success: "#10B981",
+    warning: "#F59E0B",
+    danger: "#EF4444",
+    accent: "#1C2A33",
+    muted: "#2D3748",
+    highlight: "#1F3A3A",
   },
-  {
-    id: "3",
-    amount: 85.75,
-    description: "Grocery Shopping",
-    category: "Food",
-    date: new Date(2025, 3, 7).toISOString(),
-    type: "expense",
-  },
-  {
-    id: "4",
-    amount: 45.5,
-    description: "Gas Station",
-    category: "Transportation",
-    date: new Date(2025, 3, 10).toISOString(),
-    type: "expense",
-  },
-  {
-    id: "5",
-    amount: 120,
-    description: "Electricity Bill",
-    category: "Utilities",
-    date: new Date(2025, 3, 15).toISOString(),
-    type: "expense",
-  },
-  {
-    id: "6",
-    amount: 65.99,
-    description: "Dinner with Friends",
-    category: "Food",
-    date: new Date(2025, 3, 18).toISOString(),
-    type: "expense",
-  },
+}
+
+// Category icons
+const categoryIcons: { [key: string]: string } = {
+  Housing: "🏠",
+  Food: "🍔",
+  Transportation: "🚗",
+  Entertainment: "🎬",
+  Utilities: "💡",
+  Shopping: "🛍️",
+  Health: "🏥",
+  Education: "📚",
+  Travel: "✈️",
+  Savings: "💰",
+  Investments: "📈",
+  Personal: "👤",
+  Other: "📦",
+}
+
+// Sample initial data
+const initialCategories: Category[] = [
+  { id: "1", name: "Housing", color: "#4F46E5", budgeted: 1500, spent: 1200, icon: "🏠" },
+  { id: "2", name: "Food", color: "#10B981", budgeted: 600, spent: 450, icon: "🍔" },
+  { id: "3", name: "Transportation", color: "#F59E0B", budgeted: 300, spent: 240, icon: "🚗" },
+  { id: "4", name: "Entertainment", color: "#EC4899", budgeted: 200, spent: 180, icon: "🎬" },
+  { id: "5", name: "Utilities", color: "#6366F1", budgeted: 250, spent: 230, icon: "💡" },
+  { id: "6", name: "Shopping", color: "#8B5CF6", budgeted: 300, spent: 275, icon: "🛍️" },
+  { id: "7", name: "Health", color: "#14B8A6", budgeted: 150, spent: 80, icon: "🏥" },
 ]
+
+// Sample monthly transactions
+const generateSampleTransactions = (): Transaction[] => {
+  const currentDate = new Date()
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+
+  return [
+    {
+      id: "1",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-02`,
+      amount: 800,
+      category: "Housing",
+      description: "Rent payment",
+      isRecurring: true,
+      recurringType: "monthly",
+    },
+    {
+      id: "2",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-05`,
+      amount: 120,
+      category: "Food",
+      description: "Grocery shopping",
+      isRecurring: false,
+    },
+    {
+      id: "3",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-07`,
+      amount: 50,
+      category: "Transportation",
+      description: "Gas",
+      isRecurring: false,
+    },
+    {
+      id: "4",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-10`,
+      amount: 45,
+      category: "Entertainment",
+      description: "Movie tickets",
+      isRecurring: false,
+    },
+    {
+      id: "5",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-12`,
+      amount: 95,
+      category: "Food",
+      description: "Restaurant",
+      isRecurring: false,
+    },
+    {
+      id: "6",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-15`,
+      amount: 150,
+      category: "Utilities",
+      description: "Electricity bill",
+      isRecurring: true,
+      recurringType: "monthly",
+    },
+    {
+      id: "7",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-18`,
+      amount: 400,
+      category: "Housing",
+      description: "HOA fee",
+      isRecurring: true,
+      recurringType: "monthly",
+    },
+    {
+      id: "8",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-20`,
+      amount: 60,
+      category: "Transportation",
+      description: "Rideshare",
+      isRecurring: false,
+    },
+    {
+      id: "9",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-22`,
+      amount: 80,
+      category: "Utilities",
+      description: "Internet",
+      isRecurring: true,
+      recurringType: "monthly",
+    },
+    {
+      id: "10",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-25`,
+      amount: 135,
+      category: "Food",
+      description: "Grocery shopping",
+      isRecurring: false,
+    },
+    {
+      id: "11",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-28`,
+      amount: 75,
+      category: "Shopping",
+      description: "Clothes",
+      isRecurring: false,
+    },
+    {
+      id: "12",
+      date: `${year}-${String(month + 1).padStart(2, "0")}-30`,
+      amount: 40,
+      category: "Health",
+      description: "Pharmacy",
+      isRecurring: false,
+    },
+  ]
+}
+
+// Generate initial budget period
+const generateInitialBudgetPeriod = (): BudgetPeriod => {
+  const currentDate = new Date()
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+
+  // First day of current month
+  const startDate = new Date(year, month, 1)
+  // Last day of current month
+  const endDate = new Date(year, month + 1, 0)
+
+  const categoryBudgets: { [categoryId: string]: number } = {}
+  initialCategories.forEach((category) => {
+    categoryBudgets[category.id] = category.budgeted
+  })
+
+  return {
+    id: "1",
+    startDate: startDate.toISOString().split("T")[0],
+    endDate: endDate.toISOString().split("T")[0],
+    name: `${monthNames[month]} ${year}`,
+    categories: categoryBudgets,
+  }
+}
 
 // Chart configuration
 const chartConfig = {
-  backgroundGradientFrom: "#ffffff",
-  backgroundGradientTo: "#ffffff",
-  color: (opacity = 1) => `rgba(74, 111, 165, ${opacity})`,
+  backgroundGradientFrom: "#fff",
+  backgroundGradientTo: "#fff",
+  color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
+  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
   strokeWidth: 2,
-  barPercentage: 0.5,
+  barPercentage: 0.7,
   useShadowColorFromDataset: false,
   decimalPlaces: 0,
+  style: {
+    borderRadius: 16,
+  },
 }
 
-// Custom PieChart icon component
-const PieChartIcon = ({ size, color }: { size: number; color: string }) => {
-  return (
-    <View style={{ width: size, height: size, justifyContent: "center", alignItems: "center" }}>
-      <View
-        style={{
-          width: size * 0.8,
-          height: size * 0.8,
-          borderRadius: size * 0.4,
-          borderWidth: 2,
-          borderColor: color,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <View
-          style={{
-            position: "absolute",
-            width: size * 0.4,
-            height: size * 0.4,
-            backgroundColor: color,
-            transform: [{ translateX: -size * 0.1 }],
-            borderTopRightRadius: size * 0.4,
-            borderBottomRightRadius: size * 0.4,
-          }}
-        />
-      </View>
-    </View>
-  )
-}
-
-// Initial data
-const initialCategories = [
-  { id: "1", name: "Housing", color: "#006A4D", icon: "home", budget: 0 },
-  { id: "2", name: "Food", color: "#3498DB", icon: "food", budget: 0 },
-  { id: "3", name: "Transportation", color: "#9B59B6", icon: "car", budget: 0 },
-  { id: "4", name: "Entertainment", color: "#F1C40F", icon: "movie", budget: 0 },
-  { id: "5", name: "Shopping", color: "#E74C3C", icon: "shopping", budget: 0 },
-  { id: "6", name: "Utilities", color: "#16A085", icon: "flash", budget: 0 },
-  { id: "7", name: "Healthcare", color: "#FF5733", icon: "medical", budget: 0 },
-  { id: "8", name: "Education", color: "#8E44AD", icon: "school", budget: 0 },
-  { id: "9", name: "Savings", color: "#2ECC71", icon: "piggy-bank", budget: 0 },
-  { id: "10", name: "Other", color: "#7F8C8D", icon: "dots-horizontal", budget: 0 },
-]
-
-const initialBudgets: Budget[] = [
-  { id: "1", category: "Housing", amount: 1200, spent: 1200, period: "monthly", color: "#006A4D" },
-  { id: "2", category: "Food", amount: 500, spent: 420, period: "monthly", color: "#3498DB" },
-  { id: "3", category: "Transportation", amount: 300, spent: 275, period: "monthly", color: "#9B59B6" },
-  { id: "4", category: "Entertainment", amount: 200, spent: 180, period: "monthly", color: "#F1C40F" },
-  { id: "5", category: "Shopping", amount: 300, spent: 350, period: "monthly", color: "#E74C3C" },
-  { id: "6", category: "Utilities", amount: 250, spent: 230, period: "monthly", color: "#16A085" },
-  { id: "7", category: "Healthcare", amount: 150, spent: 80, period: "monthly", color: "#FF5733" },
-  { id: "8", category: "Education", amount: 100, spent: 100, period: "monthly", color: "#8E44AD" },
-  { id: "9", category: "Savings", amount: 500, spent: 500, period: "monthly", color: "#2ECC71" },
-  { id: "10", category: "Other", amount: 100, spent: 65, period: "monthly", color: "#7F8C8D" },
-]
-
-const initialGoals: FinancialGoal[] = [
-  {
-    id: "1",
-    name: "Emergency Fund",
-    targetAmount: 10000,
-    currentAmount: 6500,
-    deadline: new Date(2025, 11, 31),
-    category: "Savings",
-    color: "#2ECC71",
-  },
-  {
-    id: "2",
-    name: "New Car",
-    targetAmount: 25000,
-    currentAmount: 8750,
-    deadline: new Date(2026, 5, 30),
-    category: "Transportation",
-    color: "#9B59B6",
-  },
-  {
-    id: "3",
-    name: "Home Down Payment",
-    targetAmount: 50000,
-    currentAmount: 12500,
-    deadline: new Date(2027, 0, 1),
-    category: "Housing",
-    color: "#006A4D",
-  },
-  {
-    id: "4",
-    name: "Vacation Fund",
-    targetAmount: 3000,
-    currentAmount: 1200,
-    deadline: new Date(2025, 6, 15),
-    category: "Entertainment",
-    color: "#F1C40F",
-  },
-]
-
-// Generate realistic transactions for the past 30 days
-const generateTransactions = (): Transaction[] => {
-  const transactions: Transaction[] = []
-  const now = new Date()
-  const startDate = new Date()
-  startDate.setDate(now.getDate() - 30)
-
-  // Add income transactions
-  transactions.push({
-    id: "1",
-    amount: 3500,
-    category: "Salary",
-    description: "Monthly salary",
-    date: new Date(2025, 3, 28).toISOString(), // April 28, 2025
-    type: "income",
-  })
-
-  transactions.push({
-    id: "2",
-    amount: 500,
-    category: "Dividends",
-    description: "Investment dividends",
-    date: new Date(2025, 3, 15).toISOString(), // April 15, 2025
-    type: "income",
-  })
-
-  // Add expense transactions
-  const categories = [
-    "Housing",
-    "Food",
-    "Transportation",
-    "Entertainment",
-    "Shopping",
-    "Utilities",
-    "Healthcare",
-    "Education",
-    "Other",
-  ]
-  const descriptions = {
-    Housing: ["Rent", "Mortgage payment", "Property tax", "Home insurance", "Maintenance"],
-    Food: ["Grocery shopping", "Restaurant", "Coffee shop", "Food delivery", "Lunch at work"],
-    Transportation: ["Gas", "Car payment", "Public transport", "Uber ride", "Car insurance"],
-    Entertainment: ["Movie tickets", "Concert", "Streaming subscription", "Books", "Video games"],
-    Shopping: ["Clothing", "Electronics", "Home goods", "Gifts", "Online shopping"],
-    Utilities: ["Electricity bill", "Water bill", "Internet", "Phone bill", "Gas bill"],
-    Healthcare: ["Doctor visit", "Prescription", "Gym membership", "Health insurance", "Dental care"],
-    Education: ["Tuition", "Books", "Online course", "School supplies", "Student loan payment"],
-    Other: ["Miscellaneous", "Donation", "Subscription", "Pet expenses", "Banking fees"],
-  }
-
-  // Generate random transactions
-  for (let i = 0; i < 50; i++) {
-    const category = categories[Math.floor(Math.random() * categories.length)]
-    const descList = descriptions[category as keyof typeof descriptions]
-    const description = descList[Math.floor(Math.random() * descList.length)]
-
-    const date = new Date(startDate)
-    date.setDate(startDate.getDate() + Math.floor(Math.random() * 30))
-
-    let amount
-    switch (category) {
-      case "Housing":
-        amount = Math.floor(Math.random() * 500) + 800
-        break
-      case "Food":
-        amount = Math.floor(Math.random() * 80) + 20
-        break
-      case "Transportation":
-        amount = Math.floor(Math.random() * 100) + 10
-        break
-      case "Entertainment":
-        amount = Math.floor(Math.random() * 100) + 10
-        break
-      case "Shopping":
-        amount = Math.floor(Math.random() * 200) + 20
-        break
-      case "Utilities":
-        amount = Math.floor(Math.random() * 100) + 50
-        break
-      case "Healthcare":
-        amount = Math.floor(Math.random() * 200) + 20
-        break
-      case "Education":
-        amount = Math.floor(Math.random() * 100) + 10
-        break
-      default:
-        amount = Math.floor(Math.random() * 100) + 10
-    }
-
-    transactions.push({
-      id: `exp-${i + 3}`,
-      amount: amount,
-      category: category,
-      description: description,
-      date: date.toISOString(),
-      type: "expense",
-    })
-  }
-
-  // Sort by date (newest first)
-  return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-}
-
-const initialTransactions = generateTransactions()
-
-const BudgetScreen = () => {
-  // State variables
-  const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions)
-  const [categories, setCategories] = useState<Category[]>(defaultCategories)
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString())
-  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date())
-  const [showAddTransaction, setShowAddTransaction] = useState<boolean>(false)
-  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "budget">("overview")
-  const [loading, setLoading] = useState<boolean>(false)
-  const [filterType, setFilterType] = useState<"all" | "income" | "expense">("all")
-  const [searchQuery, setSearchQuery] = useState<string>("")
-  const [showSearch, setShowSearch] = useState<boolean>(false)
-  const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
-    amount: 0,
-    description: "",
-    category: "",
-    type: "expense",
-    date: new Date().toISOString(),
-  })
-  const [viewMode, setViewMode] = useState<"daily" | "monthly">("monthly")
-  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
-    overview: true,
-    recent: true,
-    categories: true,
-    budgets: true,
-  })
+const BudgetCalendar: React.FC = () => {
+  const colorScheme = useColorScheme()
+  const theme = colorScheme === "dark" ? colors.dark : colors.light
 
   // Animation values
-  const scrollY = useRef(new Animated.Value(0)).current
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [200, 100],
-    extrapolate: "clamp",
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(50)).current
+
+  // States
+  const [appState, setAppState] = useState<AppState>({
+    categories: initialCategories,
+    transactions: generateSampleTransactions(),
+    budgetPeriods: [generateInitialBudgetPeriod()],
+    activeBudgetPeriodId: "1",
   })
 
-  // Load data from storage on component mount
+  const [activeView, setActiveView] = useState<"calendar" | "categories" | "analytics">("calendar")
+
+  const currentDate = new Date()
+  const [currentMonth, setCurrentMonth] = useState<number>(currentDate.getMonth())
+  const [currentYear, setCurrentYear] = useState<number>(currentDate.getFullYear())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+
+  const [showAddCategory, setShowAddCategory] = useState<boolean>(false)
+  const [showAddTransaction, setShowAddTransaction] = useState<boolean>(false)
+  const [showEditTransaction, setShowEditTransaction] = useState<boolean>(false)
+  const [showRecurringOptions, setShowRecurringOptions] = useState<boolean>(false)
+
+  const [newCategory, setNewCategory] = useState<{
+    name: string
+    budgeted: string
+    color: string
+    icon: string
+  }>({
+    name: "",
+    budgeted: "0",
+    color: "#006A4D",
+    icon: "📦",
+  })
+
+  const [newTransaction, setNewTransaction] = useState<{
+    id?: string
+    date: string
+    amount: string
+    category: string
+    description: string
+    isRecurring: boolean
+    recurringType?: "daily" | "weekly" | "monthly" | "yearly"
+    recurringEndDate?: string
+  }>({
+    date: "",
+    amount: "",
+    category: "",
+    description: "",
+    isRecurring: false,
+  })
+
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
+
+  // Calculate total budgeted and spent
+  const totalBudgeted = appState.categories.reduce((sum, cat) => sum + cat.budgeted, 0)
+  const totalSpent = appState.categories.reduce((sum, cat) => sum + cat.spent, 0)
+  const remaining = totalBudgeted - totalSpent
+
+  // Load data from AsyncStorage on mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        const storedTransactions = await AsyncStorage.getItem("transactions")
-        const storedCategories = await AsyncStorage.getItem("categories")
+        const storedData = await AsyncStorage.getItem("budgetCalendarData")
+        if (storedData) {
+          setAppState(JSON.parse(storedData))
+        }
 
-        if (storedTransactions) {
-          setTransactions(JSON.parse(storedTransactions))
-        }
-        if (storedCategories) {
-          setCategories(JSON.parse(storedCategories))
-        }
+        // Start animations
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]).start()
+
+        setIsLoading(false)
       } catch (error) {
         console.error("Error loading data:", error)
-      } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
     loadData()
-  }, [])
+  }, [fadeAnim, slideAnim])
 
-  // Save data to storage whenever it changes
+  // Save data to AsyncStorage whenever it changes
   useEffect(() => {
     const saveData = async () => {
       try {
-        await AsyncStorage.setItem("transactions", JSON.stringify(transactions))
-        await AsyncStorage.setItem("categories", JSON.stringify(categories))
+        await AsyncStorage.setItem("budgetCalendarData", JSON.stringify(appState))
       } catch (error) {
         console.error("Error saving data:", error)
       }
     }
 
-    if (!loading) {
+    if (!isLoading) {
       saveData()
     }
-  }, [transactions, categories, loading])
+  }, [appState, isLoading])
 
-  // Calculate budget summary
-  const calculateBudgetSummary = (month: Date) => {
-    const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1)
-    const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0)
-
-    const monthTransactions = transactions.filter((t) => {
-      const transactionDate = new Date(t.date)
-      return transactionDate >= startOfMonth && transactionDate <= endOfMonth
-    })
-
-    const totalIncome = monthTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
-
-    const totalExpenses = monthTransactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
-
-    const totalBudget = categories.filter((c) => c.budget > 0).reduce((sum, c) => sum + c.budget, 0)
-
-    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0
-
-    return {
-      totalIncome,
-      totalExpenses,
-      savingsRate,
-      remainingBudget: totalBudget - totalExpenses,
-      totalBudget,
-    }
+  // Format date as YYYY-MM-DD
+  const formatDate = (year: number, month: number, day: number): string => {
+    const paddedMonth = String(month + 1).padStart(2, "0")
+    const paddedDay = String(day).padStart(2, "0")
+    return `${year}-${paddedMonth}-${paddedDay}`
   }
 
-  // Get transactions for selected date
-  const getTransactionsForDate = (date: string) => {
-    const selectedDateObj = new Date(date)
-    return transactions.filter((t) => {
-      const transactionDate = new Date(t.date)
-      return (
-        transactionDate.getDate() === selectedDateObj.getDate() &&
-        transactionDate.getMonth() === selectedDateObj.getMonth() &&
-        transactionDate.getFullYear() === selectedDateObj.getFullYear()
-      )
-    })
+  // Parse date string to Date object
+  const parseDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split("-").map(Number)
+    return new Date(year, month - 1, day)
   }
 
-  // Get transactions for selected month
-  const getTransactionsForMonth = (month: Date) => {
-    const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1)
-    const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0)
-
-    return transactions.filter((t) => {
-      const transactionDate = new Date(t.date)
-      return transactionDate >= startOfMonth && transactionDate <= endOfMonth
-    })
+  // Get days in month
+  const getDaysInMonth = (year: number, month: number): number => {
+    return new Date(year, month + 1, 0).getDate()
   }
 
-  // Filter transactions based on search and filter type
-  const filteredTransactions = useMemo(() => {
-    let filtered = transactions
+  // Get the first day of the month (0 = Sunday, 6 = Saturday)
+  const getFirstDayOfMonth = (year: number, month: number): number => {
+    return new Date(year, month, 1).getDay()
+  }
 
-    // Apply date filter
-    if (viewMode === "daily") {
-      filtered = getTransactionsForDate(selectedDate)
+  // Navigation functions
+  const goToPrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11)
+      setCurrentYear(currentYear - 1)
     } else {
-      filtered = getTransactionsForMonth(selectedMonth)
+      setCurrentMonth(currentMonth - 1)
     }
+    setSelectedDate(null)
+  }
 
-    // Apply type filter
-    if (filterType !== "all") {
-      filtered = filtered.filter((t) => t.type === filterType)
+  const goToNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0)
+      setCurrentYear(currentYear + 1)
+    } else {
+      setCurrentMonth(currentMonth + 1)
     }
+    setSelectedDate(null)
+  }
 
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (t) => t.description.toLowerCase().includes(query) || t.category.toLowerCase().includes(query),
-      )
-    }
+  // Get transactions for specific date
+  const getTransactionsForDate = (date: string): Transaction[] => {
+    return appState.transactions.filter((t) => t.date === date)
+  }
 
-    // Sort by date (newest first)
-    return [...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [transactions, selectedDate, selectedMonth, viewMode, filterType, searchQuery])
-
-  // Calculate spending by category for the selected month
-  const spendingByCategory = useMemo(() => {
-    const monthTransactions = getTransactionsForMonth(selectedMonth).filter((t) => t.type === "expense")
-
-    const categorySpending: { [key: string]: number } = {}
-    monthTransactions.forEach((t) => {
-      if (categorySpending[t.category]) {
-        categorySpending[t.category] += t.amount
-      } else {
-        categorySpending[t.category] = t.amount
+  // Add a new category
+  const handleAddCategory = () => {
+    if (newCategory.name && Number.parseFloat(newCategory.budgeted) > 0) {
+      const newId = Date.now().toString()
+      const newCategoryObj: Category = {
+        id: newId,
+        name: newCategory.name,
+        color: newCategory.color,
+        budgeted: Number.parseFloat(newCategory.budgeted),
+        spent: 0,
+        icon: newCategory.icon,
       }
-    })
 
-    return Object.entries(categorySpending).map(([category, amount]) => {
-      const categoryObj = categories.find((c) => c.name === category)
-      return {
-        name: category,
-        amount,
-        color: categoryObj?.color || "#6C757D",
-        legendFontColor: "#7F7F7F",
-        legendFontSize: 12,
-      }
-    })
-  }, [transactions, selectedMonth, categories])
+      // Update categories
+      const updatedCategories = [...appState.categories, newCategoryObj]
 
-  // Calculate daily spending for the selected month
-  const dailySpending = useMemo(() => {
-    const startOfMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1)
-    const endOfMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0)
-    const daysInMonth = endOfMonth.getDate()
-
-    const dailyData: number[] = Array(daysInMonth).fill(0)
-    const labels: string[] = []
-
-    for (let i = 1; i <= daysInMonth; i++) {
-      labels.push(i.toString())
-      const dayTransactions = transactions.filter((t) => {
-        const transactionDate = new Date(t.date)
-        return (
-          transactionDate.getDate() === i &&
-          transactionDate.getMonth() === selectedMonth.getMonth() &&
-          transactionDate.getFullYear() === selectedMonth.getFullYear() &&
-          t.type === "expense"
-        )
+      // Update budget periods to include the new category
+      const updatedBudgetPeriods = appState.budgetPeriods.map((period) => {
+        const updatedPeriod = { ...period }
+        updatedPeriod.categories[newId] = Number.parseFloat(newCategory.budgeted)
+        return updatedPeriod
       })
 
-      dailyData[i - 1] = dayTransactions.reduce((sum, t) => sum + t.amount, 0)
+      setAppState((prev) => ({
+        ...prev,
+        categories: updatedCategories,
+        budgetPeriods: updatedBudgetPeriods,
+      }))
+
+      setNewCategory({ name: "", budgeted: "0", color: "#006A4D", icon: "📦" })
+      setShowAddCategory(false)
+    }
+  }
+
+  // Add a new transaction
+  const handleAddTransaction = () => {
+    if (newTransaction.date && newTransaction.amount && newTransaction.category) {
+      const newId = Date.now().toString()
+      const amount = Number.parseFloat(newTransaction.amount)
+
+      const newTx: Transaction = {
+        id: newId,
+        date: newTransaction.date,
+        amount: amount,
+        category: newTransaction.category,
+        description: newTransaction.description || "No description",
+        isRecurring: newTransaction.isRecurring,
+        ...(newTransaction.isRecurring && {
+          recurringType: newTransaction.recurringType,
+          recurringEndDate: newTransaction.recurringEndDate,
+        }),
+      }
+
+      // Update transactions
+      const updatedTransactions = [...appState.transactions, newTx]
+
+      // Update category spending
+      const updatedCategories = appState.categories.map((cat) => {
+        if (cat.name === newTransaction.category) {
+          return { ...cat, spent: cat.spent + amount }
+        }
+        return cat
+      })
+
+      setAppState((prev) => ({
+        ...prev,
+        transactions: updatedTransactions,
+        categories: updatedCategories,
+      }))
+
+      resetTransactionForm()
+      setShowAddTransaction(false)
+    }
+  }
+
+  // Edit a transaction
+  const handleEditTransaction = () => {
+    if (!editingTransaction || !newTransaction.date || !newTransaction.amount || !newTransaction.category) {
+      return
+    }
+
+    const amount = Number.parseFloat(newTransaction.amount)
+    const oldAmount = editingTransaction.amount
+    const oldCategory = editingTransaction.category
+
+    // Update the transaction
+    const updatedTransactions = appState.transactions.map((tx) => {
+      if (tx.id === editingTransaction.id) {
+        return {
+          ...tx,
+          date: newTransaction.date,
+          amount: amount,
+          category: newTransaction.category,
+          description: newTransaction.description || "No description",
+          isRecurring: newTransaction.isRecurring,
+          ...(newTransaction.isRecurring && {
+            recurringType: newTransaction.recurringType,
+            recurringEndDate: newTransaction.recurringEndDate,
+          }),
+        }
+      }
+      return tx
+    })
+
+    // Update category spending
+    const updatedCategories = appState.categories.map((cat) => {
+      if (cat.name === oldCategory && cat.name === newTransaction.category) {
+        // Same category, just update the amount difference
+        return { ...cat, spent: cat.spent - oldAmount + amount }
+      } else if (cat.name === oldCategory) {
+        // Remove from old category
+        return { ...cat, spent: cat.spent - oldAmount }
+      } else if (cat.name === newTransaction.category) {
+        // Add to new category
+        return { ...cat, spent: cat.spent + amount }
+      }
+      return cat
+    })
+
+    setAppState((prev) => ({
+      ...prev,
+      transactions: updatedTransactions,
+      categories: updatedCategories,
+    }))
+
+    resetTransactionForm()
+    setShowEditTransaction(false)
+    setEditingTransaction(null)
+  }
+
+  // Delete a transaction
+  const deleteTransaction = (id: string) => {
+    const tx = appState.transactions.find((t) => t.id === id)
+
+    if (tx) {
+      // First update the category's spent amount
+      const updatedCategories = appState.categories.map((cat) => {
+        if (cat.name === tx.category) {
+          return { ...cat, spent: Math.max(0, cat.spent - tx.amount) }
+        }
+        return cat
+      })
+
+      // Then remove the transaction
+      const updatedTransactions = appState.transactions.filter((t) => t.id !== id)
+
+      setAppState((prev) => ({
+        ...prev,
+        transactions: updatedTransactions,
+        categories: updatedCategories,
+      }))
+    }
+  }
+
+  // Reset transaction form
+  const resetTransactionForm = () => {
+    setNewTransaction({
+      date: "",
+      amount: "",
+      category: "",
+      description: "",
+      isRecurring: false,
+    })
+  }
+
+  // Open edit transaction modal
+  const openEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction(transaction)
+    setNewTransaction({
+      id: transaction.id,
+      date: transaction.date,
+      amount: transaction.amount.toString(),
+      category: transaction.category,
+      description: transaction.description,
+      isRecurring: transaction.isRecurring,
+      recurringType: transaction.recurringType,
+      recurringEndDate: transaction.recurringEndDate,
+    })
+    setShowEditTransaction(true)
+  }
+
+  // Create calendar days data
+  interface CalendarDay {
+    day: number
+    dateStr: string
+    isEmpty: boolean
+    isToday?: boolean
+    transactions?: Transaction[]
+    totalSpent?: number
+  }
+
+  const generateCalendarDays = (): CalendarDay[] => {
+    const daysInMonth = getDaysInMonth(currentYear, currentMonth)
+    const firstDay = getFirstDayOfMonth(currentYear, currentMonth)
+    const days: CalendarDay[] = []
+
+    // Empty cells for days before the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      days.push({ day: 0, dateStr: "", isEmpty: true, transactions: [] })
+    }
+
+    // Add actual days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = formatDate(currentYear, currentMonth, day)
+      const transactionsForDay = getTransactionsForDate(dateStr)
+      const totalSpent = transactionsForDay.reduce((sum, tx) => sum + tx.amount, 0)
+
+      days.push({
+        day,
+        dateStr,
+        isEmpty: false,
+        isToday:
+          day === currentDate.getDate() &&
+          currentMonth === currentDate.getMonth() &&
+          currentYear === currentDate.getFullYear(),
+        transactions: transactionsForDay,
+        totalSpent,
+      })
+    }
+
+    return days
+  }
+
+  // Get spending data for chart
+  const getSpendingChartData = () => {
+    // Group transactions by day for the current month
+    const dailySpending: { [day: number]: number } = {}
+
+    appState.transactions.forEach((tx) => {
+      const txDate = parseDate(tx.date)
+      if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+        const day = txDate.getDate()
+        dailySpending[day] = (dailySpending[day] || 0) + tx.amount
+      }
+    })
+
+    // Create chart data
+    const labels: string[] = []
+    const data: number[] = []
+
+    const daysInMonth = getDaysInMonth(currentYear, currentMonth)
+    for (let i = 1; i <= daysInMonth; i++) {
+      if (i % 5 === 1 || i === daysInMonth) {
+        // Show every 5th day and the last day
+        labels.push(i.toString())
+      } else {
+        labels.push("")
+      }
+      data.push(dailySpending[i] || 0)
     }
 
     return {
       labels,
       datasets: [
         {
-          data: dailyData,
-          color: (opacity = 1) => `rgba(74, 111, 165, ${opacity})`,
+          data,
+          color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
           strokeWidth: 2,
         },
       ],
     }
-  }, [transactions, selectedMonth])
+  }
 
-  // Calculate budget progress for each category
-  const categoryBudgetProgress = useMemo(() => {
-    const monthTransactions = getTransactionsForMonth(selectedMonth).filter((t) => t.type === "expense")
+  // Get category spending data for pie chart
+  const getCategorySpendingData = () => {
+    const categorySpending: { [category: string]: number } = {}
 
-    const categorySpending: { [key: string]: number } = {}
-    monthTransactions.forEach((t) => {
-      if (categorySpending[t.category]) {
-        categorySpending[t.category] += t.amount
-      } else {
-        categorySpending[t.category] = t.amount
+    // Calculate total spending by category for the current month
+    appState.transactions.forEach((tx) => {
+      const txDate = parseDate(tx.date)
+      if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+        categorySpending[tx.category] = (categorySpending[tx.category] || 0) + tx.amount
       }
     })
 
-    return categories
-      .filter((c) => c.budget > 0)
-      .map((category) => {
-        const spent = categorySpending[category.name] || 0
-        const progress = category.budget > 0 ? spent / category.budget : 0
+    // Create pie chart data
+    const data = Object.entries(categorySpending)
+      .filter(([_, amount]) => amount > 0)
+      .map(([category, amount]) => {
+        const categoryObj = appState.categories.find((c) => c.name === category)
         return {
-          ...category,
-          spent,
-          progress: Math.min(progress, 1), // Cap at 100%
-          remaining: Math.max(category.budget - spent, 0),
-          overBudget: spent > category.budget,
+          name: category,
+          value: amount,
+          color: categoryObj?.color || "#CCCCCC",
+          legendFontColor: theme.text,
+          legendFontSize: 12,
         }
       })
-      .sort((a, b) => b.progress - a.progress) // Sort by progress (highest first)
-  }, [transactions, selectedMonth, categories])
 
-  // Handle adding a new transaction
-  const handleAddTransaction = () => {
-    if (
-      !newTransaction.description ||
-      !newTransaction.category ||
-      !newTransaction.amount ||
-      newTransaction.amount <= 0
-    ) {
-      Alert.alert("Error", "Please fill in all fields with valid values.")
-      return
-    }
-
-    const transaction: Transaction = {
-      id: Date.now().toString(),
-      amount: Number(newTransaction.amount),
-      description: newTransaction.description,
-      category: newTransaction.category,
-      date: newTransaction.date || new Date().toISOString(),
-      type: newTransaction.type || "expense",
-    }
-
-    setTransactions([...transactions, transaction])
-    setNewTransaction({
-      amount: 0,
-      description: "",
-      category: "",
-      type: "expense",
-      date: new Date().toISOString(),
-    })
-    setShowAddTransaction(false)
+    return data
   }
 
-  // Handle month change
-  const handleMonthChange = (direction: "prev" | "next") => {
-    const newMonth = new Date(selectedMonth)
-    if (direction === "prev") {
-      newMonth.setMonth(newMonth.getMonth() - 1)
-    } else {
-      newMonth.setMonth(newMonth.getMonth() + 1)
-    }
-    setSelectedMonth(newMonth)
-  }
+  // Refresh data
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true)
 
-  // Format date for display
-  const formatDate = (dateString: string, format: "short" | "long" = "short") => {
-    const date = new Date(dateString)
-    if (format === "short") {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    }
-    return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-  }
+    // Simulate a refresh
+    setTimeout(() => {
+      // Update category spending based on transactions
+      const categorySpending: { [category: string]: number } = {}
 
-  // Format currency for display
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
+      appState.transactions.forEach((tx) => {
+        categorySpending[tx.category] = (categorySpending[tx.category] || 0) + tx.amount
+      })
 
-  // Toggle section expansion
-  const toggleSection = (section: string) => {
-    setExpandedSections({
-      ...expandedSections,
-      [section]: !expandedSections[section],
-    })
-  }
+      const updatedCategories = appState.categories.map((cat) => ({
+        ...cat,
+        spent: categorySpending[cat.name] || 0,
+      }))
 
-  // Render transaction item
-  const renderTransactionItem = ({ item }: { item: Transaction }) => {
-    const category = categories.find((c) => c.name === item.category)
+      setAppState((prev) => ({
+        ...prev,
+        categories: updatedCategories,
+      }))
+
+      setIsRefreshing(false)
+    }, 1000)
+  }, [appState.transactions, appState.categories])
+
+  // Render Calendar View
+  const renderCalendarView = () => {
+    const calendarDays = generateCalendarDays()
 
     return (
-      <Swipeable
-        renderRightActions={() => (
-          <View style={styles.swipeActions}>
-            <TouchableOpacity
-              style={[styles.swipeAction, { backgroundColor: "#4A6FA5" }]}
-              onPress={() => {
-                // Edit transaction functionality would go here
-                Alert.alert("Edit", "Edit transaction functionality would go here")
-              }}
-            >
-              <Edit2 size={20} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.swipeAction, { backgroundColor: "#FF5252" }]}
-              onPress={() => {
-                // Delete transaction functionality would go here
-                Alert.alert("Delete", "Delete transaction functionality would go here")
-              }}
-            >
-              <Trash2 size={20} color="#fff" />
-            </TouchableOpacity>
+      <View style={styles.viewContainer}>
+        <View style={styles.monthHeader}>
+          <TouchableOpacity onPress={goToPrevMonth} style={styles.monthNavButton}>
+            <Text style={{ color: theme.primary, fontSize: 20 }}>‹</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.monthTitle, { color: theme.text }]}>
+            {monthNames[currentMonth]} {currentYear}
+          </Text>
+
+          <TouchableOpacity onPress={goToNextMonth} style={styles.monthNavButton}>
+            <Text style={{ color: theme.primary, fontSize: 20 }}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.weekdayHeader}>
+          {dayNames.map((day, index) => (
+            <Text key={index} style={[styles.weekdayText, { color: theme.secondaryText }]}>
+              {day}
+            </Text>
+          ))}
+        </View>
+
+        <View style={styles.calendarGrid}>
+          {calendarDays.map((item, index) => {
+            if (item.isEmpty) {
+              return <View key={`empty-${index}`} style={styles.emptyDay} />
+            }
+
+            return (
+              <TouchableOpacity
+                key={`day-${item.day}`}
+                style={[
+                  styles.calendarDay,
+                  { backgroundColor: theme.card, borderColor: theme.border },
+                  item.isToday && { borderColor: theme.primary, borderWidth: 2 },
+                  selectedDate === item.dateStr && { backgroundColor: `${theme.primary}20` },
+                ]}
+                onPress={() => {
+                  setSelectedDate(item.dateStr)
+                  setNewTransaction({ ...newTransaction, date: item.dateStr })
+                }}
+              >
+                <View style={styles.dayHeader}>
+                  <Text style={[styles.dayNumber, { color: item.isToday ? theme.primary : theme.text }]}>
+                    {item.day}
+                  </Text>
+
+                  {(item.transactions?.length ?? 0) > 0 && (
+                    <View style={[styles.transactionBadge, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.transactionBadgeText}>{item.transactions?.length ?? 0}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {item.totalSpent && item.totalSpent > 0 && (
+                  <Text style={[styles.dayTotal, { color: theme.secondaryText }]}>${item.totalSpent.toFixed(0)}</Text>
+                )}
+
+                {item.transactions?.slice(0, 2).map((tx) => {
+                  const category = appState.categories.find((c) => c.name === tx.category)
+                  return (
+                    <View key={tx.id} style={styles.dayTransaction}>
+                      <View style={[styles.categoryDot, { backgroundColor: category?.color || theme.primary }]} />
+                      <Text style={[styles.transactionText, { color: theme.secondaryText }]} numberOfLines={1}>
+                        ${tx.amount.toFixed(0)} - {tx.category}
+                      </Text>
+                    </View>
+                  )
+                })}
+
+                {(item.transactions?.length ?? 0) > 2 && (
+                  <Text style={[styles.moreTransactions, { color: theme.secondaryText }]}>
+                    +{(item.transactions?.length ?? 0) - 2} more
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: theme.primary }]}
+          onPress={() => {
+            setShowAddTransaction(true)
+            if (!selectedDate) {
+              const today = formatDate(currentYear, currentMonth, currentDate.getDate())
+              setSelectedDate(today)
+              setNewTransaction({ ...newTransaction, date: today })
+            }
+          }}
+        >
+          <Text style={styles.addButtonText}>+ Add Transaction</Text>
+        </TouchableOpacity>
+
+        {selectedDate && (
+          <View style={[styles.selectedDateCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.selectedDateHeader}>
+              <Text style={[styles.selectedDateTitle, { color: theme.text }]}>Transactions for {selectedDate}</Text>
+              <TouchableOpacity onPress={() => setSelectedDate(null)}>
+                <Text style={[styles.closeButton, { color: theme.secondaryText }]}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            {getTransactionsForDate(selectedDate).length > 0 ? (
+              <View style={styles.transactionsList}>
+                {getTransactionsForDate(selectedDate).map((tx) => {
+                  const category = appState.categories.find((c) => c.name === tx.category)
+                  return (
+                    <View
+                      key={tx.id}
+                      style={[
+                        styles.transactionItem,
+                        { backgroundColor: `${theme.background}80`, borderColor: theme.border },
+                      ]}
+                    >
+                      <View style={styles.transactionInfo}>
+                        <View
+                          style={[styles.categoryIndicator, { backgroundColor: category?.color || theme.primary }]}
+                        />
+                        <View>
+                          <Text style={[styles.categoryName, { color: theme.text }]}>
+                            <Text>{category?.icon}</Text> {tx.category}
+                          </Text>
+                          <Text style={[styles.transactionDescription, { color: theme.secondaryText }]}>
+                            {tx.description}
+                          </Text>
+                          {tx.isRecurring && (
+                            <View style={styles.recurringBadge}>
+                              <Text style={styles.recurringText}>
+                                <Text>🔄</Text> {tx.recurringType}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      <View style={styles.transactionActions}>
+                        <Text style={[styles.transactionAmount, { color: theme.text }]}>${tx.amount.toFixed(2)}</Text>
+                        <View style={styles.actionButtons}>
+                          <TouchableOpacity onPress={() => openEditTransaction(tx)} style={styles.editButton}>
+                            <Text style={{ color: theme.secondary }}>✎</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => deleteTransaction(tx.id)} style={styles.deleteButton}>
+                            <Text style={{ color: theme.danger }}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  )
+                })}
+              </View>
+            ) : (
+              <View style={styles.emptyTransactions}>
+                <Text style={[styles.emptyTransactionsText, { color: theme.secondaryText }]}>
+                  No transactions for this date
+                </Text>
+              </View>
+            )}
           </View>
         )}
-      >
-        <TouchableOpacity
-          style={styles.transactionItem}
-          onPress={() => {
-            // View transaction details functionality would go here
-            Alert.alert("Details", "Transaction details would show here")
-          }}
-        >
-          <View style={[styles.categoryIcon, { backgroundColor: category?.color || "#6C757D" }]}>
-            <Text style={styles.categoryIconText}>{category?.icon || "📝"}</Text>
-          </View>
-          <View style={styles.transactionInfo}>
-            <Text style={styles.transactionDescription}>{item.description}</Text>
-            <Text style={styles.transactionCategory}>{item.category}</Text>
-          </View>
-          <View style={styles.transactionAmount}>
-            <Text style={[styles.amountText, { color: item.type === "income" ? "#4CAF50" : "#FF5252" }]}>
-              {item.type === "income" ? "+" : "-"}
-              {formatCurrency(item.amount)}
-            </Text>
-            <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-          </View>
-        </TouchableOpacity>
-      </Swipeable>
-    )
-  }
-
-  // Render category budget item
-  const renderCategoryBudgetItem = ({ item }: { item: any }) => {
-    return (
-      <TouchableOpacity
-        style={styles.budgetItem}
-        onPress={() => {
-          // View category details functionality would go here
-          Alert.alert("Category Details", `Details for ${item.name} would show here`)
-        }}
-      >
-        <View style={styles.budgetItemHeader}>
-          <View style={styles.categoryIconContainer}>
-            <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
-              <Text style={styles.categoryIconText}>{item.icon}</Text>
-            </View>
-            <View style={styles.categoryNameContainer}>
-              <Text style={styles.categoryName}>{item.name}</Text>
-              <Text style={styles.budgetAmount}>
-                {formatCurrency(item.spent)} / {formatCurrency(item.budget)}
-              </Text>
-            </View>
-          </View>
-          <Text style={[styles.budgetPercentage, { color: item.overBudget ? "#FF5252" : "#4A6FA5" }]}>
-            {Math.round(item.progress * 100)}%
-          </Text>
-        </View>
-        <View style={styles.progressBarContainer}>
-          <View
-            style={[
-              styles.progressBar,
-              {
-                width: `${Math.min(item.progress * 100, 100)}%`,
-                backgroundColor: item.overBudget ? "#FF5252" : "#4A6FA5",
-              },
-            ]}
-          />
-        </View>
-      </TouchableOpacity>
-    )
-  }
-
-  // Budget summary for the current month
-  const budgetSummary = calculateBudgetSummary(selectedMonth)
-
-  // Main render
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <Animated.View style={[styles.header, { height: headerHeight }]}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Budget Tracker</Text>
-          <Text style={styles.headerSubtitle}>
-            {selectedMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-          </Text>
-          <View style={styles.summaryContainer}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Income</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(budgetSummary.totalIncome)}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Expenses</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(budgetSummary.totalExpenses)}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Savings</Text>
-              <Text style={styles.summaryValue}>{budgetSummary.savingsRate.toFixed(0)}%</Text>
-            </View>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Tab Navigation */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "overview" && styles.activeTab]}
-          onPress={() => setActiveTab("overview")}
-        >
-          <PieChartIcon size={20} color={activeTab === "overview" ? "#4A6FA5" : "#6C757D"} />
-          <Text style={[styles.tabText, activeTab === "overview" && styles.activeTabText]}>Overview</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "transactions" && styles.activeTab]}
-          onPress={() => setActiveTab("transactions")}
-        >
-          <DollarSign size={20} color={activeTab === "transactions" ? "#4A6FA5" : "#6C757D"} />
-          <Text style={[styles.tabText, activeTab === "transactions" && styles.activeTabText]}>Transactions</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "budget" && styles.activeTab]}
-          onPress={() => setActiveTab("budget")}
-        >
-          <TrendingUp size={20} color={activeTab === "budget" ? "#4A6FA5" : "#6C757D"} />
-          <Text style={[styles.tabText, activeTab === "budget" && styles.activeTabText]}>Budget</Text>
-        </TouchableOpacity>
       </View>
+    )
+  }
 
-      {/* Main Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4A6FA5" />
-          <Text style={styles.loadingText}>Loading your budget data...</Text>
+  // Render Categories View
+  const renderCategoriesView = () => {
+    return (
+      <View style={styles.viewContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Categories</Text>
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: theme.primary }]}
+            onPress={() => setShowAddCategory(true)}
+          >
+            <Text style={styles.addButtonText}>+ Add Category</Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <Animated.ScrollView
-          style={styles.content}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
-          scrollEventThrottle={16}
-        >
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <View style={styles.tabContent}>
-              {/* Monthly Summary */}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Monthly Summary</Text>
-                <View style={styles.monthSelector}>
-                  <TouchableOpacity onPress={() => handleMonthChange("prev")}>
-                    <ChevronLeft size={24} color="#4A6FA5" />
-                  </TouchableOpacity>
-                  <Text style={styles.monthText}>
-                    {selectedMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                  </Text>
-                  <TouchableOpacity onPress={() => handleMonthChange("next")}>
-                    <ChevronRight size={24} color="#4A6FA5" />
-                  </TouchableOpacity>
-                </View>
-              </View>
 
-              <View style={styles.overviewCards}>
-                <View style={styles.overviewCard}>
-                  <View style={styles.overviewCardHeader}>
-                    <Text style={styles.overviewCardTitle}>Income</Text>
-                    <ArrowUpRight size={20} color="#4CAF50" />
-                  </View>
-                  <Text style={[styles.overviewCardValue, { color: "#4CAF50" }]}>
-                    {formatCurrency(budgetSummary.totalIncome)}
-                  </Text>
-                </View>
+        <ScrollView contentContainerStyle={styles.categoriesList}>
+          {appState.categories.map((category) => {
+            const percentSpent = category.budgeted > 0 ? (category.spent / category.budgeted) * 100 : 0
+            const progressColor = percentSpent > 100 ? theme.danger : percentSpent > 80 ? theme.warning : theme.success
 
-                <View style={styles.overviewCard}>
-                  <View style={styles.overviewCardHeader}>
-                    <Text style={styles.overviewCardTitle}>Expenses</Text>
-                    <ArrowDownRight size={20} color="#FF5252" />
-                  </View>
-                  <Text style={[styles.overviewCardValue, { color: "#FF5252" }]}>
-                    {formatCurrency(budgetSummary.totalExpenses)}
-                  </Text>
-                </View>
-
-                <View style={styles.overviewCard}>
-                  <View style={styles.overviewCardHeader}>
-                    <Text style={styles.overviewCardTitle}>Balance</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.overviewCardValue,
-                      {
-                        color: budgetSummary.totalIncome - budgetSummary.totalExpenses >= 0 ? "#4CAF50" : "#FF5252",
-                      },
-                    ]}
-                  >
-                    {formatCurrency(budgetSummary.totalIncome - budgetSummary.totalExpenses)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Spending Trends */}
-              <View style={styles.section}>
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection("overview")}>
-                  <Text style={styles.sectionTitle}>Spending Trends</Text>
-                  {expandedSections.overview ? (
-                    <ChevronUp size={24} color="#4A6FA5" />
-                  ) : (
-                    <ChevronDown size={24} color="#4A6FA5" />
-                  )}
-                </TouchableOpacity>
-
-                {expandedSections.overview && (
-                  <View style={styles.chartContainer}>
-                    {dailySpending.datasets[0].data.some((value) => value > 0) ? (
-                      <LineChart
-                        data={dailySpending}
-                        width={width - 40}
-                        height={220}
-                        chartConfig={chartConfig}
-                        bezier
-                        style={styles.chart}
-                      />
-                    ) : (
-                      <View style={styles.noDataContainer}>
-                        <Text style={styles.noDataText}>No spending data for this month</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              {/* Category Breakdown */}
-              <View style={styles.section}>
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection("categories")}>
-                  <Text style={styles.sectionTitle}>Category Breakdown</Text>
-                  {expandedSections.categories ? (
-                    <ChevronUp size={24} color="#4A6FA5" />
-                  ) : (
-                    <ChevronDown size={24} color="#4A6FA5" />
-                  )}
-                </TouchableOpacity>
-
-                {expandedSections.categories && (
-                  <View style={styles.chartContainer}>
-                    {spendingByCategory.length > 0 ? (
-                      <PieChart
-                        data={spendingByCategory}
-                        width={width - 40}
-                        height={220}
-                        chartConfig={chartConfig}
-                        accessor="amount"
-                        backgroundColor="transparent"
-                        paddingLeft="15"
-                        absolute
-                      />
-                    ) : (
-                      <View style={styles.noDataContainer}>
-                        <Text style={styles.noDataText}>No spending data for this month</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              {/* Recent Transactions */}
-              <View style={styles.section}>
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection("recent")}>
-                  <Text style={styles.sectionTitle}>Recent Transactions</Text>
-                  {expandedSections.recent ? (
-                    <ChevronUp size={24} color="#4A6FA5" />
-                  ) : (
-                    <ChevronDown size={24} color="#4A6FA5" />
-                  )}
-                </TouchableOpacity>
-
-                {expandedSections.recent && (
-                  <View>
-                    {filteredTransactions.slice(0, 5).map((transaction) => (
-                      <View key={transaction.id}>{renderTransactionItem({ item: transaction })}</View>
-                    ))}
-                    {filteredTransactions.length > 5 && (
-                      <TouchableOpacity style={styles.viewAllButton} onPress={() => setActiveTab("transactions")}>
-                        <Text style={styles.viewAllText}>View All Transactions</Text>
-                        <ArrowRight size={16} color="#4A6FA5" />
-                      </TouchableOpacity>
-                    )}
-                    {filteredTransactions.length === 0 && (
-                      <View style={styles.noDataContainer}>
-                        <Text style={styles.noDataText}>No transactions for this month</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              {/* Budget Progress */}
-              <View style={styles.section}>
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection("budgets")}>
-                  <Text style={styles.sectionTitle}>Budget Progress</Text>
-                  {expandedSections.budgets ? (
-                    <ChevronUp size={24} color="#4A6FA5" />
-                  ) : (
-                    <ChevronDown size={24} color="#4A6FA5" />
-                  )}
-                </TouchableOpacity>
-
-                {expandedSections.budgets && (
-                  <View>
-                    {categoryBudgetProgress.slice(0, 3).map((category) => (
-                      <View key={category.id}>{renderCategoryBudgetItem({ item: category })}</View>
-                    ))}
-                    {categoryBudgetProgress.length > 3 && (
-                      <TouchableOpacity style={styles.viewAllButton} onPress={() => setActiveTab("budget")}>
-                        <Text style={styles.viewAllText}>View All Categories</Text>
-                        <ArrowRight size={16} color="#4A6FA5" />
-                      </TouchableOpacity>
-                    )}
-                    {categoryBudgetProgress.length === 0 && (
-                      <View style={styles.noDataContainer}>
-                        <Text style={styles.noDataText}>No budget categories set</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Transactions Tab */}
-          {activeTab === "transactions" && (
-            <View style={styles.tabContent}>
-              {/* Filters */}
-              <View style={styles.filtersRow}>
-                <View style={styles.filterButtons}>
-                  <TouchableOpacity
-                    style={[styles.filterButton, filterType === "all" && styles.activeFilterButton]}
-                    onPress={() => setFilterType("all")}
-                  >
-                    <Text style={[styles.filterButtonText, filterType === "all" && styles.activeFilterText]}>All</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.filterButton, filterType === "income" && styles.activeFilterButton]}
-                    onPress={() => setFilterType("income")}
-                  >
-                    <Text style={[styles.filterButtonText, filterType === "income" && styles.activeFilterText]}>
-                      Income
+            return (
+              <View
+                key={category.id}
+                style={[styles.categoryCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+              >
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryNameContainer}>
+                    <View style={[styles.categoryColor, { backgroundColor: category.color }]} />
+                    <Text style={[styles.categoryTitle, { color: theme.text }]}>
+                      <Text>{category.icon}</Text> {category.name}
                     </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.filterButton, filterType === "expense" && styles.activeFilterButton]}
-                    onPress={() => setFilterType("expense")}
-                  >
-                    <Text style={[styles.filterButtonText, filterType === "expense" && styles.activeFilterText]}>
-                      Expenses
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity style={styles.searchButton} onPress={() => setShowSearch(!showSearch)}>
-                  <Search size={20} color="#4A6FA5" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Search Bar */}
-              {showSearch && (
-                <View style={styles.searchContainer}>
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search transactions..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-                  {searchQuery ? (
-                    <TouchableOpacity onPress={() => setSearchQuery("")}>
-                      <X size={20} color="#6C757D" />
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-              )}
-
-              {/* View Mode Toggle */}
-              <View style={styles.viewModeContainer}>
-                <TouchableOpacity
-                  style={[styles.viewModeButton, viewMode === "daily" && styles.activeViewMode]}
-                  onPress={() => setViewMode("daily")}
-                >
-                  <Text style={[styles.viewModeText, viewMode === "daily" && styles.activeViewModeText]}>Daily</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.viewModeButton, viewMode === "monthly" && styles.activeViewMode]}
-                  onPress={() => setViewMode("monthly")}
-                >
-                  <Text style={[styles.viewModeText, viewMode === "monthly" && styles.activeViewModeText]}>
-                    Monthly
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Transactions List */}
-              <View style={styles.transactionsList}>
-                {filteredTransactions.length > 0 ? (
-                  filteredTransactions.map((transaction) => (
-                    <View key={transaction.id}>{renderTransactionItem({ item: transaction })}</View>
-                  ))
-                ) : (
-                  <View style={styles.noDataContainer}>
-                    <Text style={styles.noDataText}>No transactions found</Text>
                   </View>
-                )}
-              </View>
-            </View>
-          )}
 
-          {/* Budget Tab */}
-          {activeTab === "budget" && (
-            <View style={styles.tabContent}>
-              {/* Monthly Budget Summary */}
-              <View style={styles.budgetSummaryCard}>
-                <Text style={styles.budgetSummaryTitle}>Monthly Budget</Text>
-                <View style={styles.budgetSummaryRow}>
-                  <Text style={styles.budgetSummaryLabel}>Total Budget:</Text>
-                  <Text style={styles.budgetSummaryValue}>{formatCurrency(budgetSummary.totalBudget)}</Text>
+                  <View style={styles.categoryBudget}>
+                    <Text style={[styles.budgetText, { color: theme.text }]}>
+                      ${category.spent.toFixed(2)}
+                      <Text style={{ color: theme.secondaryText, fontWeight: "normal" }}>
+                        {" "}
+                        of ${category.budgeted.toFixed(2)}
+                      </Text>
+                    </Text>
+                    <Text style={[styles.percentText, { color: theme.secondaryText }]}>
+                      {percentSpent.toFixed(0)}% spent
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.budgetSummaryRow}>
-                  <Text style={styles.budgetSummaryLabel}>Spent:</Text>
-                  <Text style={styles.budgetSummaryValue}>{formatCurrency(budgetSummary.totalExpenses)}</Text>
-                </View>
-                <View style={styles.budgetSummaryRow}>
-                  <Text style={styles.budgetSummaryLabel}>Remaining:</Text>
-                  <Text
-                    style={[
-                      styles.budgetSummaryValue,
-                      {
-                        color: budgetSummary.remainingBudget >= 0 ? "#4CAF50" : "#FF5252",
-                      },
-                    ]}
-                  >
-                    {formatCurrency(budgetSummary.remainingBudget)}
-                  </Text>
-                </View>
-                <View style={styles.progressBarContainer}>
+
+                <View style={[styles.progressBarBg, { backgroundColor: `${theme.background}80` }]}>
                   <View
                     style={[
-                      styles.progressBar,
+                      styles.progressBarFill,
                       {
-                        width: `${Math.min((budgetSummary.totalExpenses / budgetSummary.totalBudget) * 100, 100)}%`,
-                        backgroundColor:
-                          budgetSummary.totalExpenses <= budgetSummary.totalBudget ? "#4A6FA5" : "#FF5252",
+                        backgroundColor: progressColor,
+                        width: `${Math.min(percentSpent, 100)}%`,
                       },
                     ]}
                   />
                 </View>
               </View>
+            )
+          })}
+        </ScrollView>
+      </View>
+    )
+  }
 
-              {/* Category Budgets */}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Category Budgets</Text>
-              </View>
+  // Render Analytics View
+  const renderAnalyticsView = () => {
+    // Calculate percentages for the simple chart
+    const calculatePercentages = () => {
+      const total = appState.categories.reduce((sum, cat) => sum + cat.spent, 0)
 
-              {categoryBudgetProgress.length > 0 ? (
-                categoryBudgetProgress.map((category) => (
-                  <View key={category.id}>{renderCategoryBudgetItem({ item: category })}</View>
-                ))
-              ) : (
-                <View style={styles.noDataContainer}>
-                  <Text style={styles.noDataText}>No budget categories set</Text>
-                </View>
-              )}
+      if (total === 0) return appState.categories.map((cat) => ({ ...cat, percentage: 0 }))
+
+      return appState.categories
+        .map((cat) => ({
+          ...cat,
+          percentage: (cat.spent / total) * 100,
+        }))
+        .sort((a, b) => b.spent - a.spent)
+    }
+
+    const categoryWithPercentages = calculatePercentages()
+    const spendingPercentage = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0
+    const spendingBarColor =
+      spendingPercentage > 100 ? theme.danger : spendingPercentage > 80 ? theme.warning : theme.success
+
+    const spendingChartData = getSpendingChartData()
+    const categorySpendingData = getCategorySpendingData()
+
+    return (
+      <View style={styles.viewContainer}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Spending Analytics</Text>
+
+        <View style={[styles.summaryCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>Monthly Summary</Text>
+
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: theme.secondaryText }]}>Total Budget</Text>
+            <Text style={[styles.summaryValue, { color: theme.text }]}>${totalBudgeted.toFixed(2)}</Text>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: theme.secondaryText }]}>Total Spent</Text>
+            <Text style={[styles.summaryValue, { color: theme.text }]}>${totalSpent.toFixed(2)}</Text>
+          </View>
+
+          <View style={[styles.summaryDivider, { borderColor: theme.border }]} />
+
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: theme.secondaryText }]}>Remaining</Text>
+            <Text style={[styles.summaryValue, { color: remaining < 0 ? theme.danger : theme.success }]}>
+              ${remaining.toFixed(2)}
+            </Text>
+          </View>
+
+          <View style={[styles.progressBarBg, { backgroundColor: `${theme.background}80` }]}>
+            <View
+              style={[
+                styles.progressBarFill,
+                {
+                  backgroundColor: spendingBarColor,
+                  width: `${Math.min(spendingPercentage, 100)}%`,
+                },
+              ]}
+            />
+          </View>
+
+          <Text style={[styles.percentText, { color: theme.secondaryText, textAlign: "right" }]}>
+            {spendingPercentage.toFixed(0)}% of budget used
+          </Text>
+        </View>
+
+        <View style={[styles.analyticsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>Daily Spending</Text>
+
+          {spendingChartData.datasets[0].data.some((value) => value > 0) ? (
+            <LineChart
+              data={spendingChartData}
+              width={screenWidth - 40}
+              height={220}
+              yAxisLabel="$"
+              chartConfig={{
+                ...chartConfig,
+                color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
+                propsForDots: { r: "4", strokeWidth: "2", stroke: theme.primary },
+                fillShadowGradientFrom: theme.primary,
+                fillShadowGradientTo: "#ffffff",
+                fillShadowGradientOpacity: 0.2,
+                decimalPlaces: 0,
+              }}
+              bezier
+              style={styles.chart}
+            />
+          ) : (
+            <View style={styles.emptyChartContainer}>
+              <Text style={[styles.emptyChartText, { color: theme.secondaryText }]}>
+                No spending data for this month
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.analyticsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>Spending by Category</Text>
+
+          {categorySpendingData.length > 0 ? (
+            <PieChart
+              data={categorySpendingData}
+              width={screenWidth - 40}
+              height={220}
+              chartConfig={chartConfig}
+              accessor="value"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+            />
+          ) : (
+            <View style={styles.emptyChartContainer}>
+              <Text style={[styles.emptyChartText, { color: theme.secondaryText }]}>
+                No category spending data for this month
+              </Text>
             </View>
           )}
 
-          {/* Add some bottom padding for FAB */}
-          <View style={{ height: 80 }} />
-        </Animated.ScrollView>
-      )}
-
-      {/* Floating Action Button */}
-      <View style={styles.fabContainer}>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => {
-            setNewTransaction({
-              amount: 0,
-              description: "",
-              category: "",
-              type: "expense",
-              date: new Date().toISOString(),
-            })
-            setShowAddTransaction(true)
-          }}
-        >
-          <Plus size={24} color="#fff" />
-        </TouchableOpacity>
+          <View style={styles.categoriesLegend}>
+            {categoryWithPercentages
+              .filter((cat) => cat.spent > 0)
+              .map((cat) => (
+                <View key={cat.id} style={styles.legendItem}>
+                  <View style={styles.legendItemLeft}>
+                    <View style={[styles.legendDot, { backgroundColor: cat.color }]} />
+                    <Text style={[styles.legendText, { color: theme.text }]}>
+                      <Text>{cat.icon}</Text> {cat.name}
+                    </Text>
+                  </View>
+                  <Text style={[styles.legendPercent, { color: theme.text }]}>{cat.percentage.toFixed(1)}%</Text>
+                </View>
+              ))}
+          </View>
+        </View>
       </View>
+    )
+  }
 
-      {/* Add Transaction Modal */}
-      <Modal visible={showAddTransaction} transparent animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+  // Render Add Category Modal
+  const renderAddCategoryModal = () => {
+    return (
+      <Modal
+        visible={showAddCategory}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddCategory(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add Transaction</Text>
-                <TouchableOpacity onPress={() => setShowAddTransaction(false)}>
-                  <X size={24} color="#333" />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalContent}>
-                {/* Transaction Type */}
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Transaction Type</Text>
-                  <View style={styles.segmentedControl}>
-                    <TouchableOpacity
-                      style={[styles.segmentedButton, newTransaction.type === "income" && styles.activeSegmentedButton]}
-                      onPress={() => setNewTransaction({ ...newTransaction, type: "income" })}
-                    >
-                      <Text
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
+              <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Category</Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category Name</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={newCategory.name}
+                    onChangeText={(text) => setNewCategory({ ...newCategory, name: text })}
+                    placeholder="e.g., Groceries"
+                    placeholderTextColor={theme.secondaryText}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Monthly Budget</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={newCategory.budgeted}
+                    onChangeText={(text) => setNewCategory({ ...newCategory, budgeted: text })}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.secondaryText}
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Icon</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconSelector}>
+                    {Object.entries(categoryIcons).map(([name, icon]) => (
+                      <TouchableOpacity
+                        key={icon}
                         style={[
-                          styles.segmentedButtonText,
-                          newTransaction.type === "income" && styles.activeSegmentedButtonText,
+                          styles.iconOption,
+                          newCategory.icon === icon && [styles.selectedIcon, { borderColor: theme.primary }],
                         ]}
+                        onPress={() => setNewCategory({ ...newCategory, icon })}
                       >
-                        Income
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.segmentedButton,
-                        newTransaction.type === "expense" && styles.activeSegmentedButton,
-                      ]}
-                      onPress={() => setNewTransaction({ ...newTransaction, type: "expense" })}
-                    >
-                      <Text
+                        <Text style={styles.iconText}>{icon}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Color</Text>
+                  <View style={styles.colorSelector}>
+                    {[
+                      "#006A4D",
+                      "#4F46E5",
+                      "#10B981",
+                      "#F59E0B",
+                      "#EC4899",
+                      "#6366F1",
+                      "#8B5CF6",
+                      "#14B8A6",
+                      "#64748B",
+                    ].map((color) => (
+                      <TouchableOpacity
+                        key={color}
                         style={[
-                          styles.segmentedButtonText,
-                          newTransaction.type === "expense" && styles.activeSegmentedButtonText,
+                          styles.colorOption,
+                          { backgroundColor: color },
+                          newCategory.color === color && styles.selectedColor,
                         ]}
-                      >
-                        Expense
-                      </Text>
-                    </TouchableOpacity>
+                        onPress={() => setNewCategory({ ...newCategory, color })}
+                      />
+                    ))}
                   </View>
                 </View>
 
-                {/* Amount */}
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Amount</Text>
-                  <View style={styles.amountInputContainer}>
-                    <Text style={styles.currencySymbol}>$</Text>
-                    <TextInput
-                      style={styles.amountInput}
-                      keyboardType="decimal-pad"
-                      placeholder="0.00"
-                      value={newTransaction.amount ? newTransaction.amount.toString() : ""}
-                      onChangeText={(text) => {
-                        const amount = Number.parseFloat(text) || 0
-                        setNewTransaction({ ...newTransaction, amount })
-                      }}
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
+                    onPress={() => setShowAddCategory(false)}
+                  >
+                    <Text style={{ color: theme.secondaryText }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                    onPress={handleAddCategory}
+                  >
+                    <Text style={styles.confirmButtonText}>Add Category</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    )
+  }
+
+  // Render Add Transaction Modal
+  const renderAddTransactionModal = () => {
+    return (
+      <Modal
+        visible={showAddTransaction}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddTransaction(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
+              <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Transaction</Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Date</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={newTransaction.date}
+                    onChangeText={(text) => setNewTransaction({ ...newTransaction, date: text })}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={theme.secondaryText}
+                  />
+                  <Text style={[styles.inputHint, { color: theme.secondaryText }]}>
+                    Format: YYYY-MM-DD (e.g., 2025-04-15)
+                  </Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Amount</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={newTransaction.amount}
+                    onChangeText={(text) => setNewTransaction({ ...newTransaction, amount: text })}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.secondaryText}
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category</Text>
+                  <View
+                    style={[styles.categoryPicker, { backgroundColor: theme.background, borderColor: theme.border }]}
+                  >
+                    <FlatList
+                      data={appState.categories}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[
+                            styles.categoryChip,
+                            {
+                              backgroundColor: newTransaction.category === item.name ? item.color : `${item.color}30`,
+                            },
+                          ]}
+                          onPress={() => setNewTransaction({ ...newTransaction, category: item.name })}
+                        >
+                          <Text
+                            style={[
+                              styles.categoryChipText,
+                              { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
+                            ]}
+                          >
+                            <Text>{item.icon}</Text> {item.name}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     />
                   </View>
                 </View>
 
-                {/* Description */}
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Description</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Description</Text>
                   <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter description"
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
                     value={newTransaction.description}
                     onChangeText={(text) => setNewTransaction({ ...newTransaction, description: text })}
+                    placeholder="e.g., Grocery shopping"
+                    placeholderTextColor={theme.secondaryText}
                   />
                 </View>
 
-                {/* Category */}
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Category</Text>
-                  <View style={styles.categorySelector}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {categories
-                        .filter((c) => {
-                          // For income, only show income categories
-                          if (newTransaction.type === "income") {
-                            return ["Salary", "Investments", "Gifts", "Other"].includes(c.name)
-                          }
-                          // For expenses, don't show income categories
-                          return !["Salary", "Investments", "Gifts"].includes(c.name)
-                        })
-                        .map((category) => (
+                <View style={styles.inputGroup}>
+                  <View style={styles.recurringContainer}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Recurring Transaction</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.recurringToggle,
+                        { backgroundColor: newTransaction.isRecurring ? theme.primary : theme.background },
+                      ]}
+                      onPress={() => setNewTransaction({ ...newTransaction, isRecurring: !newTransaction.isRecurring })}
+                    >
+                      <View
+                        style={[
+                          styles.toggleCircle,
+                          {
+                            backgroundColor: theme.card,
+                            transform: [{ translateX: newTransaction.isRecurring ? 20 : 0 }],
+                          },
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {newTransaction.isRecurring && (
+                    <View style={styles.recurringOptions}>
+                      <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Frequency</Text>
+                      <View style={styles.recurringTypeContainer}>
+                        {(["daily", "weekly", "monthly", "yearly"] as const).map((type) => (
                           <TouchableOpacity
-                            key={category.id}
+                            key={type}
                             style={[
-                              styles.categoryOption,
+                              styles.recurringTypeButton,
                               {
                                 backgroundColor:
-                                  newTransaction.category === category.name ? category.color : "transparent",
-                                borderColor: category.color,
+                                  newTransaction.recurringType === type ? theme.primary : theme.background,
+                                borderColor: theme.border,
                               },
                             ]}
-                            onPress={() => setNewTransaction({ ...newTransaction, category: category.name })}
+                            onPress={() => setNewTransaction({ ...newTransaction, recurringType: type })}
                           >
                             <Text
                               style={[
-                                styles.categoryOptionText,
-                                {
-                                  color: newTransaction.category === category.name ? "#fff" : category.color,
-                                },
+                                styles.recurringTypeText,
+                                { color: newTransaction.recurringType === type ? "#FFFFFF" : theme.text },
                               ]}
                             >
-                              {category.icon} {category.name}
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
                             </Text>
                           </TouchableOpacity>
                         ))}
-                    </ScrollView>
+                      </View>
+
+                      <Text style={[styles.inputLabel, { color: theme.secondaryText, marginTop: 10 }]}>
+                        End Date (Optional)
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.textInput,
+                          { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                        ]}
+                        value={newTransaction.recurringEndDate}
+                        onChangeText={(text) => setNewTransaction({ ...newTransaction, recurringEndDate: text })}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={theme.secondaryText}
+                      />
+                      <Text style={[styles.inputHint, { color: theme.secondaryText }]}>
+                        Leave blank for indefinite recurring
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
+                    onPress={() => setShowAddTransaction(false)}
+                  >
+                    <Text style={{ color: theme.secondaryText }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                    onPress={handleAddTransaction}
+                  >
+                    <Text style={styles.confirmButtonText}>Add Transaction</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    )
+  }
+
+  // Render Edit Transaction Modal
+  const renderEditTransactionModal = () => {
+    return (
+      <Modal
+        visible={showEditTransaction}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEditTransaction(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
+              <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Transaction</Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Date</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={newTransaction.date}
+                    onChangeText={(text) => setNewTransaction({ ...newTransaction, date: text })}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={theme.secondaryText}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Amount</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={newTransaction.amount}
+                    onChangeText={(text) => setNewTransaction({ ...newTransaction, amount: text })}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.secondaryText}
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Category</Text>
+                  <View
+                    style={[styles.categoryPicker, { backgroundColor: theme.background, borderColor: theme.border }]}
+                  >
+                    <FlatList
+                      data={appState.categories}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[
+                            styles.categoryChip,
+                            {
+                              backgroundColor: newTransaction.category === item.name ? item.color : `${item.color}30`,
+                            },
+                          ]}
+                          onPress={() => setNewTransaction({ ...newTransaction, category: item.name })}
+                        >
+                          <Text
+                            style={[
+                              styles.categoryChipText,
+                              { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
+                            ]}
+                          >
+                            <Text>{item.icon}</Text> {item.name}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    />
                   </View>
                 </View>
 
-                {/* Submit Button */}
-                <TouchableOpacity style={styles.submitButton} onPress={handleAddTransaction}>
-                  <Text style={styles.submitButtonText}>Add Transaction</Text>
-                </TouchableOpacity>
-              </ScrollView>
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Description</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={newTransaction.description}
+                    onChangeText={(text) => setNewTransaction({ ...newTransaction, description: text })}
+                    placeholder="e.g., Grocery shopping"
+                    placeholderTextColor={theme.secondaryText}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <View style={styles.recurringContainer}>
+                    <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Recurring Transaction</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.recurringToggle,
+                        { backgroundColor: newTransaction.isRecurring ? theme.primary : theme.background },
+                      ]}
+                      onPress={() => setNewTransaction({ ...newTransaction, isRecurring: !newTransaction.isRecurring })}
+                    >
+                      <View
+                        style={[
+                          styles.toggleCircle,
+                          {
+                            backgroundColor: theme.card,
+                            transform: [{ translateX: newTransaction.isRecurring ? 20 : 0 }],
+                          },
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {newTransaction.isRecurring && (
+                    <View style={styles.recurringOptions}>
+                      <Text style={[styles.inputLabel, { color: theme.secondaryText }]}>Frequency</Text>
+                      <View style={styles.recurringTypeContainer}>
+                        {(["daily", "weekly", "monthly", "yearly"] as const).map((type) => (
+                          <TouchableOpacity
+                            key={type}
+                            style={[
+                              styles.recurringTypeButton,
+                              {
+                                backgroundColor:
+                                  newTransaction.recurringType === type ? theme.primary : theme.background,
+                                borderColor: theme.border,
+                              },
+                            ]}
+                            onPress={() => setNewTransaction({ ...newTransaction, recurringType: type })}
+                          >
+                            <Text
+                              style={[
+                                styles.recurringTypeText,
+                                { color: newTransaction.recurringType === type ? "#FFFFFF" : theme.text },
+                              ]}
+                            >
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+
+                      <Text style={[styles.inputLabel, { color: theme.secondaryText, marginTop: 10 }]}>
+                        End Date (Optional)
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.textInput,
+                          { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                        ]}
+                        value={newTransaction.recurringEndDate}
+                        onChangeText={(text) => setNewTransaction({ ...newTransaction, recurringEndDate: text })}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={theme.secondaryText}
+                      />
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
+                    onPress={() => setShowEditTransaction(false)}
+                  >
+                    <Text style={{ color: theme.secondaryText }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                    onPress={handleEditTransaction}
+                  >
+                    <Text style={styles.confirmButtonText}>Save Changes</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    )
+  }
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.secondaryText }]}>Loading budget data...</Text>
+        </View>
+      ) : (
+        <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          <Text style={[styles.pageTitle, { color: theme.text }]}>Budget Planner</Text>
+
+          {/* Overview cards */}
+          <View style={styles.overviewCards}>
+            <View style={[styles.overviewCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={styles.overviewContent}>
+                <View>
+                  <Text style={[styles.overviewLabel, { color: theme.secondaryText }]}>Total Budget</Text>
+                  <Text style={[styles.overviewValue, { color: theme.text }]}>${totalBudgeted.toFixed(2)}</Text>
+                </View>
+                <View style={[styles.iconContainer, { backgroundColor: `${theme.primary}20` }]}>
+                  <Text style={[styles.icon, { color: theme.primary }]}>💰</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={[styles.overviewCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={styles.overviewContent}>
+                <View>
+                  <Text style={[styles.overviewLabel, { color: theme.secondaryText }]}>Total Spent</Text>
+                  <Text style={[styles.overviewValue, { color: theme.text }]}>${totalSpent.toFixed(2)}</Text>
+                </View>
+                <View style={[styles.iconContainer, { backgroundColor: `${theme.success}20` }]}>
+                  <Text style={[styles.icon, { color: theme.success }]}>📊</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={[styles.overviewCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={styles.overviewContent}>
+                <View>
+                  <Text style={[styles.overviewLabel, { color: theme.secondaryText }]}>Remaining</Text>
+                  <Text style={[styles.overviewValue, { color: remaining < 0 ? theme.danger : theme.success }]}>
+                    ${remaining.toFixed(2)}
+                  </Text>
+                </View>
+                <View style={[styles.iconContainer, { backgroundColor: `${theme.warning}20` }]}>
+                  <Text style={[styles.icon, { color: theme.warning }]}>⚙️</Text>
+                </View>
+              </View>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </View>
+
+          {/* Navigation tabs */}
+          <View style={[styles.tabBar, { borderColor: theme.border }]}>
+            <TouchableOpacity
+              style={[styles.tab, activeView === "calendar" && [styles.activeTab, { borderColor: theme.primary }]]}
+              onPress={() => setActiveView("calendar")}
+            >
+              <Text
+                style={[styles.tabText, { color: activeView === "calendar" ? theme.primary : theme.secondaryText }]}
+              >
+                📅 Calendar
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tab, activeView === "categories" && [styles.activeTab, { borderColor: theme.primary }]]}
+              onPress={() => setActiveView("categories")}
+            >
+              <Text
+                style={[styles.tabText, { color: activeView === "categories" ? theme.primary : theme.secondaryText }]}
+              >
+                ⚙️ Categories
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tab, activeView === "analytics" && [styles.activeTab, { borderColor: theme.primary }]]}
+              onPress={() => setActiveView("analytics")}
+            >
+              <Text
+                style={[styles.tabText, { color: activeView === "analytics" ? theme.primary : theme.secondaryText }]}
+              >
+                📊 Analytics
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Main content area */}
+          <View style={[styles.contentCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  colors={[theme.primary]}
+                  tintColor={theme.primary}
+                />
+              }
+            >
+              {activeView === "calendar" && renderCalendarView()}
+              {activeView === "categories" && renderCategoriesView()}
+              {activeView === "analytics" && renderAnalyticsView()}
+            </ScrollView>
+          </View>
+
+          {/* Modals */}
+          {renderAddCategoryModal()}
+          {renderAddTransactionModal()}
+          {renderEditTransactionModal()}
+        </Animated.View>
+      )}
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f7",
-  },
-  header: {
-    backgroundColor: "#4A6FA5",
-    paddingTop: Platform.OS === "ios" ? 50 : 20,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    overflow: "hidden",
-  },
-  headerContent: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.8)",
-    marginTop: 4,
-  },
-  summaryContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-  },
-  summaryItem: {
-    alignItems: "center",
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.8)",
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  tabBar: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#4A6FA5",
-  },
-  tabText: {
-    fontSize: 12,
-    color: "#6C757D",
-    marginTop: 4,
-  },
-  activeTabText: {
-    color: "#4A6FA5",
-    fontWeight: "600",
-  },
-  content: {
-    flex: 1,
-  },
-  tabContent: {
     padding: 16,
   },
   loadingContainer: {
@@ -1415,7 +1762,62 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#6C757D",
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  overviewCards: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  overviewCard: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,// Use theme color instead of hardcoded "white"
+    overflow: "hidden", // Add overflow hidden
+  },
+  tabBar: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    marginBottom: 16,
+  },
+  tab: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginRight: 8,
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+  },
+  tabText: {
+    fontWeight: "500",
+  },
+  contentCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  scrollContent: {
+    padding: 12,
+  },
+  viewContainer: {
+    paddingBottom: 20,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -1425,423 +1827,513 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "bold",
   },
-  monthSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  monthText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#4A6FA5",
-    marginHorizontal: 8,
-  },
-  overviewCards: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  overviewCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  overviewCardHeader: {
+  monthHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  overviewCardTitle: {
-    fontSize: 14,
-    color: "#6C757D",
+  monthNavButton: {
+    padding: 8,
   },
-  overviewCardValue: {
+  monthTitle: {
     fontSize: 16,
     fontWeight: "bold",
   },
-  section: {
-    backgroundColor: "#fff",
+  weekdayHeader: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 8,
+  },
+  weekdayText: {
+    width: 40,
+    textAlign: "center",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  calendarGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  emptyDay: {
+    width: "13.5%",
+    aspectRatio: 1,
+    marginBottom: 8,
+  },
+  calendarDay: {
+    width: "13.5%",
+    aspectRatio: 1,
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  dayHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  dayNumber: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  dayTotal: {
+    fontSize: 10,
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  transactionBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  transactionBadgeText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  dayTransaction: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  categoryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  transactionText: {
+    fontSize: 8,
+    flex: 1,
+  },
+  moreTransactions: {
+    fontSize: 8,
+    marginTop: 2,
+  },
+  addButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginTop: 12,
+  },
+  addButtonText: {
+    color: "white",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  selectedDateCard: {
+    marginTop: 16,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    borderWidth: 1,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
+    overflow: "hidden",
   },
-  chartContainer: {
+  selectedDateHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 8,
+    marginBottom: 12,
   },
-  chart: {
-    borderRadius: 8,
-  },
-  noDataContainer: {
-    padding: 20,
-    alignItems: "center",
-  },
-  noDataText: {
-    color: "#6C757D",
+  selectedDateTitle: {
+    fontWeight: "bold",
     fontSize: 16,
+  },
+  closeButton: {
+    fontSize: 14,
+  },
+  transactionsList: {
+    marginTop: 8,
   },
   transactionItem: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     padding: 12,
-    backgroundColor: "#fff",
     borderRadius: 8,
     marginBottom: 8,
+    borderWidth: 1,
+  },
+  transactionInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  categoryIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  categoryName: {
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  transactionDescription: {
+    fontSize: 12,
+  },
+  transactionActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    marginLeft: 8,
+  },
+  editButton: {
+    padding: 6,
+    marginRight: 4,
+  },
+  deleteButton: {
+    padding: 6,
+  },
+  transactionAmount: {
+    fontWeight: "bold",
+  },
+  emptyTransactions: {
+    padding: 20,
+    alignItems: "center",
+  },
+  emptyTransactionsText: {
+    fontSize: 14,
+  },
+  categoriesList: {
+    paddingBottom: 16,
+  },
+  categoryCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
+    shadowRadius: 2,
+    overflow: "hidden",
   },
-  categoryIcon: {
+  categoryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  categoryNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  categoryColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  categoryTitle: {
+    fontWeight: "500",
+  },
+  categoryBudget: {
+    alignItems: "flex-end",
+  },
+  budgetText: {
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  percentText: {
+    fontSize: 12,
+  },
+  progressBarBg: {
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  summaryCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    overflow: "hidden",
+  },
+  analyticsCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    overflow: "hidden",
+  },
+  cardTitle: {
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+  },
+  summaryValue: {
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  summaryDivider: {
+    borderTopWidth: 1,
+    marginVertical: 8,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 8,
+  },
+  emptyChartContainer: {
+    height: 220,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyChartText: {
+    fontSize: 14,
+  },
+  categoriesLegend: {
+    marginTop: 16,
+  },
+  legendItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  legendItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  legendText: {
+    fontSize: 14,
+  },
+  legendPercent: {
+    fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  modalContainer: {
+    width: "90%",
+    maxWidth: 400,
+    borderRadius: 12,
+    padding: 16,
+    maxHeight: "80%", // Use theme color
+    overflow: "hidden",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  inputHint: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+  },
+  colorSelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
+  colorOption: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    margin: 4,
+  },
+  selectedColor: {
+    borderWidth: 2,
+    borderColor: "white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  iconSelector: {
+    flexDirection: "row",
+    marginTop: 8,
+    maxHeight: 50,
+  },
+  iconOption: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    margin: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
+  },
+  selectedIcon: {
+    borderWidth: 2,
+  },
+  iconText: {
+    fontSize: 20,
+  },
+  categoryPicker: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    flexDirection: "row",
+  },
+  categoryChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  categoryChipText: {
+    fontWeight: "500",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 16,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  confirmButton: {
+    minWidth: 100,
+  },
+  confirmButtonText: {
+    color: "white",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  recurringContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  recurringToggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    padding: 5,
+  },
+  toggleCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  recurringOptions: {
+    marginTop: 10,
+  },
+  recurringTypeContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
+  recurringTypeButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  recurringTypeText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  recurringBadge: {
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "#f0f0f0",
+    alignSelf: "flex-start",
+  },
+  recurringText: {
+    fontSize: 10,
+    color: "#666",
+  },
+  overviewContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  overviewLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  overviewValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
-  categoryIconText: {
-    fontSize: 18,
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionDescription: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-  },
-  transactionCategory: {
-    fontSize: 14,
-    color: "#6C757D",
-    marginTop: 2,
-  },
-  transactionAmount: {
-    alignItems: "flex-end",
-  },
-  amountText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  dateText: {
-    fontSize: 12,
-    color: "#6C757D",
-    marginTop: 2,
-  },
-  viewAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 12,
-    marginTop: 8,
-  },
-  viewAllText: {
-    color: "#4A6FA5",
-    fontSize: 14,
-    fontWeight: "500",
-    marginRight: 4,
-  },
-  budgetItem: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  budgetItemHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  categoryIconContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  categoryNameContainer: {
-    marginLeft: 8,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-  },
-  budgetAmount: {
-    fontSize: 14,
-    color: "#6C757D",
-  },
-  budgetPercentage: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  progressBarContainer: {
-    height: 6,
-    backgroundColor: "#E9ECEF",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  fabContainer: {
-    position: "absolute",
-    right: 20,
-    bottom: 20,
-  },
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#4A6FA5",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modal: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: "80%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E9ECEF",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  modalContent: {
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  formLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 8,
-  },
-  amountInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#CED4DA",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-  },
-  currencySymbol: {
-    fontSize: 18,
-    color: "#6C757D",
-    marginRight: 4,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 18,
-    paddingVertical: 12,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: "#CED4DA",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  segmentedControl: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: "#4A6FA5",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  segmentedButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  activeSegmentedButton: {
-    backgroundColor: "#4A6FA5",
-  },
-  segmentedButtonText: {
-    color: "#4A6FA5",
-    fontWeight: "500",
-  },
-  activeSegmentedButtonText: {
-    color: "#fff",
-  },
-  categorySelector: {
-    marginBottom: 8,
-  },
-  categoryOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  categoryOptionText: {
-    fontWeight: "500",
-  },
-  submitButton: {
-    backgroundColor: "#4A6FA5",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  filtersRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  filterButtons: {
-    flexDirection: "row",
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: "#E9ECEF",
-  },
-  activeFilterButton: {
-    backgroundColor: "#4A6FA5",
-  },
-  filterButtonText: {
-    color: "#6C757D",
-    fontWeight: "500",
-  },
-  activeFilterText: {
-    color: "#fff",
-  },
-  searchButton: {
-    padding: 8,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#CED4DA",
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  viewModeContainer: {
-    flexDirection: "row",
-    backgroundColor: "#E9ECEF",
-    borderRadius: 8,
-    marginBottom: 16,
-    padding: 2,
-  },
-  viewModeButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: "center",
-    borderRadius: 6,
-  },
-  activeViewMode: {
-    backgroundColor: "#fff",
-  },
-  viewModeText: {
-    color: "#6C757D",
-    fontWeight: "500",
-  },
-  activeViewModeText: {
-    color: "#4A6FA5",
-  },
-  transactionsList: {
-    marginBottom: 16,
-  },
-  swipeActions: {
-    flexDirection: "row",
-  },
-  swipeAction: {
-    justifyContent: "center",
-    alignItems: "center",
-    width: 60,
-    height: "100%",
-  },
-  budgetSummaryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  budgetSummaryTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 12,
-  },
-  budgetSummaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  budgetSummaryLabel: {
-    fontSize: 16,
-    color: "#6C757D",
-  },
-  budgetSummaryValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+  icon: {
+    fontSize: 20,
   },
 })
 
-export default BudgetScreen
+export default BudgetCalendar

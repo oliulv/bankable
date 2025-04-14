@@ -46,78 +46,80 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.closeButtonContainer}>
+      <View style={styles.header}>
+        <Text style={styles.menuTitle}>Bankable</Text>
         <TouchableOpacity onPress={closeDrawer} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color="#000" />
+          <Ionicons name="close" size={24} color="#006a4d" />
         </TouchableOpacity>
-      </View>
-      
-      <View style={styles.menuItems}>
-        <MenuItem 
-          icon="home-outline" 
-          title="Home" 
-          onPress={() => navigateTo("/HomeScreen")} 
-        />
-        <MenuItem 
-          icon="wallet-outline" 
-          title="Accounts" 
-          onPress={() => navigateTo("/AccountsOverviewScreen")} 
-        />
-        <MenuItem 
-          icon="calendar-outline" 
-          title="Budgets" 
-          onPress={() => navigateTo("/DynamicBudgetCalendarScreen")} 
-        />
-        <MenuItem 
-          icon="people-outline" 
-          title="Group Saving Goals" 
-          onPress={() => navigateTo("/GroupSavingGoalsScreen")} 
-        />
-        <MenuItem 
-          icon="trending-up-outline" 
-          title="Investments" 
-          onPress={() => navigateTo("/InvestmentsScreen")} 
-        />
-        <MenuItem 
-          icon="logo-tiktok" 
-          title="Educational Tips" 
-          onPress={() => navigateTo("/EducationalReels")} 
-        />
-        <MenuItem 
-          icon="leaf-outline" 
-          title="Eco Impact" 
-          onPress={() => navigateTo("/EcoFinancialImpactScreen")} 
-        />
-        <MenuItem 
-          icon="cash-outline" 
-          title="Loans" 
-          onPress={() => navigateTo("/LoansScreen")} 
-        />
-        <MenuItem 
-          icon="bug-outline" 
-          title="Virtual Pet" 
-          onPress={() => navigateTo("/BankableVirtualPetScreen")} 
-        />
-        <MenuItem 
-          icon="bulb-outline" 
-          title="Bankable AI" 
-          onPress={() => navigateTo("/BankableAIScreen")} 
-        />
-        <MenuItem 
-          icon="heart-outline" 
-          title="Life Events" 
-          onPress={() => navigateTo("/LifeEventSupportScreen")} 
-        />
-        <MenuItem 
-          icon="settings-outline" 
-          title="Settings" 
-          onPress={() => navigateTo("/SettingsScreen")} 
-        />
-        <MenuItem 
-          icon="log-out-outline" 
-          title="Logout" 
-          onPress={handleLogout} 
-        />
+      </View>      
+      <View style={styles.menuContent}>
+        <View style={styles.menuItems}>
+          <MenuItem 
+            icon="home-outline" 
+            title="Home" 
+            onPress={() => navigateTo("/HomeScreen")} 
+          />
+          <MenuItem 
+            icon="wallet-outline" 
+            title="Accounts" 
+            onPress={() => navigateTo("/AccountsOverviewScreen")} 
+          />
+          <MenuItem 
+            icon="cash-outline" 
+            title="Loans" 
+            onPress={() => navigateTo("/LoansScreen")} 
+          />
+          <MenuItem 
+            icon="cash-outline" 
+            title="Budgets" 
+            onPress={() => navigateTo("/DynamicBudgetCalendarScreen")} 
+          />
+          <MenuItem 
+            icon="trending-up-outline" 
+            title="Investments" 
+            onPress={() => navigateTo("/InvestmentsScreen")} 
+          />
+          <MenuItem 
+            icon="bulb-outline" 
+            title="Bankable AI" 
+            onPress={() => navigateTo("/BankableAIScreen")} 
+          />
+          <MenuItem 
+            icon="book-outline" 
+            title="Educational Tips" 
+            onPress={() => navigateTo("/EducationalReels")} 
+          />
+          <MenuItem 
+            icon="leaf-outline" 
+            title="Eco Impact" 
+            onPress={() => navigateTo("/EcoFinancialImpactScreen")} 
+          />
+          <MenuItem 
+            icon="people-outline" 
+            title="Group Saving" 
+            onPress={() => navigateTo("/GroupSavingGoalsScreen")} 
+          />
+          <MenuItem 
+              icon="bug-outline" 
+              title="Virtual Pet" 
+              onPress={() => navigateTo("/BankableVirtualPetScreen")} 
+            />
+        </View>
+        
+        {/* Settings section with space above it */}
+        <View style={styles.settingsSection}>
+          <View style={styles.divider} />
+          <MenuItem 
+            icon="settings-outline" 
+            title="Settings" 
+            onPress={() => navigateTo("/SettingsScreen")} 
+          />
+          <MenuItem 
+            icon="log-out-outline" 
+            title="Logout" 
+            onPress={handleLogout} 
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -134,7 +136,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => {
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <View style={styles.iconContainer}>
-        <Ionicons name={icon as any} size={24} color="#006a4d" />
+        <Ionicons name={icon as any} size={22} color="#006a4d" />
       </View>
       <Text style={styles.menuItemText}>{title}</Text>
     </TouchableOpacity>
@@ -145,33 +147,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: 10,
+    paddingBottom: 20,
   },
-  closeButtonContainer: {
-    alignItems: 'flex-end',
-    paddingRight: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  menuTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#006a4d',
   },
   closeButton: {
-    padding: 5,
+    padding: 6,
+  },
+  menuContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 8,
+    marginHorizontal: 16,
   },
   menuItems: {
-    paddingTop: 10,
+    flexGrow: 0, // Don't let it grow to push settings down
+  },
+  settingsSection: {
+    marginTop: 'auto', // Push to the bottom
+    marginBottom: 50, // Add space from the bottom of the screen
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   iconContainer: {
-    width: 30,
+    width: 24,
     alignItems: 'center',
-    marginRight: 20,
+    marginRight: 12,
   },
   menuItemText: {
     fontSize: 16,
-    color: '#000',
+    color: '#333',
     fontWeight: '400',
   },
 });
