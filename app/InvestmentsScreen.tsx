@@ -671,6 +671,7 @@ const InvestmentsScreen: React.FC = () => {
     return ((totalCurrentValue - totalInvested) / totalInvested) * 100;
   };
 
+  // Update the getPortfolioAllocationData function to fix label format and use matching colors
   const getPortfolioAllocationData = () => {
     const categoryMap: Record<string, number> = {};
     let totalValue = 0;
@@ -688,16 +689,19 @@ const InvestmentsScreen: React.FC = () => {
       }
     });
     
-    const chartData = Object.entries(categoryMap).map(([category, value], index) => {
-      const colors = ['#006a4d', '#3498DB', '#9B59B6', '#F1C40F', '#E74C3C', '#16A085'];
+    const chartData = Object.entries(categoryMap).map(([category, value]) => {
+      // Get the same color used in asset cards for consistency
+      const colorStyle = getCategoryStyle(category as AssetCategory);
+      const backgroundColor = colorStyle.backgroundColor;
+      
       const percentage = (value / totalValue) * 100;
+      const roundedPercentage = percentage.toFixed(1); // Use rounded integer for cleaner display
       
       return {
-        name: `${category}: ${percentage.toFixed(1)}%`,  // Show category and percentage in chart label
+        name: `${category}: ${roundedPercentage}%`, // Format as "58% Stocks"
         value: percentage,
-        legend: `${category}: ${percentage.toFixed(1)}%`, // Format with colon and 1 decimal
-        percentage: percentage,
-        color: colors[index % colors.length],
+        legend: `${category}: ${roundedPercentage}%`, // Same format for legend
+        color: backgroundColor, // Use matching color from asset cards
         legendFontColor: '#333333',
         legendFontSize: 12
       };
@@ -988,10 +992,11 @@ const InvestmentsScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
           {portfolio.transactions.length > 0 ? (
             <FlatList
-              data={portfolio.transactions.slice(0, 3)}
+              data={portfolio.transactions} // Show ALL transactions, not just 3
               renderItem={renderTransactionItem}
               keyExtractor={item => item.id}
               style={styles.transactionsList}
+              initialNumToRender={3} // Initially render only 3
               scrollEnabled={true}
               nestedScrollEnabled={true}
             />
@@ -1996,7 +2001,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   transactionsList: {
-    maxHeight: 250, // Set a fixed height for scrolling
+    maxHeight: 250, // Fixed height to enable scrolling
   },
     // In your StyleSheet
   inputWrapper: {
