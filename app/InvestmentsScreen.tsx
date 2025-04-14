@@ -1040,54 +1040,68 @@ const InvestmentsScreen: React.FC = () => {
                   {selectedAsset.priceChangePercentage24h >= 0 ? '+' : ''}{selectedAsset.priceChangePercentage24h.toFixed(2)}% (24h)
                 </Text>
               </View>
-              <View style={styles.chartContainer}>
-                {selectedAsset.historicalData && selectedAsset.historicalData.prices.length > 0 ? (
-                  <View style={styles.chartWrapper}>
-                    <LineChart
-                      data={{
-                        labels: [],
-                        datasets: [
-                          {
-                            data: selectedAsset.historicalData.prices,
-                            color: (opacity = 1) =>
-                              selectedAsset.priceChangePercentage24h >= 0
-                                ? `rgba(0, 177, 106, ${opacity})`
-                                : `rgba(255, 84, 84, ${opacity})`,
-                            strokeWidth: 2
-                          }
-                        ]
-                      }}
-                      width={screenWidth - 40}
-                      height={220}
-                      yAxisLabel="£"
-                      chartConfig={{
-                        backgroundColor: "#fafafa",
-                        backgroundGradientFrom: "#fafafa",
-                        backgroundGradientTo: "#ffffff",
-                        decimalPlaces: 0,
-                        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                        propsForDots: { r: "0", strokeWidth: "0" },
-                        propsForBackgroundLines: { strokeWidth: 1, stroke: "rgba(0,0,0,0.1)" },
-                        formatYLabel: (value) => {
-                          const num = parseFloat(value);
-                          return num >= 1000 ? `${Math.round(num/1000)}k` : `${Math.round(num)}`;
+              
+              {/* Simplified chart container structure */}
+              {selectedAsset.historicalData && selectedAsset.historicalData.prices.length > 0 ? (
+                <View style={styles.cleanChartContainer}>
+                  <LineChart
+                    data={{
+                      labels: [],
+                      datasets: [
+                        {
+                          data: selectedAsset.historicalData.prices,
+                          color: (opacity = 1) =>
+                            selectedAsset.priceChangePercentage24h >= 0
+                              ? `rgba(0, 177, 106, ${opacity})`
+                              : `rgba(255, 84, 84, ${opacity})`,
+                          strokeWidth: 2.5
                         }
-                      }}
-                      bezier
-                      withDots={false}
-                      style={styles.chart}
-                    />
-                    <Text style={styles.chartTimeframe}>Last 30 days</Text>
-                  </View>
-                ) : (
-                  <View style={styles.chartLoadingContainer}>
-                    <ActivityIndicator size="large" color="#006a4d" />
-                    <Text style={styles.chartLoadingText}>Loading chart data...</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.assetStatsContainer}>
+                      ]
+                    }}
+                    width={screenWidth - 48}
+                    height={180} // Reduced height
+                    yAxisLabel="£"
+                    chartConfig={{
+                      backgroundColor: "#ffffff",
+                      backgroundGradientFrom: "#ffffff",
+                      backgroundGradientTo: "#ffffff",
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                      propsForDots: { r: "0" }, // Remove dots
+                      strokeWidth: 2.5,
+                      propsForBackgroundLines: { 
+                        strokeWidth: 0.5, 
+                        stroke: "rgba(0,0,0,0.05)",
+                        strokeDasharray: "5, 5" // Dashed lines
+                      },
+                      propsForVerticalLabels: {
+                        fontSize: 10,
+                      },
+                      formatYLabel: (value) => {
+                        const num = parseFloat(value);
+                        return num >= 1000 ? `${Math.round(num/1000)}k` : `${Math.round(num)}`;
+                      }
+                    }}
+                    bezier
+                    withDots={false}
+                    withInnerLines={false} // Remove inner grid lines
+                    withOuterLines={true}
+                    withVerticalLines={false} // Remove vertical grid lines
+                    withVerticalLabels={false} // Remove vertical labels
+                    style={styles.cleanChart}
+                  />
+                  <Text style={styles.chartTimeframe}>Last 30 days</Text>
+                </View>
+              ) : (
+                <View style={styles.chartLoadingContainer}>
+                  <ActivityIndicator size="large" color="#006a4d" />
+                  <Text style={styles.chartLoadingText}>Loading chart data...</Text>
+                </View>
+              )}
+              
+              {/* Asset stats with more compact layout */}
+              <View style={styles.compactStatsContainer}>
                 <View style={styles.assetStat}>
                   <Text style={styles.assetStatLabel}>Market Cap</Text>
                   <Text style={styles.assetStatValue}>£{(selectedAsset.marketCap / 1000000000).toFixed(2)}B</Text>
@@ -1101,8 +1115,10 @@ const InvestmentsScreen: React.FC = () => {
                   <Text style={styles.assetStatValue}>{selectedAsset.category}</Text>
                 </View>
               </View>
-              <Text style={styles.assetDescription}>{selectedAsset.description}</Text>
-              <View style={styles.transactionButtons}>
+              
+              <Text style={styles.compactAssetDescription}>{selectedAsset.description}</Text>
+              
+              <View style={styles.compactTransactionButtons}>
                 <TouchableOpacity style={[styles.transactionButton, styles.buyButton]} activeOpacity={0.8} onPress={() => openTransactionModal('buy')}>
                   <Text style={styles.transactionButtonText}>Buy</Text>
                 </TouchableOpacity>
@@ -1371,6 +1387,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  assetDetailPrice: {
+    fontSize: 24, 
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  assetDetailPriceChange: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 4,
   },
   buyButton: {
     backgroundColor: '#006a4d',
@@ -1654,7 +1680,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 20, // Adjust to give more space
     marginBottom: 10,
-    maxHeight: '100%', // Limit max height
+    maxHeight: '90%', // Slightly increased from before
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1673,20 +1699,11 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   modalScroll: {
-    maxHeight: 1000,
+    maxHeight: 600, // Limit max height to ensure it fits on screen
   },
   assetPriceHeader: {
     alignItems: 'center',
-    paddingVertical: 20,
-  },
-  assetDetailPrice: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  assetDetailPriceChange: {
-    fontSize: 18,
-    marginTop: 4,
+    paddingVertical: 12, // Reduced from 20
   },
   chartContainer: {
     backgroundColor: "#fafafa",
@@ -1711,18 +1728,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   assetStat: {
-    width: '50%',
-    paddingVertical: 6,
+    width: '33%', // Changed from 50% to fit 3 in a row
+    paddingVertical: 4, // Reduced padding
   },
   assetStatLabel: {
-    fontSize: 14,
+    fontSize: 12, // Smaller font
     color: '#777',
   },
   assetStatValue: {
-    fontSize: 16,
+    fontSize: 14, // Smaller font
     fontWeight: '600',
     color: '#333',
-    marginTop: 4,
+    marginTop: 2, // Reduced from 4
   },
   assetDescription: {
     padding: 16,
@@ -1735,8 +1752,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   transactionButton: {
-    marginTop: 30,
-    paddingVertical: 16,
+    marginTop: 12, // Reduced from 30
+    paddingVertical: 14, // Reduced from 16
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1876,9 +1893,9 @@ const styles = StyleSheet.create({
   },
   chartTimeframe: {
     textAlign: 'center',
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
+    fontSize: 12, // Smaller font
+    color: '#888',
+    marginTop: 4, // Reduced from 8
   },
   chartLoadingContainer: {
     height: 220,
@@ -2055,6 +2072,47 @@ const styles = StyleSheet.create({
   },
   holdingsList: {
     maxHeight: 300, // Set a fixed height for scrolling
+  },
+  // New cleaner chart styles
+  cleanChartContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 12,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    overflow: 'hidden', // Ensure chart doesn't overflow
+  },
+  cleanChart: {
+    marginVertical: 4,
+    borderRadius: 8,
+    paddingRight: 0, // Remove right padding to prevent overflow
+  },
+  
+  // More compact styles for asset modal
+  compactStatsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginTop: 0,
+  },
+  compactAssetDescription: {
+    padding: 16,
+    paddingTop: 8,
+    fontSize: 14,
+    color: '#555',
+    maxHeight: 120, // Limit description height
+  },
+  compactTransactionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
 });
 
