@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { useUser } from "../context/UserContext";
 import { Sheet, SheetTrigger, SheetContent } from './ui/sheet';
+import SideMenu from "./SideMenu";
 
 export default function Header() {
   const router = useRouter();
@@ -55,7 +56,9 @@ export default function Header() {
       </View>
       
       {/* The sliding menu */}
-      <SheetContent side="right" />
+      <SheetContent side="right" style={styles.sheetContent}>
+        <SideMenu closeDrawer={() => setMenuOpen(false)} />
+      </SheetContent>
     </Sheet>
   );
 }
@@ -91,4 +94,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
   },
+  sheetContent: {
+    width: '60%', // Make the menu 70% of screen width instead of full width
+  }
 });
