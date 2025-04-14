@@ -38,16 +38,49 @@ const productTypeToImage: Record<string, any> = {
   "Overdraft": require("../assets/images/accountcard.png"),
 };
 
-// Map transaction categories to icons
+// Enhanced icon mapping with more fallbacks and case-insensitive matching
 const categoryToIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
-  "Food": "fast-food",
-  "Shopping": "cart",
-  "Salary": "cash",
-  "Transport": "car",
-  "Utilities": "flash",
-  "Entertainment": "game-controller",
-  "Health": "fitness",
-  "Other": "apps",
+  "food": "fast-food-outline",
+  "shopping": "cart-outline",
+  "monthly income": "trending-up-outline",
+  "leisure": "game-controller-outline",
+  "saving": "wallet-outline",
+  "utility": "flash-outline",
+  "withdrawal": "cash-outline",
+  "entertainment": "game-controller-outline",
+  "interest": "trending-up-outline",
+  "health": "fitness-outline",
+  "other": "apps-outline",
+  "income": "trending-up-outline",
+  "expense": "trending-down-outline",
+  "transfer": "swap-horizontal-outline",
+  "grocery": "basket-outline",
+  "restaurant": "restaurant-outline",
+  "coffee": "cafe-outline",
+  "subscription": "repeat-outline",
+  "clothing": "shirt-outline",
+  "personal": "person-outline"
+};
+
+// Helper function to get appropriate icon
+const getIconForCategory = (category: string): keyof typeof Ionicons.glyphMap => {
+  // Normalize category to lowercase for case-insensitive matching
+  const normalizedCategory = category?.toLowerCase()?.trim() || '';
+  
+  // Try direct match
+  if (categoryToIcon[normalizedCategory]) {
+    return categoryToIcon[normalizedCategory];
+  }
+  
+  // Try to find partial matches
+  for (const [key, icon] of Object.entries(categoryToIcon)) {
+    if (normalizedCategory.includes(key) || key.includes(normalizedCategory)) {
+      return icon;
+    }
+  }
+  
+  // Default fallback
+  return "card-outline";
 };
 
 // Daily affirmations from the screenshot
@@ -127,7 +160,7 @@ export default function HomeScreen(): JSX.Element {
       name: tx.transaction_reference || "Transaction",
       date: new Date(tx.transaction_date).toLocaleDateString(),
       amount: formatCurrency(tx.transaction_amount),
-      icon: categoryToIcon[tx.transaction_category] || "apps",
+      icon: getIconForCategory(tx.transaction_category),
       type: tx.transaction_amount >= 0 ? "inflow" : "outflow"
     }));
   };
@@ -219,23 +252,49 @@ export default function HomeScreen(): JSX.Element {
               {loadingTransactions ? (
                 <ActivityIndicator size="small" color="#4f9f9f" style={{marginVertical: 20}} />
               ) : currentTransactions.length > 0 ? (
-                currentTransactions.map((tx) => (
-                  <View key={tx.id} style={styles.transactionItem}>
-                    <View style={styles.transactionDetails}>
-                      <Ionicons name={tx.icon} size={20} color="#4f9f9f" />
-                      <View style={{ marginLeft: 12 }}>
-                        <Text style={styles.transactionName}>{tx.name}</Text>
-                        <Text style={styles.transactionDate}>{tx.date}</Text>
+                <>
+                  {currentTransactions.map((tx) => (
+                    <TouchableOpacity 
+                      key={tx.id} 
+                      style={styles.transactionItem}
+                      onPress={() => {
+                        if (currentAccount) {
+                          router.push({
+                            pathname: '/AccountDetailsScreen',
+                            params: { accountId: currentAccount.account_id }
+                          });
+                        }
+                      }}
+                    >
+                      <View style={styles.transactionDetails}>
+                        <Ionicons name={tx.icon} size={20} color="#4f9f9f" />
+                        <View style={{ marginLeft: 12 }}>
+                          <Text style={styles.transactionName}>{tx.name}</Text>
+                          <Text style={styles.transactionDate}>{tx.date}</Text>
+                        </View>
                       </View>
-                    </View>
-                    <Text style={[
-                      styles.transactionAmount, 
-                      tx.type === "inflow" ? styles.inflow : styles.outflow
-                    ]}>
-                      {tx.type === "inflow" ? "+" : "-"}{tx.amount}
-                    </Text>
-                  </View>
-                ))
+                      <Text style={[
+                        styles.transactionAmount, 
+                        tx.type === "inflow" ? styles.inflow : styles.outflow
+                      ]}>
+                        {tx.type === "inflow" ? "+" : "-"}{tx.amount}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity 
+                    style={styles.viewAllButton}
+                    onPress={() => {
+                      if (currentAccount) {
+                        router.push({
+                          pathname: '/AccountDetailsScreen',
+                          params: { accountId: currentAccount.account_id }
+                        });
+                      }
+                    }}
+                  >
+                    <Text style={styles.viewAllText}>View all transactions</Text>
+                  </TouchableOpacity>
+                </>
               ) : (
                 <Text style={styles.emptyText}>No recent transactions</Text>
               )}
@@ -730,5 +789,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
     marginTop: 4,
+  },
+  viewAllButton: {
+    marginTop: 12,
+    alignItems: "center",
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: "#4f9f9f",
+    fontWeight: "500",
   },
 });
