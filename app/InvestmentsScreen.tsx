@@ -21,22 +21,11 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import yahooFinance from 'yahoo-finance2';
-
+import { finnhubClient, ForexRatesResponse, QuoteResponse, CandleResponse, CompanyProfileResponse } from '../api/finnhubAPI';
 const screenWidth = Dimensions.get('window').width;
 
-// Polyfill for React Native fetch Headers
-if (typeof Headers !== 'undefined' && !Headers.prototype.getSetCookie) {
-  Headers.prototype.getSetCookie = function () {
-    const setCookie = this.get('set-cookie');
-    return setCookie ? [setCookie] : [];
-  };
-}
 
-// Optional: suppress Yahoo Finance survey notice
-yahooFinance.suppressNotices(['yahooSurvey']);
 
-// --- Types & Interfaces ---
 
 interface Asset {
   id: string;
@@ -392,64 +381,136 @@ const InvestmentsScreen: React.FC = () => {
     }
   };
 
-  // --- Update asset prices using Yahoo Finance ---
+  // --- Update asset prices using Finnhub API ---
   const updateAssetPrices = async () => {
     try {
       setRefreshing(true);
-      // First, get the USD to GBP conversion rate (for non-crypto assets)
+      
+      // First, get the USD to GBP conversion rate
       let usdToGbpConversion = 1.0;
       try {
-        const conversionQuote = await yahooFinance.quote("GBPUSD=X");
-        if (conversionQuote && conversionQuote.regularMarketPrice) {
-          usdToGbpConversion = conversionQuote.regularMarketPrice;
+        // Using Finnhub forex rates to get conversion rate
+        const forexData = await finnhubClient.forexRates({ base: "USD" });
+        
+        if (forexData && forexData.quote && forexData.quote.GBP) {
+          usdToGbpConversion = forexData.quote.GBP;
         }
       } catch (err) {
         console.error("Error fetching conversion rate:", err);
       }
-
+      
       const updatedAssets = await Promise.all(assets.map(async (asset) => {
         try {
-          let querySymbol = "";
-          // For crypto, request the GBP pair; for others, use the standard ticker (assumed in USD)
+          let currentPrice = asset.currentPrice;
+          let change = 0;
+          let changePercent = 0;
+          let volume = asset.volume24h;
+          let marketCap = asset.marketCap;
+          
+          // For crypto assets
           if (asset.category === 'Crypto') {
-            querySymbol = `${asset.symbol}-GBP`;
-          } else {
-            querySymbol = asset.symbol;
-          }
-          const quote = await yahooFinance.quote(querySymbol);
-          let price = quote.regularMarketPrice ?? asset.currentPrice;
-          let change = quote.regularMarketChange ?? 0;
-          let changePercent = quote.regularMarketChangePercent ?? 0;
-          let volume = quote.regularMarketVolume ?? asset.volume24h;
-          let marketCap = quote.marketCap ?? asset.marketCap;
-
-          // Convert to GBP for non-crypto tickers (which are in USD)
-          if (asset.category !== 'Crypto') {
-            price = price / usdToGbpConversion;
-            change = change / usdToGbpConversion;
-            marketCap = marketCap / usdToGbpConversion;
-          }
-
-          // Fetch 30-day historical data
-          const history = await yahooFinance.historical(querySymbol, {
-            period1: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            interval: '1d',
-          });
-          const labels = history.map((h) => {
-            const d = new Date(h.date);
-            return `${d.getDate()}/${d.getMonth() + 1}`;
-          });
-          const histPrices = history.map((h) => {
-            let p = h.close ?? price;
-            if (asset.category !== 'Crypto') {
-              p = p / usdToGbpConversion;
+            // Use crypto endpoints for crypto assets
+            try {
+              const from = Math.floor(Date.now()/1000) - 86400; // 24 hours ago
+              const to = Math.floor(Date.now()/1000); // Current time
+              
+              const quoteData = await finnhubClient.cryptoCandles(
+                `BINANCE:${asset.symbol}USDT`,
+                "D", 
+                from,
+                to
+              );
+              
+              if (quoteData && quoteData.c && quoteData.c.length > 0) {
+                // Latest closing price
+                currentPrice = quoteData.c[quoteData.c.length - 1] * usdToGbpConversion;
+                
+                // Calculate change
+                if (quoteData.c.length > 1) {
+                  const prevPrice = quoteData.c[quoteData.c.length - 2];
+                  change = (quoteData.c[quoteData.c.length - 1] - prevPrice) * usdToGbpConversion;
+                  changePercent = (change / (prevPrice * usdToGbpConversion)) * 100;
+                }
+                
+                // Volume data if available
+                if (quoteData.v && quoteData.v.length > 0) {
+                  volume = quoteData.v[quoteData.v.length - 1];
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to fetch crypto data for ${asset.symbol}:`, err);
             }
-            return p;
-          });
-
+          } else {
+            // For stocks, ETFs, etc.
+            try {
+              // Get quote data
+              const quoteData = await finnhubClient.quote(asset.symbol);
+              
+              if (quoteData) {
+                currentPrice = quoteData.c * usdToGbpConversion; // Current price
+                change = quoteData.d * usdToGbpConversion; // Change
+                changePercent = quoteData.dp; // Percentage change
+                
+                // Get company profile for market cap
+                try {
+                  const profileData = await finnhubClient.companyProfile2({ symbol: asset.symbol });
+                  if (profileData && profileData.marketCapitalization) {
+                    marketCap = profileData.marketCapitalization * 1000000 * usdToGbpConversion;
+                  }
+                } catch (profileErr) {
+                  console.error(`Failed to fetch company profile for ${asset.symbol}:`, profileErr);
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to fetch stock data for ${asset.symbol}:`, err);
+            }
+          }
+          
+          // Fetch historical data (last 30 days)
+          const labels: string[] = [];
+          const histPrices: number[] = [];
+          
+          try {
+            const from = Math.floor(Date.now()/1000) - 30 * 86400; // 30 days ago
+            const to = Math.floor(Date.now()/1000); // Now
+            
+            let candlesData;
+            if (asset.category === 'Crypto') {
+              candlesData = await finnhubClient.cryptoCandles(
+                `BINANCE:${asset.symbol}USDT`,
+                "D",
+                from,
+                to
+              );
+            } else {
+              candlesData = await finnhubClient.stockCandles(
+                asset.symbol,
+                "D",
+                from,
+                to
+              );
+            }
+            
+            if (candlesData && candlesData.t && candlesData.c) {
+              // Process historical data
+              for (let i = 0; i < candlesData.t.length; i++) {
+                const date = new Date(candlesData.t[i] * 1000);
+                labels.push(`${date.getDate()}/${date.getMonth() + 1}`);
+                
+                let price = candlesData.c[i];
+                if (asset.category !== 'Crypto') {
+                  price = price * usdToGbpConversion;
+                }
+                histPrices.push(price);
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to fetch historical data for ${asset.symbol}:`, err);
+          }
+          
           return {
             ...asset,
-            currentPrice: price,
+            currentPrice: currentPrice,
             priceChange24h: change,
             priceChangePercentage24h: changePercent,
             volume24h: volume,
@@ -497,48 +558,65 @@ const InvestmentsScreen: React.FC = () => {
     saveFavorites(updatedAssets);
   };
 
-  // --- Refresh historical data for a specific asset using Yahoo Finance ---
-  const refreshAssetHistoricalData = async (asset: Asset) => {
-    try {
-      let querySymbol = "";
-      if (asset.category === 'Crypto') {
-        querySymbol = `${asset.symbol}-GBP`;
-      } else {
-        querySymbol = asset.symbol;
-      }
-      // For non-crypto assets, get conversion rate again
-      let usdToGbpConversion = 1.0;
-      if (asset.category !== 'Crypto') {
-        try {
-          const conversionQuote = await yahooFinance.quote("GBPUSD=X");
-          if (conversionQuote && conversionQuote.regularMarketPrice) {
-            usdToGbpConversion = conversionQuote.regularMarketPrice;
-          }
-        } catch (err) {
-          console.error("Error fetching conversion rate:", err);
+// --- Refresh historical data for a specific asset using Finnhub ---
+const refreshAssetHistoricalData = async (asset: Asset) => {
+  try {
+    // For non-crypto assets, get conversion rate again
+    let usdToGbpConversion = 1.0;
+    if (asset.category !== 'Crypto') {
+      try {
+        const forexData = await finnhubClient.forexRates({ base: "USD" });
+        if (forexData && forexData.quote && forexData.quote.GBP) {
+          usdToGbpConversion = forexData.quote.GBP;
         }
+      } catch (err) {
+        console.error("Error fetching conversion rate:", err);
       }
-      const history = await yahooFinance.historical(querySymbol, {
-        period1: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        interval: '1d',
-      });
-      const labels = history.map((h) => {
-        const d = new Date(h.date);
-        return `${d.getDate()}/${d.getMonth() + 1}`;
-      });
-      const histPrices = history.map((h) => {
-        let p = h.close ?? asset.currentPrice;
-        if (asset.category !== 'Crypto') {
-          p = p / usdToGbpConversion;
-        }
-        return p;
-      });
-      return { labels, prices: histPrices };
-    } catch (err) {
-      console.error(`Failed to fetch historical data for ${asset.name}:`, err);
-      return asset.historicalData;
     }
-  };
+    
+    const from = Math.floor(Date.now()/1000) - 30 * 86400; // 30 days ago
+    const to = Math.floor(Date.now()/1000); // Now
+    
+    let candlesData;
+    if (asset.category === 'Crypto') {
+      candlesData = await finnhubClient.cryptoCandles(
+        `BINANCE:${asset.symbol}USDT`,
+        "D",
+        from,
+        to
+      );
+    } else {
+      candlesData = await finnhubClient.stockCandles(
+        asset.symbol,
+        "D",
+        from,
+        to
+      );
+    }
+    
+    const labels: string[] = [];
+    const histPrices: number[] = [];
+    
+    if (candlesData && candlesData.t && candlesData.c) {
+      // Process historical data
+      for (let i = 0; i < candlesData.t.length; i++) {
+        const date = new Date(candlesData.t[i] * 1000);
+        labels.push(`${date.getDate()}/${date.getMonth() + 1}`);
+        
+        let price = candlesData.c[i];
+        if (asset.category !== 'Crypto') {
+          price = price * usdToGbpConversion;
+        }
+        histPrices.push(price);
+      }
+    }
+    
+    return { labels, prices: histPrices };
+  } catch (err) {
+    console.error(`Failed to fetch historical data for ${asset.name}:`, err);
+    return asset.historicalData || { labels: [], prices: [] };
+  }
+};
 
   // --- Open asset detail modal ---
   const openAssetDetails = (asset: Asset) => {

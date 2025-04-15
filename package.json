@@ -39,6 +39,7 @@
     "expo-symbols": "~0.2.2",
     "expo-system-ui": "~4.0.8",
     "expo-web-browser": "~14.0.2",
+    "finnhub": "^1.2.19",
     "lottie-react-native": "^7.1.0",
     "lucide-react": "^0.268.0",
     "lucide-react-native": "^0.479.0",
