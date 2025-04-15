@@ -6,6 +6,51 @@ import { getAccountTransactions } from '../api/userData';
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Enhanced icon mapping with more fallbacks and case-insensitive matching
+const categoryToIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
+  "food": "fast-food-outline",
+  "shopping": "cart-outline",
+  "monthly income": "trending-up-outline",
+  "leisure": "game-controller-outline",
+  "saving": "wallet-outline",
+  "utility": "flash-outline",
+  "withdrawal": "cash-outline",
+  "entertainment": "game-controller-outline",
+  "interest": "trending-up-outline",
+  "health": "fitness-outline",
+  "other": "apps-outline",
+  "income": "trending-up-outline",
+  "expense": "trending-down-outline",
+  "transfer": "swap-horizontal-outline",
+  "grocery": "basket-outline",
+  "restaurant": "restaurant-outline",
+  "coffee": "cafe-outline",
+  "subscription": "repeat-outline",
+  "clothing": "shirt-outline",
+  "personal": "person-outline"
+};
+
+// Helper function to get appropriate icon
+const getIconForCategory = (category: string): keyof typeof Ionicons.glyphMap => {
+  // Normalize category to lowercase for case-insensitive matching
+  const normalizedCategory = category?.toLowerCase()?.trim() || '';
+  
+  // Try direct match
+  if (categoryToIcon[normalizedCategory]) {
+    return categoryToIcon[normalizedCategory];
+  }
+  
+  // Try to find partial matches
+  for (const [key, icon] of Object.entries(categoryToIcon)) {
+    if (normalizedCategory.includes(key) || key.includes(normalizedCategory)) {
+      return icon;
+    }
+  }
+  
+  // Default fallback
+  return "card-outline";
+};
+
 interface Transaction {
   transaction_id: string;
   account_id: string;
@@ -90,9 +135,9 @@ export default function AccountDetailsScreen() {
               <View style={styles.transactionItem}>
                 <View style={styles.transactionInfo}>
                   <Ionicons
-                    name="card-outline"
+                    name={getIconForCategory(item.transaction_category)}
                     size={24}
-                    color="#006a4d"
+                    color="#4f9f9f"
                     style={styles.transactionIcon}
                   />
                   <View>
