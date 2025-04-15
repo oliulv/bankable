@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, Modal, Animated } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, Modal, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithNames } from '../api/auth';
 import { useUser } from '../context/UserContext';
@@ -20,9 +20,18 @@ export default function IndexScreen() {
   const videoRef = useRef<AV.Video | null>(null);
   const hasSetFinalFrame = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [inputStage, setInputStage] = useState('username'); // 'username' or 'password'
+  const usernameInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
   
   // Hardcoded video duration
   const VIDEO_DURATION = 5437;
+
+  // Add animation values for transitions
+  const usernameAnimOpacity = useRef(new Animated.Value(1)).current;
+  const passwordAnimOpacity = useRef(new Animated.Value(0)).current;
+  const usernameAnimTranslate = useRef(new Animated.Value(0)).current;
+  const passwordAnimTranslate = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     const playSplashVideo = async () => {
@@ -126,6 +135,85 @@ export default function IndexScreen() {
     setShowInfoModal(true);
   };
 
+  // Enhanced function to move to password input with animation
+  const moveToPasswordInput = () => {
+    if (!firstName.trim()) {
+      Alert.alert('Username Required', 'Please enter your username to continue');
+      return;
+    }
+    
+    // Animate out username field
+    Animated.parallel([
+      Animated.timing(usernameAnimOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(usernameAnimTranslate, {
+        toValue: -20,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setInputStage('password');
+      
+      // Animate in password field
+      Animated.parallel([
+        Animated.timing(passwordAnimOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(passwordAnimTranslate, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setTimeout(() => {
+          passwordInputRef.current?.focus();
+        }, 50);
+      });
+    });
+  };
+
+  // Enhanced function to move back to username input with animation
+  const moveToUsernameInput = () => {
+    // Animate out password field
+    Animated.parallel([
+      Animated.timing(passwordAnimOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(passwordAnimTranslate, {
+        toValue: 20,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setInputStage('username');
+      
+      // Animate in username field
+      Animated.parallel([
+        Animated.timing(usernameAnimOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(usernameAnimTranslate, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setTimeout(() => {
+          usernameInputRef.current?.focus();
+        }, 50);
+      });
+    });
+  };
+
   return (
     <View style={styles.container}>
       {/* Video background - plays during splash and freezes for login */}
@@ -148,7 +236,10 @@ export default function IndexScreen() {
             { opacity: fadeAnim }
           ]}
         >
-          <View style={styles.contentContainer}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.contentContainer}
+          >
             <View style={styles.prototypeInfoContainer}>
               <TouchableOpacity 
                 style={styles.infoButton} 
@@ -160,27 +251,76 @@ export default function IndexScreen() {
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Username (First Name)"
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholderTextColor="rgba(255,255,255,0.7)"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password (Last Name)"
-              value={lastName}
-              onChangeText={setLastName}
-              placeholderTextColor="rgba(255,255,255,0.7)"
-              secureTextEntry={true}
-            />
-            <View style={styles.buttonContainer}>
-              <Button onPress={handleLogin} style={styles.loginButton}>
-                {isLoading ? 'Logging in...' : 'Login'}
-              </Button>
-            </View>
-          </View>
+            {/* Username input with animation */}
+            <Animated.View 
+              style={[
+                styles.inputContainer,
+                { 
+                  opacity: usernameAnimOpacity,
+                  transform: [{ translateX: usernameAnimTranslate }],
+                  position: inputStage === 'username' ? 'relative' : 'absolute',
+                  zIndex: inputStage === 'username' ? 1 : 0
+                }
+              ]}
+            >
+              <TextInput
+                ref={usernameInputRef}
+                style={styles.input}
+                placeholder="Username (First Name)"
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                returnKeyType="done"
+                onSubmitEditing={moveToPasswordInput}
+                autoFocus={inputStage === 'username'}
+              />
+              <View style={styles.buttonContainer}>
+                <Button onPress={moveToPasswordInput} style={styles.loginButton}>
+                  Next
+                </Button>
+              </View>
+            </Animated.View>
+
+            {/* Password input with animation */}
+            <Animated.View 
+              style={[
+                styles.inputContainer,
+                { 
+                  opacity: passwordAnimOpacity,
+                  transform: [{ translateX: passwordAnimTranslate }],
+                  position: inputStage === 'password' ? 'relative' : 'absolute',
+                  zIndex: inputStage === 'password' ? 1 : 0
+                }
+              ]}
+            >
+              <View style={styles.passwordHeader}>
+                <TouchableOpacity 
+                  onPress={moveToUsernameInput}
+                  style={styles.backButton}
+                >
+                  <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.usernameDisplay}>{firstName}</Text>
+              </View>
+              <TextInput
+                ref={passwordInputRef}
+                style={styles.input}
+                placeholder="Password (Last Name)"
+                value={lastName}
+                onChangeText={setLastName}
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                secureTextEntry={true}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                autoFocus={inputStage === 'password'}
+              />
+              <View style={styles.buttonContainer}>
+                <Button onPress={handleLogin} style={styles.loginButton}>
+                  {isLoading ? 'Logging in...' : 'Login'}
+                </Button>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
         </Animated.View>
       )}
 
@@ -356,5 +496,26 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // New styles for sequential input
+  passwordHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '85%',
+    marginBottom: 16,
+  },
+  backButton: {
+    padding: 8,
+  },
+  usernameDisplay: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: 'white',
+    marginLeft: 10,
+  },
+  // Add new style for input container
+  inputContainer: {
+    width: '100%',
+    alignItems: 'center',
   },
 });
