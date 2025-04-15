@@ -21,11 +21,12 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { finnhubClient, ForexRatesResponse, QuoteResponse, CandleResponse, CompanyProfileResponse } from '../api/finnhubAPI';
+
+// Import dummy data
+import initialAssetsData from '../data/assets.json';
+import initialPortfolioData from '../data/initialPortfolio.json';
+
 const screenWidth = Dimensions.get('window').width;
-
-
-
 
 interface Asset {
   id: string;
@@ -68,7 +69,6 @@ interface Portfolio {
 
 type AssetCategory = 'Stocks' | 'ETFs' | 'Crypto' | 'Bonds' | 'Real Estate';
 
-// Add this type definition near your other interfaces
 interface HoldingDataItem {
   assetId: string;
   asset: Asset;
@@ -79,7 +79,6 @@ interface HoldingDataItem {
   value: number;
 }
 
-// --- Chart configuration ---
 const chartConfig = {
   backgroundGradientFrom: "#fff",
   backgroundGradientTo: "#fff",
@@ -94,140 +93,11 @@ const chartConfig = {
   },
 };
 
-// --- Dummy initial data ---
-const initialAssets: Asset[] = [
-  {
-    id: '1',
-    name: 'Apple Inc.',
-    symbol: 'AAPL',
-    category: 'Stocks',
-    currentPrice: 185.92,
-    priceChange24h: 2.54,
-    priceChangePercentage24h: 1.38,
-    marketCap: 2892000000000,
-    volume24h: 58249000,
-    favorite: false,
-    description: 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide.',
-    historicalData: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      prices: [170.33, 178.61, 175.48, 173.50, 189.84, 185.92],
-    },
-  },
-  {
-    id: '2',
-    name: 'Microsoft Corporation',
-    symbol: 'MSFT',
-    category: 'Stocks',
-    currentPrice: 417.12,
-    priceChange24h: -3.21,
-    priceChangePercentage24h: -0.76,
-    marketCap: 3100000000000,
-    volume24h: 22456000,
-    favorite: false,
-    description: 'Microsoft Corporation develops, licenses, and supports software, services, devices, and solutions worldwide.',
-    historicalData: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      prices: [390.27, 402.16, 415.58, 406.32, 418.45, 417.12],
-    },
-  },
-  {
-    id: '3',
-    name: 'Vanguard S&P 500 ETF',
-    symbol: 'VOO',
-    category: 'ETFs',
-    currentPrice: 473.48,
-    priceChange24h: 1.05,
-    priceChangePercentage24h: 0.22,
-    marketCap: 352000000000,
-    volume24h: 3958000,
-    favorite: false,
-    description: 'The Vanguard S&P 500 ETF tracks the performance of the S&P 500 Index, which consists of 500 large-cap U.S. stocks.',
-    historicalData: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      prices: [455.22, 457.18, 464.36, 462.89, 470.55, 473.48],
-    },
-  },
-  {
-    id: '4',
-    name: 'Bitcoin',
-    symbol: 'BTC',
-    category: 'Crypto',
-    currentPrice: 67254.12,
-    priceChange24h: 1245.32,
-    priceChangePercentage24h: 1.89,
-    marketCap: 1320000000000,
-    volume24h: 35726000000,
-    favorite: false,
-    description: 'Bitcoin is a decentralized digital currency, without a central bank or single administrator, that can be sent from user to user on the peer-to-peer bitcoin network without intermediaries.',
-    historicalData: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      prices: [42000.15, 51245.87, 58932.45, 63214.78, 68421.36, 67254.12],
-    },
-  },
-  {
-    id: '5',
-    name: 'Ethereum',
-    symbol: 'ETH',
-    category: 'Crypto',
-    currentPrice: 3472.86,
-    priceChange24h: 87.32,
-    priceChangePercentage24h: 2.58,
-    marketCap: 415000000000,
-    volume24h: 18592000000,
-    favorite: false,
-    description: 'Ethereum is a decentralized, open-source blockchain with smart contract functionality. Ether is the native cryptocurrency of the platform.',
-    historicalData: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      prices: [2550.18, 2845.36, 3125.89, 3320.15, 3410.45, 3472.86],
-    },
-  },
-  {
-    id: '6',
-    name: 'iShares Core U.S. Aggregate Bond ETF',
-    symbol: 'AGG',
-    category: 'Bonds',
-    currentPrice: 98.54,
-    priceChange24h: 0.18,
-    priceChangePercentage24h: 0.18,
-    marketCap: 85000000000,
-    volume24h: 6752000,
-    favorite: false,
-    description: 'The iShares Core U.S. Aggregate Bond ETF seeks to track the investment results of an index composed of the total U.S. investment-grade bond market.',
-    historicalData: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      prices: [97.32, 96.85, 97.14, 97.98, 98.32, 98.54],
-    },
-  },
-  {
-    id: '7',
-    name: 'Vanguard Real Estate ETF',
-    symbol: 'VNQ',
-    category: 'Real Estate',
-    currentPrice: 84.12,
-    priceChange24h: -0.42,
-    priceChangePercentage24h: -0.50,
-    marketCap: 32000000000,
-    volume24h: 4982000,
-    favorite: false,
-    description: 'Vanguard Real Estate ETF seeks to provide a high level of income and moderate long-term capital appreciation by tracking the performance of the MSCI US Investable Market Real Estate 25/50 Index.',
-    historicalData: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      prices: [80.25, 81.36, 82.47, 83.58, 84.69, 84.12],
-    },
-  },
-];
-
-const initialPortfolio: Portfolio = {
-  balance: 1000,
-  assets: {},
-  transactions: [],
-};
-
-// --- Component State ---
 const InvestmentsScreen: React.FC = () => {
-  const [assets, setAssets] = useState<Asset[]>(initialAssets);
-  const [filteredAssets, setFilteredAssets] = useState<Asset[]>(initialAssets);
-  const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolio);
+  // Initialize with data from JSON files
+  const [assets, setAssets] = useState<Asset[]>(initialAssetsData as Asset[]);
+  const [filteredAssets, setFilteredAssets] = useState<Asset[]>(initialAssetsData as Asset[]);
+  const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolioData);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -254,7 +124,6 @@ const InvestmentsScreen: React.FC = () => {
     prices: []
   });
 
-  // --- Load portfolio and favorites on mount ---
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -263,8 +132,11 @@ const InvestmentsScreen: React.FC = () => {
           loadPortfolio(),
           loadFavorites()
         ]);
-        await updateAssetPrices();
-        setLoading(false);
+        // Simulate API fetch with a delay
+        setTimeout(() => {
+          simulateAssetUpdate();
+          setLoading(false);
+        }, 200);
       } catch (error) {
         console.error('Error initializing data:', error);
         setLoading(false);
@@ -273,16 +145,15 @@ const InvestmentsScreen: React.FC = () => {
 
     initialize();
 
-    // Auto-refresh every 60 seconds if modals are closed
+    // Simulate periodic updates
     const refreshInterval = setInterval(() => {
       if (!showAssetModal && !showTransactionModal) {
-        updateAssetPrices();
+        simulateAssetUpdate();
       }
     }, 60000);
     return () => clearInterval(refreshInterval);
   }, []);
 
-  // --- Category scroll bounce animation ---
   useEffect(() => {
     setTimeout(() => {
       if (categoryScrollViewRef.current) {
@@ -294,14 +165,12 @@ const InvestmentsScreen: React.FC = () => {
     }, 500);
   }, []);
 
-  // --- Handle category scroll indicator ---
   const handleCategoryScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const isScrolledToEnd = layoutMeasurement.width + contentOffset.x >= contentSize.width - 20;
     setShowCategoryIndicator(!isScrolledToEnd);
   };
 
-  // --- Filter assets based on category, search, and sort ---
   useEffect(() => {
     let result = [...assets];
     if (selectedCategory !== 'All') {
@@ -328,7 +197,6 @@ const InvestmentsScreen: React.FC = () => {
     setFilteredAssets(result);
   }, [assets, selectedCategory, searchQuery, sortOption]);
 
-  // --- Portfolio persistence ---
   const loadPortfolio = async () => {
     try {
       const portfolioData = await AsyncStorage.getItem('portfolio');
@@ -355,7 +223,6 @@ const InvestmentsScreen: React.FC = () => {
     }
   };
 
-  // --- Favorites persistence ---
   const saveFavorites = (assetsList: Asset[]) => {
     try {
       const favoriteIds = assetsList.filter(asset => asset.favorite).map(asset => asset.id);
@@ -381,172 +248,55 @@ const InvestmentsScreen: React.FC = () => {
     }
   };
 
-  // --- Update asset prices using Finnhub API ---
-  const updateAssetPrices = async () => {
-    try {
-      setRefreshing(true);
+  // Simulate updating asset data
+  const simulateAssetUpdate = () => {
+    setRefreshing(true);
+    
+    // Create a small random fluctuation for asset prices
+    const updatedAssets = assets.map(asset => {
+      // Random change between -2% and +2%
+      const randomPercentageChange = (Math.random() * 4 - 2) / 100;
+      const priceChange = asset.currentPrice * randomPercentageChange;
+      const newPrice = asset.currentPrice + priceChange;
       
-      // First, get the USD to GBP conversion rate
-      let usdToGbpConversion = 1.0;
-      try {
-        // Using Finnhub forex rates to get conversion rate
-        const forexData = await finnhubClient.forexRates({ base: "USD" });
-        
-        if (forexData && forexData.quote && forexData.quote.GBP) {
-          usdToGbpConversion = forexData.quote.GBP;
-        }
-      } catch (err) {
-        console.error("Error fetching conversion rate:", err);
-      }
+      // New historical prices: drop the first and add the new price
+      const newHistoricalPrices = asset.historicalData?.prices.slice(1) || [];
+      newHistoricalPrices.push(newPrice);
       
-      const updatedAssets = await Promise.all(assets.map(async (asset) => {
-        try {
-          let currentPrice = asset.currentPrice;
-          let change = 0;
-          let changePercent = 0;
-          let volume = asset.volume24h;
-          let marketCap = asset.marketCap;
-          
-          // For crypto assets
-          if (asset.category === 'Crypto') {
-            // Use crypto endpoints for crypto assets
-            try {
-              const from = Math.floor(Date.now()/1000) - 86400; // 24 hours ago
-              const to = Math.floor(Date.now()/1000); // Current time
-              
-              const quoteData = await finnhubClient.cryptoCandles(
-                `BINANCE:${asset.symbol}USDT`,
-                "D", 
-                from,
-                to
-              );
-              
-              if (quoteData && quoteData.c && quoteData.c.length > 0) {
-                // Latest closing price
-                currentPrice = quoteData.c[quoteData.c.length - 1] * usdToGbpConversion;
-                
-                // Calculate change
-                if (quoteData.c.length > 1) {
-                  const prevPrice = quoteData.c[quoteData.c.length - 2];
-                  change = (quoteData.c[quoteData.c.length - 1] - prevPrice) * usdToGbpConversion;
-                  changePercent = (change / (prevPrice * usdToGbpConversion)) * 100;
-                }
-                
-                // Volume data if available
-                if (quoteData.v && quoteData.v.length > 0) {
-                  volume = quoteData.v[quoteData.v.length - 1];
-                }
-              }
-            } catch (err) {
-              console.error(`Failed to fetch crypto data for ${asset.symbol}:`, err);
-            }
-          } else {
-            // For stocks, ETFs, etc.
-            try {
-              // Get quote data
-              const quoteData = await finnhubClient.quote(asset.symbol);
-              
-              if (quoteData) {
-                currentPrice = quoteData.c * usdToGbpConversion; // Current price
-                change = quoteData.d * usdToGbpConversion; // Change
-                changePercent = quoteData.dp; // Percentage change
-                
-                // Get company profile for market cap
-                try {
-                  const profileData = await finnhubClient.companyProfile2({ symbol: asset.symbol });
-                  if (profileData && profileData.marketCapitalization) {
-                    marketCap = profileData.marketCapitalization * 1000000 * usdToGbpConversion;
-                  }
-                } catch (profileErr) {
-                  console.error(`Failed to fetch company profile for ${asset.symbol}:`, profileErr);
-                }
-              }
-            } catch (err) {
-              console.error(`Failed to fetch stock data for ${asset.symbol}:`, err);
-            }
-          }
-          
-          // Fetch historical data (last 30 days)
-          const labels: string[] = [];
-          const histPrices: number[] = [];
-          
-          try {
-            const from = Math.floor(Date.now()/1000) - 30 * 86400; // 30 days ago
-            const to = Math.floor(Date.now()/1000); // Now
-            
-            let candlesData;
-            if (asset.category === 'Crypto') {
-              candlesData = await finnhubClient.cryptoCandles(
-                `BINANCE:${asset.symbol}USDT`,
-                "D",
-                from,
-                to
-              );
-            } else {
-              candlesData = await finnhubClient.stockCandles(
-                asset.symbol,
-                "D",
-                from,
-                to
-              );
-            }
-            
-            if (candlesData && candlesData.t && candlesData.c) {
-              // Process historical data
-              for (let i = 0; i < candlesData.t.length; i++) {
-                const date = new Date(candlesData.t[i] * 1000);
-                labels.push(`${date.getDate()}/${date.getMonth() + 1}`);
-                
-                let price = candlesData.c[i];
-                if (asset.category !== 'Crypto') {
-                  price = price * usdToGbpConversion;
-                }
-                histPrices.push(price);
-              }
-            }
-          } catch (err) {
-            console.error(`Failed to fetch historical data for ${asset.symbol}:`, err);
-          }
-          
-          return {
-            ...asset,
-            currentPrice: currentPrice,
-            priceChange24h: change,
-            priceChangePercentage24h: changePercent,
-            volume24h: volume,
-            marketCap: marketCap,
-            historicalData: { labels, prices: histPrices }
-          };
-        } catch (err) {
-          console.error(`Failed to update asset ${asset.name}:`, err);
-          return asset;
+      return {
+        ...asset,
+        currentPrice: newPrice,
+        priceChange24h: priceChange,
+        priceChangePercentage24h: randomPercentageChange * 100,
+        historicalData: {
+          labels: asset.historicalData?.labels || [],
+          prices: newHistoricalPrices
         }
-      }));
-
-      setAssets(updatedAssets);
-      const filtered = updatedAssets.filter(asset => {
-        const matchesCategory = selectedCategory === 'All' || asset.category === selectedCategory;
-        const matchesSearch = !searchQuery ||
-          asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          asset.symbol.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
-      });
-      setFilteredAssets(filtered);
-      setRefreshing(false);
-    } catch (error) {
-      console.error('Failed to update asset prices:', error);
-      setRefreshing(false);
-    }
+      };
+    });
+    
+    setAssets(updatedAssets);
+    
+    // Filter and sort the updated assets
+    const filtered = updatedAssets.filter(asset => {
+      const matchesCategory = selectedCategory === 'All' || asset.category === selectedCategory;
+      const matchesSearch = !searchQuery ||
+        asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        asset.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+    
+    setFilteredAssets(filtered);
+    setRefreshing(false);
   };
 
-  // --- Pull-to-refresh ---
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    updateAssetPrices();
+    simulateAssetUpdate();
+    // Simulate a delay for better UX
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
 
-  // --- Toggle favorite ---
   const toggleFavorite = (assetId: string) => {
     const updatedAssets = assets.map(asset =>
       asset.id === assetId ? { ...asset, favorite: !asset.favorite } : asset
@@ -558,67 +308,15 @@ const InvestmentsScreen: React.FC = () => {
     saveFavorites(updatedAssets);
   };
 
-// --- Refresh historical data for a specific asset using Finnhub ---
-const refreshAssetHistoricalData = async (asset: Asset) => {
-  try {
-    // For non-crypto assets, get conversion rate again
-    let usdToGbpConversion = 1.0;
-    if (asset.category !== 'Crypto') {
-      try {
-        const forexData = await finnhubClient.forexRates({ base: "USD" });
-        if (forexData && forexData.quote && forexData.quote.GBP) {
-          usdToGbpConversion = forexData.quote.GBP;
-        }
-      } catch (err) {
-        console.error("Error fetching conversion rate:", err);
-      }
-    }
-    
-    const from = Math.floor(Date.now()/1000) - 30 * 86400; // 30 days ago
-    const to = Math.floor(Date.now()/1000); // Now
-    
-    let candlesData;
-    if (asset.category === 'Crypto') {
-      candlesData = await finnhubClient.cryptoCandles(
-        `BINANCE:${asset.symbol}USDT`,
-        "D",
-        from,
-        to
-      );
-    } else {
-      candlesData = await finnhubClient.stockCandles(
-        asset.symbol,
-        "D",
-        from,
-        to
-      );
-    }
-    
-    const labels: string[] = [];
-    const histPrices: number[] = [];
-    
-    if (candlesData && candlesData.t && candlesData.c) {
-      // Process historical data
-      for (let i = 0; i < candlesData.t.length; i++) {
-        const date = new Date(candlesData.t[i] * 1000);
-        labels.push(`${date.getDate()}/${date.getMonth() + 1}`);
-        
-        let price = candlesData.c[i];
-        if (asset.category !== 'Crypto') {
-          price = price * usdToGbpConversion;
-        }
-        histPrices.push(price);
-      }
-    }
-    
-    return { labels, prices: histPrices };
-  } catch (err) {
-    console.error(`Failed to fetch historical data for ${asset.name}:`, err);
-    return asset.historicalData || { labels: [], prices: [] };
-  }
-};
+  const refreshAssetHistoricalData = async (asset: Asset) => {
+    // Simulate API call with some delay
+    return new Promise<{labels: string[], prices: number[]}>(resolve => {
+      setTimeout(() => {
+        resolve(asset.historicalData || { labels: [], prices: [] });
+      }, 500);
+    });
+  };
 
-  // --- Open asset detail modal ---
   const openAssetDetails = (asset: Asset) => {
     setSelectedAsset(asset);
     setShowAssetModal(true);
@@ -639,7 +337,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
     })();
   };
 
-  // --- Open transaction modal ---
   const openTransactionModal = (type: 'buy' | 'sell') => {
     if (!selectedAsset) return;
     if (type === 'sell') {
@@ -650,22 +347,16 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
       }
     }
     
-    // Store the selected asset in a temporary variable
     const asset = selectedAsset;
-    
-    // Close the first modal
     setShowAssetModal(false);
-    
-    // Open the transaction modal with a delay
     setTimeout(() => {
-      setSelectedAsset(asset); // Restore the selected asset
+      setSelectedAsset(asset);
       setTransactionType(type);
       setTransactionAmount('');
       setShowTransactionModal(true);
     }, 300);
   };
 
-  // --- Process transaction ---
   const processTransaction = () => {
     if (!selectedAsset || !transactionAmount) return;
     const amount = parseFloat(transactionAmount);
@@ -723,7 +414,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
     );
   };
 
-  // --- Portfolio calculations ---
   const calculateTotalPortfolioValue = () => {
     let totalValue = portfolio.balance;
     Object.entries(portfolio.assets).forEach(([assetId, holding]) => {
@@ -749,7 +439,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
     return ((totalCurrentValue - totalInvested) / totalInvested) * 100;
   };
 
-  // Update the getPortfolioAllocationData function to fix label format and use matching colors
   const getPortfolioAllocationData = () => {
     const categoryMap: Record<string, number> = {};
     let totalValue = 0;
@@ -768,17 +457,13 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
     });
     
     const chartData = Object.entries(categoryMap).map(([category, value]) => {
-      // Get the same color used in asset cards for consistency
       const colorStyle = getCategoryStyle(category as AssetCategory);
       const backgroundColor = colorStyle.backgroundColor;
-      
       const percentage = (value / totalValue) * 100;
-      // Format to exactly one decimal place
-      const roundedPercentage = percentage.toFixed(1); 
-      
+      const roundedPercentage = percentage.toFixed(1);
       return {
         name: `% ${category}`,
-        value: parseFloat(roundedPercentage), // Use the rounded value here, not the raw percentage
+        value: parseFloat(roundedPercentage),
         legend: `% ${category}`,
         color: backgroundColor,
         legendFontColor: '#333333',
@@ -790,8 +475,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
   };
 
   const getPortfolioPerformanceData = () => {
-    // Create historical portfolio value data based on transactions
-    
     if (portfolio.transactions.length === 0) {
       return {
         labels: ['Today'],
@@ -803,27 +486,22 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
       };
     }
   
-    // Calculate estimated portfolio value at different points in time
     const dataPoints: {date: Date, value: number}[] = [];
     let runningBalance = portfolio.balance;
     let runningAssets: {[assetId: string]: {quantity: number, averagePrice: number}} = {};
     
-    // Start with current state and work backwards
     dataPoints.push({
       date: new Date(),
       value: calculateTotalPortfolioValue()
     });
   
-    // Generate points based on transaction history (last 6 transactions max)
     const recentTransactions = portfolio.transactions.slice(0, 6);
     for (let i = 0; i < recentTransactions.length; i++) {
       const transaction = recentTransactions[i];
       const asset = assets.find(a => a.id === transaction.assetId);
       if (!asset) continue;
       
-      // Approximate the portfolio value right before this transaction
       let estimatedValue = dataPoints[dataPoints.length - 1].value;
-      
       if (transaction.type === 'buy') {
         estimatedValue -= asset.currentPrice * transaction.quantity;
       } else {
@@ -832,14 +510,12 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
       
       dataPoints.push({
         date: new Date(transaction.date),
-        value: Math.max(estimatedValue, 0) // Ensure non-negative value
+        value: Math.max(estimatedValue, 0)
       });
     }
     
-    // Sort by date (oldest first)
     dataPoints.sort((a, b) => a.date.getTime() - b.date.getTime());
     
-    // Format for chart
     const labels = dataPoints.map(dp => {
       const d = new Date(dp.date);
       return `${d.getDate()}/${d.getMonth() + 1}`;
@@ -857,7 +533,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
     };
   };
 
-  // --- Render functions ---
   const renderAssetItem = ({ item: asset }: { item: Asset }) => {
     const holding = portfolio.assets[asset.id];
     const hasHolding = holding && holding.quantity > 0;
@@ -937,20 +612,22 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
     const allocationData = getPortfolioAllocationData();
     const performanceData = getPortfolioPerformanceData();
     
-    // Get holdings data for the list
     const holdingsData = Object.entries(portfolio.assets)
       .map(([assetId, holding]): HoldingDataItem | null => {
+        // Only include assets with positive quantity
+        if (holding.quantity <= 0) return null;
+        
         const asset = assets.find(a => a.id === assetId);
         if (!asset) return null;
+        
         const currentValue = asset.currentPrice * holding.quantity;
         return { assetId, asset, holding, value: currentValue };
       })
       .filter((item): item is HoldingDataItem => item !== null)
-      .sort((a, b) => b.value - a.value); // Sort by value (highest first)
+      .sort((a, b) => b.value - a.value);
     
     return (
       <View style={styles.portfolioAnalyticsContainer}>
-        {/* Portfolio Summary section */}
         <View style={styles.portfolioSummary}>
           <View style={styles.portfolioValueContainer}>
             <Text style={styles.portfolioLabel}>Total Value</Text>
@@ -968,7 +645,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
           </View>
         </View>
 
-        {/* Portfolio Performance section */}
         <View style={styles.portfolioChartContainer}>
           <Text style={styles.chartTitle}>Portfolio Performance</Text>
           {performanceData.datasets[0].data.length > 0 && (
@@ -979,7 +655,7 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
               yAxisLabel="£"
               chartConfig={{
                 ...chartConfig,
-                propsForDots: { r: "0" }, // Remove dots
+                propsForDots: { r: "0" },
                 strokeWidth: 2.5,
                 fillShadowGradientFrom: "#006a4d",
                 fillShadowGradientTo: "#ffffff",
@@ -993,7 +669,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
           )}
         </View>
         
-        {/* Asset Allocation section */}
         {allocationData.length > 0 && (
           <View style={styles.portfolioChartContainer}>
             <Text style={styles.chartTitle}>Asset Allocation</Text>
@@ -1010,53 +685,58 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
           </View>
         )}
 
-        {/* Holdings section - modified to be scrollable and show top 3 */}
         <View style={styles.holdingsContainer}>
           <Text style={styles.sectionTitle}>Your Holdings</Text>
           {holdingsData.length > 0 ? (
-            <FlatList
-              data={holdingsData}
-              renderItem={({ item }) => {
-                const { assetId, asset, holding } = item;
-                const currentValue = asset.currentPrice * holding.quantity;
-                const investedValue = holding.averagePrice * holding.quantity;
-                const profit = currentValue - investedValue;
-                const profitPercentage = (profit / investedValue) * 100;
-                
-                return (
-                  <TouchableOpacity 
-                    key={assetId} 
-                    style={styles.holdingCard} 
-                    onPress={() => openAssetDetails(asset)}
-                  >
-                    <View style={styles.holdingHeader}>
-                      <Text style={styles.holdingSymbol}>{asset.symbol}</Text>
-                      <Text style={styles.holdingName}>{asset.name}</Text>
-                    </View>
-                    <View style={styles.holdingDetails}>
-                      <View style={styles.holdingQuantity}>
-                        <Text style={styles.holdingLabel}>Quantity</Text>
-                        <Text style={styles.holdingValue}>{holding.quantity.toFixed(6)}</Text>
+            <View style={styles.holdingsListContainer}>
+              <FlatList
+                data={holdingsData}
+                keyExtractor={(item) => item.assetId}
+                renderItem={({ item }) => {
+                  const { assetId, asset, holding } = item;
+                  const currentValue = asset.currentPrice * holding.quantity;
+                  const investedValue = holding.averagePrice * holding.quantity;
+                  const profit = currentValue - investedValue;
+                  const profitPercentage = (profit / investedValue) * 100;
+                  
+                  return (
+                    <TouchableOpacity 
+                      style={styles.holdingCard} 
+                      onPress={() => openAssetDetails(asset)}
+                    >
+                      <View style={styles.holdingHeader}>
+                        <Text style={styles.holdingSymbol}>{asset.symbol}</Text>
+                        <Text style={styles.holdingName}>{asset.name}</Text>
                       </View>
-                      <View style={styles.holdingCurrentValue}>
-                        <Text style={styles.holdingLabel}>Current Value</Text>
-                        <Text style={styles.holdingValue}>£{currentValue.toFixed(2)}</Text>
+                      <View style={styles.holdingDetails}>
+                        <View style={styles.holdingQuantity}>
+                          <Text style={styles.holdingLabel}>Quantity</Text>
+                          <Text style={styles.holdingValue}>{holding.quantity.toFixed(6)}</Text>
+                        </View>
+                        <View style={styles.holdingCurrentValue}>
+                          <Text style={styles.holdingLabel}>Current Value</Text>
+                          <Text style={styles.holdingValue}>£{currentValue.toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.holdingProfit}>
+                          <Text style={styles.holdingLabel}>Profit/Loss</Text>
+                          <Text style={[styles.holdingValue, profit >= 0 ? styles.positiveChange : styles.negativeChange]}>
+                            {profit >= 0 ? '+' : ''}£{profit.toFixed(2)} ({profitPercentage.toFixed(2)}%)
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.holdingProfit}>
-                        <Text style={styles.holdingLabel}>Profit/Loss</Text>
-                        <Text style={[styles.holdingValue, profit >= 0 ? styles.positiveChange : styles.negativeChange]}>
-                          {profit >= 0 ? '+' : ''}£{profit.toFixed(2)} ({profitPercentage.toFixed(2)}%)
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-              keyExtractor={item => item?.assetId || 'unknown'}
-              style={styles.holdingsList}
-              scrollEnabled={true}
-              nestedScrollEnabled={true}
-            />
+                    </TouchableOpacity>
+                  );
+                }}
+                initialNumToRender={3}
+                maxToRenderPerBatch={5}
+                showsVerticalScrollIndicator={true}
+                style={styles.holdingsList}
+                contentContainerStyle={styles.holdingsListContent}
+              />
+              {holdingsData.length > 3 && (
+                <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
+              )}
+            </View>
           ) : (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="finance" size={48} color="#BBBBBB" />
@@ -1066,19 +746,24 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
           )}
         </View>
         
-        {/* Transactions section - modified to show top 3 instead of 4 */}
         <View style={styles.transactionsContainer}>
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
           {portfolio.transactions.length > 0 ? (
-            <FlatList
-              data={portfolio.transactions} // Show ALL transactions, not just 3
-              renderItem={renderTransactionItem}
-              keyExtractor={item => item.id}
-              style={styles.transactionsList}
-              initialNumToRender={3} // Initially render only 3
-              scrollEnabled={true}
-              nestedScrollEnabled={true}
-            />
+            <View style={styles.transactionsListContainer}>
+              <FlatList
+                data={portfolio.transactions}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => renderTransactionItem({ item })}
+                initialNumToRender={3}
+                maxToRenderPerBatch={5}
+                showsVerticalScrollIndicator={true}
+                style={styles.transactionsList}
+                contentContainerStyle={styles.transactionsListContent}
+              />
+              {portfolio.transactions.length > 3 && (
+                <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
+              )}
+            </View>
           ) : (
             <Text style={styles.emptyStateSubtext}>No transactions yet</Text>
           )}
@@ -1119,9 +804,7 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
                 </Text>
               </View>
               
-              {/* Simplified chart container structure */}
               {selectedAsset.historicalData && selectedAsset.historicalData.prices.length > 0 ? (
-                // Update the LineChart in renderAssetDetailModal function
                 <View style={styles.cleanChartContainer}>
                   <LineChart
                     data={{
@@ -1190,7 +873,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
                 </View>
               )}
               
-              {/* Asset stats with more compact layout */}
               <View style={styles.compactStatsContainer}>
                 <View style={styles.assetStat}>
                   <Text style={styles.assetStatLabel}>Market Cap</Text>
@@ -1235,7 +917,7 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
-          keyboardVerticalOffset={10} // Reduced from 50 to 10
+          keyboardVerticalOffset={10}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <SafeAreaView style={styles.modalContainer}>
@@ -1447,7 +1129,6 @@ const refreshAssetHistoricalData = async (asset: Asset) => {
   );
 };
 
-// --- Helper for category styles ---
 const getCategoryStyle = (category: AssetCategory) => {
   switch (category) {
     case 'Stocks':
@@ -1465,7 +1146,6 @@ const getCategoryStyle = (category: AssetCategory) => {
   }
 };
 
-// --- Styles ---
 const styles = StyleSheet.create({
   chartWrapper: {
     backgroundColor: '#ffffff',
@@ -1479,7 +1159,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   assetDetailPrice: {
-    fontSize: 24, 
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
@@ -1534,16 +1214,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-  header: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -1768,9 +1438,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden',
-    marginTop: 10, // Adjust to give more space
+    marginTop: 10,
     marginBottom: 10,
-    maxHeight: '90%', // Slightly increased from before
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1789,11 +1459,11 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   modalScroll: {
-    maxHeight: 600, // Limit max height to ensure it fits on screen
+    maxHeight: 600,
   },
   assetPriceHeader: {
     alignItems: 'center',
-    paddingVertical: 12, // Reduced from 20
+    paddingVertical: 12,
   },
   chartContainer: {
     backgroundColor: "#fafafa",
@@ -1818,18 +1488,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   assetStat: {
-    width: '33%', // Changed from 50% to fit 3 in a row
-    paddingVertical: 4, // Reduced padding
+    width: '33%',
+    paddingVertical: 4,
   },
   assetStatLabel: {
-    fontSize: 12, // Smaller font
+    fontSize: 12,
     color: '#777',
   },
   assetStatValue: {
-    fontSize: 14, // Smaller font
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginTop: 2, // Reduced from 4
+    marginTop: 2,
   },
   assetDescription: {
     padding: 16,
@@ -1843,8 +1513,8 @@ const styles = StyleSheet.create({
   },
   transactionButton: {
     marginTop: 10,
-    marginBottom: 10, // Reduced from 30
-    paddingVertical: 14, // Reduced from 16
+    marginBottom: 10,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1858,7 +1528,7 @@ const styles = StyleSheet.create({
   },
   transactionForm: {
     padding: 20,
-    paddingBottom: 30, // Add more padding at the bottom
+    paddingBottom: 30,
   },
   assetInfoContainer: {
     flexDirection: 'row',
@@ -1984,9 +1654,9 @@ const styles = StyleSheet.create({
   },
   chartTimeframe: {
     textAlign: 'center',
-    fontSize: 12, // Smaller font
+    fontSize: 12,
     color: '#888',
-    marginTop: 4, // Reduced from 8
+    marginTop: 4,
   },
   chartLoadingContainer: {
     height: 220,
@@ -2118,7 +1788,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   portfolioCashValueAdjusted: {
-    fontSize: 20, // Reduced from 24
+    fontSize: 20,
     fontWeight: '600',
     color: '#333',
     marginTop: 4,
@@ -2128,9 +1798,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   transactionsList: {
-    maxHeight: 250, // Fixed height to enable scrolling
+    maxHeight: 250,
   },
-    // In your StyleSheet
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2155,21 +1824,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   improvedAmountInput: {
-    fontSize: 20, // Larger font
-    paddingVertical: 10, // More vertical padding
+    fontSize: 20,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     textAlign: 'center',
-    minHeight: 50, // Ensure enough height
+    minHeight: 50,
   },
   holdingsList: {
-    maxHeight: 300, // Set a fixed height for scrolling
+    maxHeight: 350,
   },
-  // New cleaner chart styles
   cleanChartContainer: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: 8,
-    paddingLeft: 0, // Reduced to give more space for y-axis labels
+    paddingLeft: 0,
     paddingRight: 12,
     marginHorizontal: 0,
     marginVertical: 8,
@@ -2183,11 +1851,9 @@ const styles = StyleSheet.create({
   cleanChart: {
     marginVertical: 4,
     borderRadius: 8,
-    paddingLeft: 10, // Add padding for y-axis labels
-    marginRight: -10, // Compensate for right padding
+    paddingLeft: 10,
+    marginRight: -10,
   },
-  
-  // More compact styles for asset modal
   compactStatsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2200,13 +1866,42 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     fontSize: 14,
     color: '#555',
-    maxHeight: 120, // Limit description height
+    maxHeight: 120,
   },
   compactTransactionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 12,
     paddingHorizontal: 16,
+  },
+  holdingsListContainer: {
+    height: 350, // Set a fixed height for the container
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  holdingsListContent: {
+    paddingVertical: 4,
+  },
+  scrollIndicatorText: {
+    textAlign: 'center',
+    color: '#777',
+    fontSize: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(245, 245, 245, 0.9)',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  transactionsListContainer: {
+    height: 250, // Set a fixed height for the container
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  transactionsListContent: {
+    paddingVertical: 4,
   },
 });
 

@@ -4,7 +4,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { useUser } from '../context/UserContext';
 import { getAccountTransactions } from '../api/userData';
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from 'expo-linear-gradient';
 
 // Enhanced icon mapping with more fallbacks and case-insensitive matching
 const categoryToIcon: Record<string, keyof typeof Ionicons.glyphMap> = {

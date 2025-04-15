@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useUser } from '../context/UserContext';
-import AccountCard from './AccountCard';
+import carddesign from './carddesign';
 
 const AccountsList = () => {
   const { accounts, isLoading, error } = useUser();
@@ -36,7 +36,7 @@ const AccountsList = () => {
       <FlatList
         data={accounts}
         keyExtractor={(item) => item.account_id}
-        renderItem={({ item }) => <AccountCard account={item} />}
+        renderItem={({ item }) => <carddesign account={item} />}
         showsVerticalScrollIndicator={false}
       />
     </View>

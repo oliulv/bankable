@@ -990,7 +990,7 @@ const BudgetCalendar: React.FC = () => {
                         />
                         <View>
                           <Text style={[styles.categoryName, { color: theme.text }]}>
-                            <Text>{category?.icon}</Text> {tx.category}
+                            <Text>{category?.icon} {tx.category}</Text> 
                           </Text>
                           <Text style={[styles.transactionDescription, { color: theme.secondaryText }]}>
                             {tx.description}
@@ -998,7 +998,7 @@ const BudgetCalendar: React.FC = () => {
                           {tx.isRecurring && (
                             <View style={styles.recurringBadge}>
                               <Text style={styles.recurringText}>
-                                <Text>🔄</Text> {tx.recurringType}
+                                <Text>🔄 {tx.recurringType}</Text> 
                               </Text>
                             </View>
                           )}
@@ -1061,7 +1061,7 @@ const BudgetCalendar: React.FC = () => {
                   <View style={styles.categoryNameContainer}>
                     <View style={[styles.categoryColor, { backgroundColor: category.color }]} />
                     <Text style={[styles.categoryTitle, { color: theme.text }]}>
-                      <Text>{category.icon}</Text> {category.name}
+                      <Text>{category.icon} {category.name}</Text> 
                     </Text>
                   </View>
 
@@ -1291,7 +1291,7 @@ const BudgetCalendar: React.FC = () => {
                   <View style={styles.legendItemLeft}>
                     <View style={[styles.legendDot, { backgroundColor: cat.color }]} />
                     <Text style={[styles.legendText, { color: theme.text }]}>
-                      <Text>{cat.icon}</Text> {cat.name}
+                      <Text>{cat.icon} {cat.name}</Text>
                     </Text>
                   </View>
                   <Text style={[styles.legendPercent, { color: theme.text }]}>{cat.percentage.toFixed(1)}%</Text>
@@ -1475,6 +1475,7 @@ const BudgetCalendar: React.FC = () => {
                         showsHorizontalScrollIndicator={false}
                         keyExtractor={(item) => item.id}
                         renderItem={({ item }) => (
+                          // Fix in category chips (around line 1273-1289)
                           <TouchableOpacity
                             style={[
                               styles.categoryChip,
@@ -1490,7 +1491,7 @@ const BudgetCalendar: React.FC = () => {
                                 { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
                               ]}
                             >
-                              <Text>{item.icon}</Text> {item.name}
+                              {item.icon} {item.name}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -1708,7 +1709,7 @@ const BudgetCalendar: React.FC = () => {
                                 { color: budgetGoal.category === item.name ? "#FFFFFF" : item.color },
                               ]}
                             >
-                              <Text>{item.icon}</Text> {item.name}
+                              <Text>{item.icon} {item.name}</Text>
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -1810,7 +1811,7 @@ const BudgetCalendar: React.FC = () => {
                                 { color: newTransaction.category === item.name ? "#FFFFFF" : item.color },
                               ]}
                             >
-                              <Text>{item.icon}</Text> {item.name}
+                              <Text>{item.icon} {item.name}</Text>
                             </Text>
                           </TouchableOpacity>
                         )}
