@@ -70,6 +70,11 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
             onPress={() => navigateTo("/LoansScreen")} 
           />
           <MenuItem 
+            icon="calculator-outline" 
+            title="Budgets" 
+            onPress={() => navigateTo("/DynamicBudgetCalendarScreen")} 
+          />
+          <MenuItem 
             icon="trending-up-outline" 
             title="Investments" 
             onPress={() => navigateTo("/InvestmentsScreen")} 

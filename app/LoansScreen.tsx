@@ -452,11 +452,11 @@ const LoansScreen: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'loans' | 'offers'>('loans');
+  const [activeTab, setActiveTab] = useState<'loans' | 'offers'>('offers');
   const [selectedLoanType, setSelectedLoanType] = useState<LoanType | 'All'>('All');
   const [sortOption, setSortOption] = useState<'name' | 'balance' | 'date'>('balance');
   const loanTypeScrollViewRef = React.useRef<ScrollView>(null);
-  const [showTypeIndicator, setShowTypeIndicator] = useState(true);
+  const [showTypeIndicator, setShowTypeIndicator] = useState(false);
 
   // Loan application state
   const [applicationLoanAmount, setApplicationLoanAmount] = useState<string>('');
