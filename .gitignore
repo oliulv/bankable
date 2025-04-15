@@ -5,6 +5,8 @@
 
 .expo/
 
+finnhubFunctions.ts
+
 # dependencies
 /node_modules
 

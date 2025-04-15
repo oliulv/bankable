@@ -32,10 +32,10 @@ interface Transaction {
 
 // Map to convert product types to card images
 const productTypeToImage: Record<string, any> = {
-  "Personal Current Account": require("../assets/images/accountcard.png"),
-  "Savings": require("../assets/images/accountcard.png"),
-  "Credit Card": require("../assets/images/accountcard.png"),
-  "Overdraft": require("../assets/images/accountcard.png"),
+  "Personal Current Account": require("../assets/images/carddesign.png"),
+  "Savings": require("../assets/images/carddesign.png"),
+  "Credit Card": require("../assets/images/carddesign.png"),
+  "Overdraft": require("../assets/images/carddesign.png"),
 };
 
 // Enhanced icon mapping with more fallbacks and case-insensitive matching
@@ -419,7 +419,7 @@ export default function HomeScreen(): JSX.Element {
       {/* Swipeable Header Cards */}
       <View style={[styles.swipeableContainer, { marginTop: 16 }]}>
         {accounts.length === 0 ? (
-          <View style={[styles.card, styles.noAccountCard]}>
+          <View style={[styles.card, styles.nocarddesign]}>
             <Text style={styles.noAccountText}>No accounts found</Text>
           </View>
         ) : (
@@ -446,7 +446,7 @@ export default function HomeScreen(): JSX.Element {
             scrollToOverflowEnabled={true} // Better behavior near edges
             renderItem={({ item }) => {
               const imageSource = productTypeToImage[item.product.product_type] || 
-                                  require("../assets/images/accountcard.png");
+                                  require("../assets/images/carddesign.png");
               return (
                 <TouchableOpacity 
                   style={styles.card}
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT + 20, // Added space for pagination
     marginBottom: 16,
   },
-  noAccountCard: {
+  nocarddesign: {
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: SPACING,

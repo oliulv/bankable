@@ -67,36 +67,26 @@ export default function AccountsOverviewScreen() {
   };
 
   // Render each account card
-  const renderAccountCard = ({ item }: { item: any }) => {
-    const gradientColors = getAccountGradient(item.product.product_type);
-    
+  // Update the rendercarddesign function
+  const rendercarddesign = ({ item }: { item: any }) => {
     return (
       <TouchableOpacity 
         style={styles.card} 
         onPress={() => handleAccountPress(item.account_id)}
         activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={gradientColors}
-          style={styles.cardGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+        <Image
+          source={require('../assets/images/carddesign.png')}
+          style={styles.cardImage}
+          resizeMode="cover"
+        />
+        <View style={styles.overlay} />
+        
+        <View style={styles.cardContent}>
           <View style={styles.cardHeader}>
             <View>
               <Text style={styles.accountType}>{item.product.product_type}</Text>
               <Text style={styles.accountName}>{item.product.product_name}</Text>
-            </View>
-            <View style={styles.accountIconContainer}>
-              <Ionicons 
-                name={
-                  item.product.product_type === "Credit Card" ? "card" :
-                  item.product.product_type === "Savings" ? "wallet" :
-                  "cash"
-                } 
-                size={24} 
-                color="#ffffff" 
-              />
             </View>
           </View>
           
@@ -113,7 +103,7 @@ export default function AccountsOverviewScreen() {
             <Text style={styles.accountId}>Account ID: {item.account_id}</Text>
             <Text style={styles.accountSince}>Since: {formatDate(item.since)}</Text>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -151,7 +141,7 @@ export default function AccountsOverviewScreen() {
       
       <FlatList
         data={accounts}
-        renderItem={renderAccountCard}
+        renderItem={rendercarddesign}
         keyExtractor={(item) => item.account_id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
@@ -190,15 +180,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     overflow: 'hidden',
+    height: 200, // Fixed height for consistency
   },
-  cardGradient: {
+  cardImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  cardContent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: 16,
+    justifyContent: "space-between",
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
   },
   accountType: {
     fontSize: 14,
@@ -209,14 +214,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-  },
-  accountIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   cardBody: {
     marginBottom: 16,
@@ -234,7 +231,7 @@ const styles = StyleSheet.create({
   cardFooter: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.2)',
-    paddingTop: 12,
+    paddingTop: 6,
   },
   accountId: {
     fontSize: 12,

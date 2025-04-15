@@ -3,11 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AccountInfo } from '../context/UserContext';
 
-interface AccountCardProps {
+interface carddesignProps {
   account: AccountInfo;
 }
 
-const AccountCard: React.FC<AccountCardProps> = ({ account }) => {
+const carddesign: React.FC<carddesignProps> = ({ account }) => {
   const router = useRouter();
 
   const handlePress = () => {
@@ -85,4 +85,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AccountCard;
+export default carddesign;

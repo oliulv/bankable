@@ -1,0 +1,1192 @@
+[
+  {
+    "id": "1",
+    "name": "Apple Inc.",
+    "symbol": "AAPL",
+    "category": "Stocks",
+    "currentPrice": 185.92,
+    "priceChange24h": 2.54,
+    "priceChangePercentage24h": 1.38,
+    "marketCap": 2892000000000,
+    "volume24h": 58249000,
+    "favorite": false,
+    "description": "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [170.33, 178.61, 175.48, 173.50, 189.84, 185.92]
+    }
+  },
+  {
+    "id": "2",
+    "name": "Microsoft Corporation",
+    "symbol": "MSFT",
+    "category": "Stocks",
+    "currentPrice": 417.12,
+    "priceChange24h": -3.21,
+    "priceChangePercentage24h": -0.76,
+    "marketCap": 3100000000000,
+    "volume24h": 22456000,
+    "favorite": false,
+    "description": "Microsoft Corporation develops, licenses, and supports software, services, devices, and solutions worldwide.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [390.27, 402.16, 415.58, 406.32, 418.45, 417.12]
+    }
+  },
+  {
+    "id": "3",
+    "name": "Amazon.com Inc.",
+    "symbol": "AMZN",
+    "category": "Stocks",
+    "currentPrice": 135.50,
+    "priceChange24h": 1.25,
+    "priceChangePercentage24h": 0.93,
+    "marketCap": 1350000000000,
+    "volume24h": 32000000,
+    "favorite": false,
+    "description": "Amazon.com Inc. engages in the retail sale of consumer products and subscriptions in North America and internationally.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [132.50, 133.20, 134.10, 135.00, 135.75, 135.50]
+    }
+  },
+  {
+    "id": "4",
+    "name": "Alphabet Inc.",
+    "symbol": "GOOGL",
+    "category": "Stocks",
+    "currentPrice": 2750.00,
+    "priceChange24h": 15.32,
+    "priceChangePercentage24h": 0.56,
+    "marketCap": 1800000000000,
+    "volume24h": 1500000,
+    "favorite": false,
+    "description": "Alphabet Inc. provides online advertising services in the United States, Europe, the Middle East, Africa, and internationally.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [2700.00, 2710.00, 2730.00, 2740.00, 2755.00, 2750.00]
+    }
+  },
+  {
+    "id": "5",
+    "name": "Meta Platforms Inc.",
+    "symbol": "META",
+    "category": "Stocks",
+    "currentPrice": 320.45,
+    "priceChange24h": -4.32,
+    "priceChangePercentage24h": -1.33,
+    "marketCap": 800000000000,
+    "volume24h": 20000000,
+    "favorite": false,
+    "description": "Meta Platforms Inc. focuses on building technologies that help people connect, find communities and grow businesses.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [315.00, 317.50, 318.75, 319.00, 321.00, 320.45]
+    }
+  },
+  {
+    "id": "6",
+    "name": "Tesla Inc.",
+    "symbol": "TSLA",
+    "category": "Stocks",
+    "currentPrice": 695.50,
+    "priceChange24h": 10.25,
+    "priceChangePercentage24h": 1.49,
+    "marketCap": 700000000000,
+    "volume24h": 25000000,
+    "favorite": false,
+    "description": "Tesla Inc. designs, develops, manufactures, and sells electric vehicles, and energy generation and storage systems.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [680.00, 685.50, 690.00, 692.50, 697.00, 695.50]
+    }
+  },
+  {
+    "id": "7",
+    "name": "Nvidia Corporation",
+    "symbol": "NVDA",
+    "category": "Stocks",
+    "currentPrice": 710.12,
+    "priceChange24h": -5.32,
+    "priceChangePercentage24h": -0.75,
+    "marketCap": 450000000000,
+    "volume24h": 18000000,
+    "favorite": false,
+    "description": "Nvidia Corporation specializes in designing graphics processing units (GPUs) for gaming, professional markets, and automotive markets.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [690.00, 695.00, 705.00, 710.00, 712.00, 710.12]
+    }
+  },
+  {
+    "id": "8",
+    "name": "JPMorgan Chase & Co.",
+    "symbol": "JPM",
+    "category": "Stocks",
+    "currentPrice": 145.67,
+    "priceChange24h": 0.85,
+    "priceChangePercentage24h": 0.59,
+    "marketCap": 470000000000,
+    "volume24h": 12000000,
+    "favorite": false,
+    "description": "JPMorgan Chase & Co. is a leading global financial services firm offering solutions to the private and corporate sectors.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [143.50, 144.20, 144.80, 145.00, 146.00, 145.67]
+    }
+  },
+  {
+    "id": "9",
+    "name": "Berkshire Hathaway Inc.",
+    "symbol": "BRK-A",
+    "category": "Stocks",
+    "currentPrice": 420000,
+    "priceChange24h": 1500,
+    "priceChangePercentage24h": 0.36,
+    "marketCap": 700000000000,
+    "volume24h": 500,
+    "favorite": false,
+    "description": "Berkshire Hathaway Inc. is a multinational conglomerate holding company led by Warren Buffett.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [418000, 419000, 420500, 421000, 420000, 420000]
+    }
+  },
+  {
+    "id": "10",
+    "name": "Visa Inc.",
+    "symbol": "V",
+    "category": "Stocks",
+    "currentPrice": 235.48,
+    "priceChange24h": 1.75,
+    "priceChangePercentage24h": 0.75,
+    "marketCap": 500000000000,
+    "volume24h": 8000000,
+    "favorite": false,
+    "description": "Visa Inc. operates as a payments technology company and facilitates digital payments among consumers, merchants, financial institutions, businesses, and government entities.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [230.00, 232.00, 233.50, 234.50, 236.00, 235.48]
+    }
+  },
+  {
+    "id": "11",
+    "name": "Johnson & Johnson",
+    "symbol": "JNJ",
+    "category": "Stocks",
+    "currentPrice": 165.30,
+    "priceChange24h": -0.75,
+    "priceChangePercentage24h": -0.45,
+    "marketCap": 430000000000,
+    "volume24h": 7000000,
+    "favorite": false,
+    "description": "Johnson & Johnson researches and develops, manufactures, and sells a range of products in pharmaceuticals, medical devices, and consumer health products.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [163.00, 163.50, 164.20, 165.00, 165.75, 165.30]
+    }
+  },
+  {
+    "id": "12",
+    "name": "Walmart Inc.",
+    "symbol": "WMT",
+    "category": "Stocks",
+    "currentPrice": 142.25,
+    "priceChange24h": 0.65,
+    "priceChangePercentage24h": 0.46,
+    "marketCap": 400000000000,
+    "volume24h": 15000000,
+    "favorite": false,
+    "description": "Walmart Inc. operates retail stores and e-commerce websites under various banners worldwide.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [140.00, 140.50, 141.00, 142.00, 142.50, 142.25]
+    }
+  },
+  {
+    "id": "13",
+    "name": "Procter & Gamble Co.",
+    "symbol": "PG",
+    "category": "Stocks",
+    "currentPrice": 150.75,
+    "priceChange24h": 1.05,
+    "priceChangePercentage24h": 0.70,
+    "marketCap": 360000000000,
+    "volume24h": 6000000,
+    "favorite": false,
+    "description": "Procter & Gamble Co. provides branded consumer packaged goods in segments like beauty, grooming, health care, fabric, and home care.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [148.00, 149.00, 149.80, 150.20, 151.00, 150.75]
+    }
+  },
+  {
+    "id": "14",
+    "name": "Mastercard Inc.",
+    "symbol": "MA",
+    "category": "Stocks",
+    "currentPrice": 375.50,
+    "priceChange24h": 2.10,
+    "priceChangePercentage24h": 0.56,
+    "marketCap": 350000000000,
+    "volume24h": 5000000,
+    "favorite": false,
+    "description": "Mastercard Inc. operates as a technology company in the global payments industry.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [370.00, 371.50, 373.00, 374.50, 376.00, 375.50]
+    }
+  },
+  {
+    "id": "15",
+    "name": "Home Depot Inc.",
+    "symbol": "HD",
+    "category": "Stocks",
+    "currentPrice": 315.25,
+    "priceChange24h": -1.50,
+    "priceChangePercentage24h": -0.47,
+    "marketCap": 350000000000,
+    "volume24h": 8000000,
+    "favorite": false,
+    "description": "Home Depot Inc. is a retailer that supplies tools, construction products, and services.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [312.00, 313.50, 314.20, 315.00, 316.00, 315.25]
+    }
+  },
+  {
+    "id": "16",
+    "name": "Walt Disney Co.",
+    "symbol": "DIS",
+    "category": "Stocks",
+    "currentPrice": 115.80,
+    "priceChange24h": 0.98,
+    "priceChangePercentage24h": 0.85,
+    "marketCap": 210000000000,
+    "volume24h": 10000000,
+    "favorite": false,
+    "description": "Walt Disney Co. engages in the production and distribution of entertainment content worldwide.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [113.00, 113.50, 114.20, 115.00, 116.00, 115.80]
+    }
+  },
+  {
+    "id": "17",
+    "name": "Netflix Inc.",
+    "symbol": "NFLX",
+    "category": "Stocks",
+    "currentPrice": 505.30,
+    "priceChange24h": -6.50,
+    "priceChangePercentage24h": -1.27,
+    "marketCap": 225000000000,
+    "volume24h": 6000000,
+    "favorite": false,
+    "description": "Netflix Inc. provides streaming entertainment services to members around the world.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [500.00, 502.00, 503.50, 505.00, 506.00, 505.30]
+    }
+  },
+  {
+    "id": "18",
+    "name": "Intel Corporation",
+    "symbol": "INTC",
+    "category": "Stocks",
+    "currentPrice": 55.12,
+    "priceChange24h": 0.22,
+    "priceChangePercentage24h": 0.40,
+    "marketCap": 220000000000,
+    "volume24h": 25000000,
+    "favorite": false,
+    "description": "Intel Corporation designs, manufactures, and sells integrated digital technology platforms worldwide.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [54.00, 54.50, 54.80, 55.00, 55.20, 55.12]
+    }
+  },
+  {
+    "id": "19",
+    "name": "Adobe Inc.",
+    "symbol": "ADBE",
+    "category": "Stocks",
+    "currentPrice": 610.45,
+    "priceChange24h": 3.80,
+    "priceChangePercentage24h": 0.63,
+    "marketCap": 290000000000,
+    "volume24h": 4000000,
+    "favorite": false,
+    "description": "Adobe Inc. offers creative, marketing, and document management solutions to consumers and businesses worldwide.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [605.00, 606.50, 607.80, 609.00, 612.00, 610.45]
+    }
+  },
+  {
+    "id": "20",
+    "name": "PayPal Holdings Inc.",
+    "symbol": "PYPL",
+    "category": "Stocks",
+    "currentPrice": 295.30,
+    "priceChange24h": -2.50,
+    "priceChangePercentage24h": -0.84,
+    "marketCap": 330000000000,
+    "volume24h": 9000000,
+    "favorite": false,
+    "description": "PayPal Holdings Inc. operates a technology platform that enables digital payments across the globe.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [290.00, 291.50, 292.80, 293.50, 296.00, 295.30]
+    }
+  },
+  {
+    "id": "21",
+    "name": "Bitcoin",
+    "symbol": "BTC",
+    "category": "Crypto",
+    "currentPrice": 67254.12,
+    "priceChange24h": 1245.32,
+    "priceChangePercentage24h": 1.89,
+    "marketCap": 1320000000000,
+    "volume24h": 35726000000,
+    "favorite": false,
+    "description": "Bitcoin is a decentralized digital currency, without a central bank or single administrator.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [42000.15, 51245.87, 58932.45, 63214.78, 68421.36, 67254.12]
+    }
+  },
+  {
+    "id": "22",
+    "name": "Ethereum",
+    "symbol": "ETH",
+    "category": "Crypto",
+    "currentPrice": 3472.86,
+    "priceChange24h": 87.32,
+    "priceChangePercentage24h": 2.58,
+    "marketCap": 415000000000,
+    "volume24h": 18592000000,
+    "favorite": false,
+    "description": "Ethereum is a decentralized, open-source blockchain with smart contract functionality.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [2550.18, 2845.36, 3125.89, 3320.15, 3410.45, 3472.86]
+    }
+  },
+  {
+    "id": "23",
+    "name": "Binance Coin",
+    "symbol": "BNB",
+    "category": "Crypto",
+    "currentPrice": 310.55,
+    "priceChange24h": 4.20,
+    "priceChangePercentage24h": 1.37,
+    "marketCap": 50000000000,
+    "volume24h": 2000000000,
+    "favorite": false,
+    "description": "Binance Coin is the cryptocurrency issued by the Binance exchange and powers the Binance ecosystem.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [305.00, 306.50, 308.00, 310.00, 311.00, 310.55]
+    }
+  },
+  {
+    "id": "24",
+    "name": "Cardano",
+    "symbol": "ADA",
+    "category": "Crypto",
+    "currentPrice": 1.25,
+    "priceChange24h": 0.03,
+    "priceChangePercentage24h": 2.44,
+    "marketCap": 40000000000,
+    "volume24h": 1500000000,
+    "favorite": false,
+    "description": "Cardano is a proof-of-stake blockchain platform that aims to provide a more balanced and sustainable ecosystem for cryptocurrencies.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [1.20, 1.22, 1.23, 1.24, 1.26, 1.25]
+    }
+  },
+  {
+    "id": "25",
+    "name": "Solana",
+    "symbol": "SOL",
+    "category": "Crypto",
+    "currentPrice": 110.32,
+    "priceChange24h": 2.15,
+    "priceChangePercentage24h": 1.98,
+    "marketCap": 35000000000,
+    "volume24h": 1200000000,
+    "favorite": false,
+    "description": "Solana is a high-performance blockchain supporting builders around the world creating crypto apps that scale.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [108.00, 109.00, 109.75, 110.00, 110.50, 110.32]
+    }
+  },
+  {
+    "id": "26",
+    "name": "Ripple",
+    "symbol": "XRP",
+    "category": "Crypto",
+    "currentPrice": 0.82,
+    "priceChange24h": 0.01,
+    "priceChangePercentage24h": 1.23,
+    "marketCap": 38000000000,
+    "volume24h": 3000000000,
+    "favorite": false,
+    "description": "Ripple is a real-time gross settlement system, currency exchange, and remittance network.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [0.80, 0.81, 0.82, 0.83, 0.84, 0.82]
+    }
+  },
+  {
+    "id": "27",
+    "name": "Polkadot",
+    "symbol": "DOT",
+    "category": "Crypto",
+    "currentPrice": 29.50,
+    "priceChange24h": -0.55,
+    "priceChangePercentage24h": -1.83,
+    "marketCap": 30000000000,
+    "volume24h": 800000000,
+    "favorite": false,
+    "description": "Polkadot enables cross-blockchain transfers of any type of data or asset, making a wide range of applications interoperable.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [30.00, 29.80, 29.70, 29.60, 29.55, 29.50]
+    }
+  },
+  {
+    "id": "28",
+    "name": "Dogecoin",
+    "symbol": "DOGE",
+    "category": "Crypto",
+    "currentPrice": 0.065,
+    "priceChange24h": 0.002,
+    "priceChangePercentage24h": 3.13,
+    "marketCap": 9000000000,
+    "volume24h": 700000000,
+    "favorite": false,
+    "description": "Dogecoin is a cryptocurrency featuring a likeness of the Shiba Inu dog from the 'Doge' meme as its logo.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [0.063, 0.064, 0.065, 0.066, 0.067, 0.065]
+    }
+  },
+  {
+    "id": "29",
+    "name": "Litecoin",
+    "symbol": "LTC",
+    "category": "Crypto",
+    "currentPrice": 95.45,
+    "priceChange24h": -1.15,
+    "priceChangePercentage24h": -1.19,
+    "marketCap": 6500000000,
+    "volume24h": 2500000000,
+    "favorite": false,
+    "description": "Litecoin is a peer-to-peer cryptocurrency that enables instant, near-zero cost payments to anyone in the world.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [94.00, 94.50, 95.00, 95.20, 95.60, 95.45]
+    }
+  },
+  {
+    "id": "30",
+    "name": "Chainlink",
+    "symbol": "LINK",
+    "category": "Crypto",
+    "currentPrice": 25.30,
+    "priceChange24h": 0.50,
+    "priceChangePercentage24h": 2.02,
+    "marketCap": 12000000000,
+    "volume24h": 900000000,
+    "favorite": false,
+    "description": "Chainlink is a decentralized oracle network providing real-world data to blockchain smart contracts.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [24.50, 24.70, 24.85, 25.00, 25.40, 25.30]
+    }
+  },
+  {
+    "id": "31",
+    "name": "Stellar",
+    "symbol": "XLM",
+    "category": "Crypto",
+    "currentPrice": 0.40,
+    "priceChange24h": 0.005,
+    "priceChangePercentage24h": 1.26,
+    "marketCap": 9000000000,
+    "volume24h": 800000000,
+    "favorite": false,
+    "description": "Stellar is an open network for storing and moving money, aimed at facilitating cross-border transactions.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [0.39, 0.395, 0.40, 0.405, 0.41, 0.40]
+    }
+  },
+  {
+    "id": "32",
+    "name": "USD Coin",
+    "symbol": "USDC",
+    "category": "Crypto",
+    "currentPrice": 1.00,
+    "priceChange24h": 0.00,
+    "priceChangePercentage24h": 0.00,
+    "marketCap": 50000000000,
+    "volume24h": 5000000000,
+    "favorite": false,
+    "description": "USD Coin is a stablecoin pegged to the U.S. dollar, providing stability in the crypto market.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [1.00, 1.00, 1.00, 1.00, 1.00, 1.00]
+    }
+  },
+  {
+    "id": "33",
+    "name": "Uniswap",
+    "symbol": "UNI",
+    "category": "Crypto",
+    "currentPrice": 6.75,
+    "priceChange24h": 0.12,
+    "priceChangePercentage24h": 1.80,
+    "marketCap": 8000000000,
+    "volume24h": 600000000,
+    "favorite": false,
+    "description": "Uniswap is a decentralized trading protocol known for its role in facilitating automated trading of DeFi tokens.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [6.50, 6.60, 6.70, 6.72, 6.78, 6.75]
+    }
+  },
+  {
+    "id": "34",
+    "name": "Bitcoin Cash",
+    "symbol": "BCH",
+    "category": "Crypto",
+    "currentPrice": 250.60,
+    "priceChange24h": -3.50,
+    "priceChangePercentage24h": -1.38,
+    "marketCap": 5000000000,
+    "volume24h": 1200000000,
+    "favorite": false,
+    "description": "Bitcoin Cash is a peer-to-peer electronic cash system that aims to be a fast, reliable, and secure payment mechanism.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [245.00, 247.00, 249.00, 250.00, 251.00, 250.60]
+    }
+  },
+  {
+    "id": "35",
+    "name": "Avalanche",
+    "symbol": "AVAX",
+    "category": "Crypto",
+    "currentPrice": 75.30,
+    "priceChange24h": 1.20,
+    "priceChangePercentage24h": 1.62,
+    "marketCap": 12000000000,
+    "volume24h": 700000000,
+    "favorite": false,
+    "description": "Avalanche is a high-performance, scalable blockchain platform for decentralized applications and enterprise blockchain solutions.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [73.50, 74.00, 74.50, 75.00, 75.50, 75.30]
+    }
+  },
+  {
+    "id": "36",
+    "name": "Terra Classic",
+    "symbol": "LUNC",
+    "category": "Crypto",
+    "currentPrice": 0.00015,
+    "priceChange24h": -0.00001,
+    "priceChangePercentage24h": -6.25,
+    "marketCap": 100000000,
+    "volume24h": 30000000,
+    "favorite": false,
+    "description": "Terra Classic is the original version of the Terra blockchain, known for its previous use in algorithmic stablecoins.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [0.00016, 0.000155, 0.00015, 0.000145, 0.00014, 0.00015]
+    }
+  },
+  {
+    "id": "37",
+    "name": "Algorand",
+    "symbol": "ALGO",
+    "category": "Crypto",
+    "currentPrice": 0.80,
+    "priceChange24h": 0.02,
+    "priceChangePercentage24h": 2.56,
+    "marketCap": 10000000000,
+    "volume24h": 600000000,
+    "favorite": false,
+    "description": "Algorand is a scalable, secure, and decentralized digital currency and transactions platform.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [0.78, 0.79, 0.80, 0.81, 0.82, 0.80]
+    }
+  },
+  {
+    "id": "38",
+    "name": "VeChain",
+    "symbol": "VET",
+    "category": "Crypto",
+    "currentPrice": 0.12,
+    "priceChange24h": 0.003,
+    "priceChangePercentage24h": 2.56,
+    "marketCap": 7000000000,
+    "volume24h": 800000000,
+    "favorite": false,
+    "description": "VeChain is a blockchain platform designed to enhance supply chain management and business processes.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [0.11, 0.115, 0.12, 0.125, 0.13, 0.12]
+    }
+  },
+  {
+    "id": "39",
+    "name": "TRON",
+    "symbol": "TRX",
+    "category": "Crypto",
+    "currentPrice": 0.07,
+    "priceChange24h": 0.001,
+    "priceChangePercentage24h": 1.45,
+    "marketCap": 5000000000,
+    "volume24h": 900000000,
+    "favorite": false,
+    "description": "TRON is a decentralized platform aiming to build a free, global digital content entertainment system.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [0.068, 0.069, 0.07, 0.071, 0.072, 0.07]
+    }
+  },
+  {
+    "id": "40",
+    "name": "Theta Network",
+    "symbol": "THETA",
+    "category": "Crypto",
+    "currentPrice": 7.85,
+    "priceChange24h": 0.15,
+    "priceChangePercentage24h": 1.94,
+    "marketCap": 8000000000,
+    "volume24h": 500000000,
+    "favorite": false,
+    "description": "Theta Network is a blockchain-powered network purpose-built for video streaming.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [7.50, 7.60, 7.70, 7.80, 7.90, 7.85]
+    }
+  },
+  {
+    "id": "41",
+    "name": "Vanguard S&P 500 ETF",
+    "symbol": "VOO",
+    "category": "ETFs",
+    "currentPrice": 473.48,
+    "priceChange24h": 1.05,
+    "priceChangePercentage24h": 0.22,
+    "marketCap": 352000000000,
+    "volume24h": 3958000,
+    "favorite": false,
+    "description": "The Vanguard S&P 500 ETF tracks the performance of the S&P 500 Index, consisting of 500 large-cap U.S. stocks.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [455.22, 457.18, 464.36, 462.89, 470.55, 473.48]
+    }
+  },
+  {
+    "id": "42",
+    "name": "SPDR S&P 500 ETF Trust",
+    "symbol": "SPY",
+    "category": "ETFs",
+    "currentPrice": 445.00,
+    "priceChange24h": 0.90,
+    "priceChangePercentage24h": 0.20,
+    "marketCap": 380000000000,
+    "volume24h": 4000000,
+    "favorite": false,
+    "description": "SPDR S&P 500 ETF Trust seeks to provide investment results that correspond to the S&P 500 Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [435.00, 437.00, 440.00, 443.00, 446.00, 445.00]
+    }
+  },
+  {
+    "id": "43",
+    "name": "Invesco QQQ Trust",
+    "symbol": "QQQ",
+    "category": "ETFs",
+    "currentPrice": 370.25,
+    "priceChange24h": -1.10,
+    "priceChangePercentage24h": -0.30,
+    "marketCap": 160000000000,
+    "volume24h": 3500000,
+    "favorite": false,
+    "description": "Invesco QQQ Trust tracks the Nasdaq-100 Index, comprising 100 of the largest non-financial companies.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [365.00, 366.50, 368.00, 369.50, 371.00, 370.25]
+    }
+  },
+  {
+    "id": "44",
+    "name": "iShares Russell 2000 ETF",
+    "symbol": "IWM",
+    "category": "ETFs",
+    "currentPrice": 230.45,
+    "priceChange24h": 1.20,
+    "priceChangePercentage24h": 0.52,
+    "marketCap": 45000000000,
+    "volume24h": 5000000,
+    "favorite": false,
+    "description": "iShares Russell 2000 ETF tracks an index composed of small-cap U.S. equities.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [225.00, 226.50, 228.00, 229.00, 230.50, 230.45]
+    }
+  },
+  {
+    "id": "45",
+    "name": "iShares MSCI EAFE ETF",
+    "symbol": "EFA",
+    "category": "ETFs",
+    "currentPrice": 85.30,
+    "priceChange24h": 0.45,
+    "priceChangePercentage24h": 0.53,
+    "marketCap": 60000000000,
+    "volume24h": 2000000,
+    "favorite": false,
+    "description": "iShares MSCI EAFE ETF tracks an index of large and mid-cap equities across developed markets outside the U.S. and Canada.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [84.00, 84.20, 84.50, 84.70, 85.20, 85.30]
+    }
+  },
+  {
+    "id": "46",
+    "name": "iShares Core S&P Mid-Cap ETF",
+    "symbol": "IJH",
+    "category": "ETFs",
+    "currentPrice": 280.65,
+    "priceChange24h": -1.50,
+    "priceChangePercentage24h": -0.53,
+    "marketCap": 20000000000,
+    "volume24h": 2500000,
+    "favorite": false,
+    "description": "iShares Core S&P Mid-Cap ETF aims to track the performance of mid-cap U.S. stocks.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [278.00, 278.50, 279.50, 280.00, 281.00, 280.65]
+    }
+  },
+  {
+    "id": "47",
+    "name": "Schwab U.S. Broad Market ETF",
+    "symbol": "SCHB",
+    "category": "ETFs",
+    "currentPrice": 62.80,
+    "priceChange24h": 0.30,
+    "priceChangePercentage24h": 0.48,
+    "marketCap": 25000000000,
+    "volume24h": 3000000,
+    "favorite": false,
+    "description": "Schwab U.S. Broad Market ETF tracks the performance of the Dow Jones U.S. Broad Stock Market Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [62.00, 62.20, 62.50, 62.70, 63.00, 62.80]
+    }
+  },
+  {
+    "id": "48",
+    "name": "Vanguard Total Stock Market ETF",
+    "symbol": "VTI",
+    "category": "ETFs",
+    "currentPrice": 245.90,
+    "priceChange24h": 1.40,
+    "priceChangePercentage24h": 0.57,
+    "marketCap": 220000000000,
+    "volume24h": 4500000,
+    "favorite": false,
+    "description": "Vanguard Total Stock Market ETF aims to track the performance of the CRSP US Total Market Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [242.00, 242.50, 244.00, 245.00, 246.50, 245.90]
+    }
+  },
+  {
+    "id": "49",
+    "name": "iShares Core S&P 500 ETF",
+    "symbol": "IVV",
+    "category": "ETFs",
+    "currentPrice": 440.35,
+    "priceChange24h": 0.95,
+    "priceChangePercentage24h": 0.22,
+    "marketCap": 350000000000,
+    "volume24h": 3800000,
+    "favorite": false,
+    "description": "iShares Core S&P 500 ETF tracks the investment results of the S&P 500 Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [435.00, 435.50, 437.00, 438.50, 441.00, 440.35]
+    }
+  },
+  {
+    "id": "50",
+    "name": "SPDR Gold Shares",
+    "symbol": "GLD",
+    "category": "ETFs",
+    "currentPrice": 180.45,
+    "priceChange24h": 0.80,
+    "priceChangePercentage24h": 0.45,
+    "marketCap": 58000000000,
+    "volume24h": 2300000,
+    "favorite": false,
+    "description": "SPDR Gold Shares is designed to track the price of gold bullion.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [178.00, 178.50, 179.50, 180.00, 181.00, 180.45]
+    }
+  },
+  {
+    "id": "51",
+    "name": "iShares Silver Trust",
+    "symbol": "SLV",
+    "category": "ETFs",
+    "currentPrice": 25.30,
+    "priceChange24h": -0.15,
+    "priceChangePercentage24h": -0.59,
+    "marketCap": 30000000000,
+    "volume24h": 1500000,
+    "favorite": false,
+    "description": "iShares Silver Trust seeks to reflect the performance of the price of silver.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [25.00, 25.10, 25.20, 25.25, 25.35, 25.30]
+    }
+  },
+  {
+    "id": "52",
+    "name": "Invesco S&P 500 Equal Weight ETF",
+    "symbol": "RSP",
+    "category": "ETFs",
+    "currentPrice": 150.75,
+    "priceChange24h": 0.85,
+    "priceChangePercentage24h": 0.57,
+    "marketCap": 30000000000,
+    "volume24h": 2800000,
+    "favorite": false,
+    "description": "Invesco S&P 500 Equal Weight ETF provides equal weight exposure to the S&P 500 Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [149.00, 149.50, 150.00, 150.50, 151.00, 150.75]
+    }
+  },
+  {
+    "id": "53",
+    "name": "Vanguard FTSE Developed Markets ETF",
+    "symbol": "VEA",
+    "category": "ETFs",
+    "currentPrice": 47.90,
+    "priceChange24h": 0.50,
+    "priceChangePercentage24h": 1.06,
+    "marketCap": 100000000000,
+    "volume24h": 2100000,
+    "favorite": false,
+    "description": "Vanguard FTSE Developed Markets ETF tracks the performance of developed market stocks outside the U.S.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [47.00, 47.20, 47.50, 47.70, 48.00, 47.90]
+    }
+  },
+  {
+    "id": "54",
+    "name": "iShares MSCI Emerging Markets ETF",
+    "symbol": "EEM",
+    "category": "ETFs",
+    "currentPrice": 55.30,
+    "priceChange24h": -0.70,
+    "priceChangePercentage24h": -1.25,
+    "marketCap": 80000000000,
+    "volume24h": 2500000,
+    "favorite": false,
+    "description": "iShares MSCI Emerging Markets ETF provides exposure to companies in emerging markets.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [55.00, 55.20, 55.40, 55.30, 55.50, 55.30]
+    }
+  },
+  {
+    "id": "55",
+    "name": "Fidelity MSCI Information Technology ETF",
+    "symbol": "FTEC",
+    "category": "ETFs",
+    "currentPrice": 110.25,
+    "priceChange24h": 1.15,
+    "priceChangePercentage24h": 1.05,
+    "marketCap": 50000000000,
+    "volume24h": 1800000,
+    "favorite": false,
+    "description": "Fidelity MSCI Information Technology ETF tracks the performance of the MSCI US IMI Information Technology Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [108.00, 109.00, 109.50, 110.00, 110.50, 110.25]
+    }
+  },
+  {
+    "id": "56",
+    "name": "First Trust Dow Jones Internet Index Fund",
+    "symbol": "FDN",
+    "category": "ETFs",
+    "currentPrice": 95.80,
+    "priceChange24h": -0.85,
+    "priceChangePercentage24h": -0.88,
+    "marketCap": 25000000000,
+    "volume24h": 2000000,
+    "favorite": false,
+    "description": "First Trust Dow Jones Internet Index Fund tracks the performance of the Dow Jones Internet Composite Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [94.50, 94.80, 95.20, 95.60, 95.90, 95.80]
+    }
+  },
+  {
+    "id": "57",
+    "name": "iShares U.S. Real Estate ETF",
+    "symbol": "IYR",
+    "category": "ETFs",
+    "currentPrice": 84.90,
+    "priceChange24h": 0.30,
+    "priceChangePercentage24h": 0.36,
+    "marketCap": 18000000000,
+    "volume24h": 1700000,
+    "favorite": false,
+    "description": "iShares U.S. Real Estate ETF provides exposure to U.S. real estate companies.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [83.50, 83.80, 84.30, 84.60, 85.00, 84.90]
+    }
+  },
+  {
+    "id": "58",
+    "name": "Financial Select Sector SPDR Fund",
+    "symbol": "XLF",
+    "category": "ETFs",
+    "currentPrice": 40.15,
+    "priceChange24h": 0.25,
+    "priceChangePercentage24h": 0.63,
+    "marketCap": 27000000000,
+    "volume24h": 3500000,
+    "favorite": false,
+    "description": "Financial Select Sector SPDR Fund invests in companies from the U.S. financial sector.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [39.80, 39.90, 40.00, 40.10, 40.20, 40.15]
+    }
+  },
+  {
+    "id": "59",
+    "name": "Health Care Select Sector SPDR Fund",
+    "symbol": "XLV",
+    "category": "ETFs",
+    "currentPrice": 125.65,
+    "priceChange24h": 0.95,
+    "priceChangePercentage24h": 0.76,
+    "marketCap": 21000000000,
+    "volume24h": 2500000,
+    "favorite": false,
+    "description": "Health Care Select Sector SPDR Fund offers exposure to U.S. healthcare companies.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [124.00, 124.50, 125.00, 125.30, 125.90, 125.65]
+    }
+  },
+  {
+    "id": "60",
+    "name": "Vanguard Dividend Appreciation ETF",
+    "symbol": "VIG",
+    "category": "ETFs",
+    "currentPrice": 150.20,
+    "priceChange24h": 0.65,
+    "priceChangePercentage24h": 0.43,
+    "marketCap": 30000000000,
+    "volume24h": 2200000,
+    "favorite": false,
+    "description": "Vanguard Dividend Appreciation ETF tracks the performance of the NASDAQ US Dividend Achievers Select Index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [148.50, 149.00, 149.50, 150.00, 150.50, 150.20]
+    }
+  },
+  {
+    "id": "61",
+    "name": "Vanguard Real Estate ETF",
+    "symbol": "VNQ",
+    "category": "Real Estate",
+    "currentPrice": 84.12,
+    "priceChange24h": -0.42,
+    "priceChangePercentage24h": -0.50,
+    "marketCap": 32000000000,
+    "volume24h": 4982000,
+    "favorite": false,
+    "description": "Vanguard Real Estate ETF seeks to provide a high level of income and moderate long-term capital appreciation.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [80.25, 81.36, 82.47, 83.58, 84.69, 84.12]
+    }
+  },
+  {
+    "id": "62",
+    "name": "Simon Property Group",
+    "symbol": "SPG",
+    "category": "Real Estate",
+    "currentPrice": 140.50,
+    "priceChange24h": 0.85,
+    "priceChangePercentage24h": 0.61,
+    "marketCap": 50000000000,
+    "volume24h": 4000000,
+    "favorite": false,
+    "description": "Simon Property Group is a REIT that invests in shopping malls, outlet centers, and community centers.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [138.00, 138.75, 139.50, 140.00, 140.75, 140.50]
+    }
+  },
+  {
+    "id": "63",
+    "name": "AvalonBay Communities",
+    "symbol": "AVB",
+    "category": "Real Estate",
+    "currentPrice": 220.35,
+    "priceChange24h": -1.20,
+    "priceChangePercentage24h": -0.54,
+    "marketCap": 42000000000,
+    "volume24h": 3500000,
+    "favorite": false,
+    "description": "AvalonBay Communities is a REIT that develops, acquires, and manages apartment communities.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [218.00, 218.75, 219.50, 220.00, 221.00, 220.35]
+    }
+  },
+  {
+    "id": "64",
+    "name": "Prologis, Inc.",
+    "symbol": "PLD",
+    "category": "Real Estate",
+    "currentPrice": 120.90,
+    "priceChange24h": 1.50,
+    "priceChangePercentage24h": 1.25,
+    "marketCap": 100000000000,
+    "volume24h": 3000000,
+    "favorite": false,
+    "description": "Prologis, Inc. is a global leader in logistics real estate, owning and managing industrial properties.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [118.00, 118.75, 119.50, 120.20, 121.00, 120.90]
+    }
+  },
+  {
+    "id": "65",
+    "name": "Public Storage",
+    "symbol": "PSA",
+    "category": "Real Estate",
+    "currentPrice": 290.25,
+    "priceChange24h": -2.20,
+    "priceChangePercentage24h": -0.75,
+    "marketCap": 50000000000,
+    "volume24h": 1500000,
+    "favorite": false,
+    "description": "Public Storage is a REIT specializing in self-storage facilities.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [285.00, 286.00, 287.50, 288.50, 290.00, 290.25]
+    }
+  },
+  {
+    "id": "66",
+    "name": "iShares Core U.S. Aggregate Bond ETF",
+    "symbol": "AGG",
+    "category": "Bonds",
+    "currentPrice": 98.54,
+    "priceChange24h": 0.18,
+    "priceChangePercentage24h": 0.18,
+    "marketCap": 85000000000,
+    "volume24h": 6752000,
+    "favorite": false,
+    "description": "The iShares Core U.S. Aggregate Bond ETF tracks the U.S. investment-grade bond market.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [97.32, 96.85, 97.14, 97.98, 98.32, 98.54]
+    }
+  },
+  {
+    "id": "67",
+    "name": "Vanguard Total Bond Market ETF",
+    "symbol": "BND",
+    "category": "Bonds",
+    "currentPrice": 83.30,
+    "priceChange24h": 0.20,
+    "priceChangePercentage24h": 0.24,
+    "marketCap": 60000000000,
+    "volume24h": 5000000,
+    "favorite": false,
+    "description": "The Vanguard Total Bond Market ETF aims to track the performance of a broad, market-weighted bond index.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [82.50, 82.70, 82.90, 83.10, 83.40, 83.30]
+    }
+  },
+  {
+    "id": "68",
+    "name": "iShares iBoxx $ Investment Grade Corporate Bond ETF",
+    "symbol": "LQD",
+    "category": "Bonds",
+    "currentPrice": 115.65,
+    "priceChange24h": -0.35,
+    "priceChangePercentage24h": -0.30,
+    "marketCap": 45000000000,
+    "volume24h": 3000000,
+    "favorite": false,
+    "description": "The iShares iBoxx $ Investment Grade Corporate Bond ETF tracks the investment-grade corporate bond market.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [114.50, 114.80, 115.20, 115.50, 115.70, 115.65]
+    }
+  },
+  {
+    "id": "69",
+    "name": "SPDR Bloomberg Barclays High Yield Bond ETF",
+    "symbol": "JNK",
+    "category": "Bonds",
+    "currentPrice": 105.90,
+    "priceChange24h": 0.55,
+    "priceChangePercentage24h": 0.52,
+    "marketCap": 25000000000,
+    "volume24h": 4000000,
+    "favorite": false,
+    "description": "The SPDR Bloomberg Barclays High Yield Bond ETF provides exposure to the high-yield corporate bond market.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [105.00, 105.30, 105.60, 105.80, 106.00, 105.90]
+    }
+  },
+  {
+    "id": "70",
+    "name": "Schwab U.S. Aggregate Bond ETF",
+    "symbol": "SCHZ",
+    "category": "Bonds",
+    "currentPrice": 81.45,
+    "priceChange24h": 0.10,
+    "priceChangePercentage24h": 0.12,
+    "marketCap": 20000000000,
+    "volume24h": 3500000,
+    "favorite": false,
+    "description": "Schwab U.S. Aggregate Bond ETF tracks the total return of the U.S. bond market.",
+    "historicalData": {
+      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      "prices": [81.00, 81.10, 81.30, 81.40, 81.50, 81.45]
+    }
+  }
+]
