@@ -36,7 +36,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-blur"
     ],
     "packagerOpts": {
       "config": "metro.config.js",
