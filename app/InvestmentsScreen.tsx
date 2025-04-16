@@ -80,8 +80,8 @@ interface HoldingDataItem {
 }
 
 const chartConfig = {
-  backgroundGradientFrom: "#fff",
-  backgroundGradientTo: "#fff",
+  backgroundGradientFrom: "#ffffff",
+  backgroundGradientTo: "#ffffff",
   color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
   strokeWidth: 2,
@@ -1098,7 +1098,7 @@ const InvestmentsScreen: React.FC = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <View style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eaeaea' }}>
+              <View style={{ backgroundColor: '#ffffff'}}>
                 {renderCategoryFilter()}
               </View>
               <FlatList
@@ -1154,7 +1154,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -1186,8 +1186,6 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 14,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eaeaea',
   },
   assetDetails: {
     flexDirection: 'row',
@@ -1197,7 +1195,7 @@ const styles = StyleSheet.create({
   favoriteButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f3fee8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1213,7 +1211,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -1301,7 +1299,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     flex: 1,
@@ -1319,13 +1317,14 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   assetCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f3fee8',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginTop: 12,
+    marginBottom: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -1428,14 +1427,14 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
     justifyContent: 'center',
     paddingHorizontal: 10,
     paddingTop: 40,
     paddingBottom: 80,
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 20,
     overflow: 'hidden',
     marginTop: 10,
@@ -1473,7 +1472,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -1586,13 +1585,13 @@ const styles = StyleSheet.create({
   },
   portfolioSummary: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -1636,13 +1635,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   portfolioChartContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -1669,13 +1668,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   transactionsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -1719,23 +1718,23 @@ const styles = StyleSheet.create({
   },
   holdingsContainer: {
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
   holdingCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f3fee8',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -1778,7 +1777,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 3,
   },

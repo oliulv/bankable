@@ -16,6 +16,7 @@ import { useUser } from "../context/UserContext";
 import { getAccountTransactions } from "../api/userData";
 import { useRouter } from "expo-router"; // Add this import
 import Constants from "expo-constants";
+import Footer from "../components/Footer"; // Import the Footer component
 
 // Access API Key
 const togetherAiApiKey = Constants.expoConfig?.extra?.togetherAiApiKey;
@@ -78,6 +79,13 @@ export default function BankableAIScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter(); // Initialize router
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Add a function to handle scroll events
+  const handleScroll = (event: { nativeEvent: { contentOffset: { y: number } } }) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setIsScrolled(scrollY > 5); // Add shadow after scrolling 5px
+  };
   
   // Get user data from context
   const { customerData, accounts, isLoading: userDataLoading } = useUser();
@@ -364,112 +372,116 @@ export default function BankableAIScreen() {
   }, [messages]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chat with Bankable AI</Text>
-        <Text style={styles.headerSubtitle}>Get personalized financial advice</Text>
-      </View>
+    <>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        {/* Header with conditional shadow */}
+        <View style={[styles.header, isScrolled && styles.headerWithShadow]}>
+          <Text style={styles.headerTitle}>Chat with Bankable AI</Text>
+          <Text style={styles.headerSubtitle}>Get personalized financial advice</Text>
+        </View>
 
-      {/* Chat Area - This needs to be scrollable and take remaining space */}
-      <View style={styles.chatContainer}>
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {messages.map((msg, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageRow,
-                msg.role === "assistant" ? styles.assistantRow : styles.userRow,
-              ]}
-            >
-              {/* Skip system messages in the UI */}
-              {msg.role === "system" ? null : (
-                <>
-                  {/* If assistant, show turtle icon on the left */}
-                  {msg.role === "assistant" && (
-                    <Image
-                      source={{
-                        uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot_2024-11-17_at_7.03.16_PM-removebg-preview-qYVjiMHoaYBDi7UFT0Diy07RmwLjrH.png",
-                      }}
-                      style={styles.assistantIcon}
-                    />
-                  )}
+        {/* Chat Area - add onScroll handler */}
+        <View style={styles.chatContainer}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            onScroll={handleScroll}
+            scrollEventThrottle={16} // For better performance
+          >
+            {messages.map((msg, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.messageRow,
+                  msg.role === "assistant" ? styles.assistantRow : styles.userRow,
+                ]}
+              >
+                {/* Skip system messages in the UI */}
+                {msg.role === "system" ? null : (
+                  <>
+                    {/* If assistant, show turtle icon on the left */}
+                    {msg.role === "assistant" && (
+                      <Image
+                        source={{
+                          uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot_2024-11-17_at_7.03.16_PM-removebg-preview-qYVjiMHoaYBDi7UFT0Diy07RmwLjrH.png",
+                        }}
+                        style={styles.assistantIcon}
+                      />
+                    )}
 
-                  <View
-                    style={[
-                      styles.messageBubble,
-                      msg.role === "assistant" ? styles.assistantBubble : styles.userBubble,
-                    ]}
-                  >
-                    <Text
+                    <View
                       style={[
-                        styles.messageText,
-                        msg.role === "assistant" ? styles.assistantText : styles.userText,
+                        styles.messageBubble,
+                        msg.role === "assistant" ? styles.assistantBubble : styles.userBubble,
                       ]}
                     >
-                      {msg.content}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.messageText,
+                          msg.role === "assistant" ? styles.assistantText : styles.userText,
+                        ]}
+                      >
+                        {msg.content}
+                      </Text>
 
-                    {/* Navigation buttons - only show for assistant messages */}
-                    {msg.role === "assistant" && msg.navigationOptions && msg.navigationOptions.length > 0 && (
-                      <View style={styles.navigationButtonsContainer}>
-                        {msg.navigationOptions.map((option, optionIndex) => (
-                          <TouchableOpacity
-                            key={optionIndex}
-                            style={styles.navigationButton}
-                            onPress={() => handleNavigation(option.screen, option.params)}
-                          >
-                            <Ionicons name="arrow-forward-circle" size={16} color="#fff" style={styles.navigationButtonIcon} />
-                            <Text style={styles.navigationButtonText}>{option.label}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                </>
-              )}
-            </View>
-          ))}
-          
-          {/* Loading indicator */}
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#006a4d" />
-              <Text style={styles.loadingText}>Thinking...</Text>
-            </View>
-          )}
-        </ScrollView>
-      </View>
+                      {/* Navigation buttons - only show for assistant messages */}
+                      {msg.role === "assistant" && msg.navigationOptions && msg.navigationOptions.length > 0 && (
+                        <View style={styles.navigationButtonsContainer}>
+                          {msg.navigationOptions.map((option, optionIndex) => (
+                            <TouchableOpacity
+                              key={optionIndex}
+                              style={styles.navigationButton}
+                              onPress={() => handleNavigation(option.screen, option.params)}
+                            >
+                              <Ionicons name="arrow-forward-circle" size={16} color="#fff" style={styles.navigationButtonIcon} />
+                              <Text style={styles.navigationButtonText}>{option.label}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+            ))}
+            
+            {/* Loading indicator */}
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#006a4d" />
+                <Text style={styles.loadingText}>Thinking...</Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
 
-      {/* Input Area */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Ask your financial question..."
-          placeholderTextColor="#999"
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={handleSend}
-          returnKeyType="send"
-          editable={!isLoading}
-        />
-        <TouchableOpacity 
-          style={[styles.sendButton, isLoading && styles.sendButtonDisabled]} 
-          onPress={handleSend}
-          disabled={isLoading || !input.trim()}
-        >
-          <Ionicons name="send" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+        {/* Input Area */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Ask your financial question..."
+            placeholderTextColor="#999"
+            value={input}
+            onChangeText={setInput}
+            onSubmitEditing={handleSend}
+            returnKeyType="send"
+            editable={!isLoading}
+          />
+          <TouchableOpacity 
+            style={[styles.sendButton, isLoading && styles.sendButtonDisabled]} 
+            onPress={handleSend}
+            disabled={isLoading || !input.trim()}
+          >
+            <Ionicons name="send" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -477,29 +489,40 @@ export default function BankableAIScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: '#ffffff', // Changed from #f9f9f9
   },
   header: {
-    backgroundColor: "#fff",
+    backgroundColor: '#ffffff', // Changed from #fff
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
+    zIndex: 10, // Ensure header stays above content
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
+    fontSize: 20,
+    fontWeight: "600",
+    color: "000000",
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
     color: "#666",
   },
+  headerWithShadow: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
   chatContainer: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#ffffff",
   },
   scrollView: {
     flex: 1,
@@ -530,16 +553,16 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   assistantBubble: {
-    backgroundColor: "#eaeaea",
+    backgroundColor: '#015F45', // Changed from #eaeaea
   },
   userBubble: {
-    backgroundColor: "#006a4d",
+    backgroundColor: "#f3fee8",
   },
   assistantText: {
-    color: "#333",
+    color: "#ffffff",
   },
   userText: {
-    color: "#fff",
+    color: "#000000",
   },
   messageText: {
     fontSize: 14,
@@ -548,20 +571,23 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     padding: 8,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#ddd",
+    marginBottom: 16,
+    backgroundColor: '#ffffff', // Changed from #fff
     alignItems: "center",
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#f1f1f1",
+    height: 50,
+    backgroundColor: "#f3fee8",
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    fontSize: 14,
+    fontSize: 16,
     marginRight: 8,
     color: "#333",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   sendButton: {
     backgroundColor: "#006a4d",
@@ -586,7 +612,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   navigationButton: {
-    backgroundColor: "#006a4d",
+    backgroundColor: "#f3fee8",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
@@ -596,9 +622,10 @@ const styles = StyleSheet.create({
   },
   navigationButtonIcon: {
     marginRight: 6,
+    color: "#000000",
   },
   navigationButtonText: {
-    color: "#fff",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "500",
   },

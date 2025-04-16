@@ -1,13 +1,13 @@
 // components/Header.tsx
 import React, { useState } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, Image, StyleSheet, TouchableOpacity, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { useUser } from "../context/UserContext";
 import { Sheet, SheetTrigger, SheetContent } from './ui/sheet';
 import SideMenu from "./SideMenu";
 
-export default function Header() {
+export default function Header({ hasScrolled = false, editMode = false, toggleEditMode = () => {} }) {
   const router = useRouter();
   const pathname = usePathname();
   const { customerName } = useUser();
@@ -23,7 +23,10 @@ export default function Header() {
 
   return (
     <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-      <View style={styles.header}>
+      <View style={[
+        styles.header,
+        hasScrolled && isHomePage && styles.headerWithShadow
+      ]}>
         {/* Left side: Conditional turtle or back button + Hello, [Name] */}
         <View style={styles.left}>
           {isHomePage ? (
@@ -41,7 +44,7 @@ export default function Header() {
               onPress={handleBack}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back" size={20} color="#fff" />
+              <Ionicons name="arrow-back" size={20} color="#015f45" />
             </TouchableOpacity>
           )}
           <Text style={styles.userName}>
@@ -49,10 +52,24 @@ export default function Header() {
           </Text>
         </View>
 
-        {/* Right side: menu icon */}
-        <SheetTrigger>
-          <Ionicons name="menu" size={24} color="#fff" />
-        </SheetTrigger>
+        {/* Right side: edit icon (only on home page) and menu icon */}
+        <View style={styles.right}>
+          {isHomePage && (
+            <TouchableOpacity 
+              onPress={toggleEditMode}
+              style={styles.editButton}
+            >
+              <Ionicons 
+                name={editMode ? "checkmark" : "pencil"} 
+                size={22} 
+                color="#015f45" 
+              />
+            </TouchableOpacity>
+          )}
+          <SheetTrigger>
+            <Ionicons name="menu" size={24} color="#015f45" />
+          </SheetTrigger>
+        </View>
       </View>
       
       {/* The sliding menu */}
@@ -65,21 +82,37 @@ export default function Header() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#015f45",
+    backgroundColor: "#ffffff",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    // Remove border
+    // borderBottomWidth: 1,
+    // borderBottomColor: "#f0f0f0",
+  },
+  headerWithShadow: {
+    // Add shadow when scrolled
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
+    zIndex: 10,
   },
   left: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  right: {
     flexDirection: "row",
     alignItems: "center",
   },
   logo: {
     width: 24,
     height: 24,
-    tintColor: "#fff",
+    tintColor: "#015f45",
     marginRight: 8,
   },
   backButton: {
@@ -92,9 +125,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: "#015f45",
+  },
+  editButton: {
+    marginRight: 16,
   },
   sheetContent: {
-    width: '60%', // Make the menu 70% of screen width instead of full width
+    width: '60%', 
   }
 });

@@ -154,7 +154,7 @@ export default function AccountsOverviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
+    backgroundColor: '#ffffff', // Changed from #f5f5f7
   },
   title: {
     fontSize: 24,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0)",
   },
   cardContent: {
     position: "absolute",
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f7',
+    backgroundColor: '#ffffff', // Changed from #f5f5f7
   },
   loadingText: {
     marginTop: 12,
@@ -276,6 +276,6 @@ headerContainer: {
   padding: 16,
   paddingTop: 14,
   paddingBottom: 14,
-  backgroundColor: '#f5f5f7', // Changed from '#fff' to match container background
+  backgroundColor: '#ffffff', // Changed from '#fff' to match container background
 },
 });

@@ -1664,55 +1664,6 @@ const LoansScreen: React.FC = () => {
     </Modal>
   );
 
-  // Render credit profile component
-  const renderCreditProfile = () => (
-    <LinearGradient
-      colors={['#006A4D', '#004a36']}
-      style={styles.creditProfileContainer}
-    >
-      <View style={styles.creditScoreContainer}>
-        <Text style={styles.creditScoreLabel}>Credit Score</Text>
-        <Text style={styles.creditScoreValue}>{creditProfile.creditScore}</Text>
-        
-        <View style={styles.creditScoreIndicator}>
-          <View style={[
-            styles.creditScoreBar,
-            { width: `${Math.min((creditProfile.creditScore / 850) * 100, 100)}%` }
-          ]} />
-        </View>
-        
-        <View style={styles.creditScoreLabels}>
-          <Text style={styles.creditScoreRangeLabel}>Poor</Text>
-          <Text style={styles.creditScoreRangeLabel}>Good</Text>
-          <Text style={styles.creditScoreRangeLabel}>Excellent</Text>
-        </View>
-      </View>
-      
-      <View style={styles.creditDetailsRow}>
-        <View style={styles.creditDetailItem}>
-          <Text style={styles.creditDetailLabel}>Total Debt</Text>
-          <Text style={styles.creditDetailValue}>
-            ${creditProfile.totalDebt.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          </Text>
-        </View>
-        
-        <View style={styles.creditDetailItem}>
-          <Text style={styles.creditDetailLabel}>DTI Ratio</Text>
-          <Text style={styles.creditDetailValue}>
-            {(creditProfile.debtToIncomeRatio * 100).toFixed(1)}%
-          </Text>
-        </View>
-        
-        <View style={styles.creditDetailItem}>
-          <Text style={styles.creditDetailLabel}>Monthly Income</Text>
-          <Text style={styles.creditDetailValue}>
-            ${creditProfile.monthlyIncome.toLocaleString()}
-          </Text>
-        </View>
-      </View>
-    </LinearGradient>
-  );
-
   // Render charts section
   const renderChartsSection = () => (
     <View style={styles.chartsContainer}>
@@ -1784,9 +1735,6 @@ const LoansScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-      
-      {/* Credit Profile */}
-      {renderCreditProfile()}
       
       {/* Search Bar */}
       <View style={styles.searchContainer}>

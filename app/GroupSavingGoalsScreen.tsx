@@ -209,14 +209,17 @@ export default function GroupSavingGoalsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: '#ffffff', // Changed from #f5f5f5
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: '#f3fee8', // Changed from #fff
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
     elevation: 2,
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   cardTitle: {
     fontSize: 16,
@@ -311,7 +314,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: "80%",
-    backgroundColor: "#fff",
+    backgroundColor: '#f3fee8', // Changed from #fff
     borderRadius: 8,
     padding: 16,
   },
@@ -333,7 +336,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 14,
     paddingBottom: 14,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff', // Changed from #f5f5f5
   },
   title: {
     fontSize: 24,
