@@ -114,10 +114,6 @@ export default function AccountDetailsScreen() {
             : '£0.00'}
         </Text>
       </View>
-
-      {/* Border separator */}
-      <View style={styles.separator} />
-
       {/* Transactions Section */}
       <View style={styles.transactionsContainer}>
         <Text style={styles.sectionTitle}>Transactions</Text>
@@ -188,7 +184,7 @@ const styles = StyleSheet.create({
   balanceContainer: {
     padding: 16,
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 8,
     backgroundColor: '#ffffff', // Changed from #f5f5f7
   },
   balanceLabel: {
@@ -209,6 +205,7 @@ const styles = StyleSheet.create({
   transactionsContainer: {
     flex: 1,
     padding: 16,
+    paddingBottom: 0,
   },
   sectionTitle: {
     fontSize: 20,

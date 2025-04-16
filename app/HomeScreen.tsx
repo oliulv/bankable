@@ -1444,7 +1444,8 @@ export default function HomeScreen(): JSX.Element {
                 snapToAlignment="center"
                 onScroll={onScroll}
                 onScrollEndDrag={onScrollEndDrag}
-                scrollEventThrottle={8} // Changed from 16 to 8 for more responsive tracking
+                removeClippedSubviews={true}
+                scrollEventThrottle={4} // Changed from 16 to 8 for more responsive tracking
                 contentContainerStyle={{ paddingHorizontal: SPACING }}
                 getItemLayout={(data, index) => ({
                   length: CARD_WIDTH + 8,

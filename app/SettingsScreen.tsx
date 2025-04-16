@@ -31,6 +31,9 @@ export default function SettingsScreen() {
           <Switch
             value={darkMode}
             onValueChange={(value) => setDarkMode(value)}
+            trackColor={{ false: "#f9f9f9", true: "#f3fee8" }}
+            thumbColor={darkMode ? "#006a4d" : "#006a4d"}
+            ios_backgroundColor="#fff"
           />
         </View>
       </View>
@@ -46,6 +49,9 @@ export default function SettingsScreen() {
           <Switch
             value={pushNotifications}
             onValueChange={(value) => setPushNotifications(value)}
+            trackColor={{ false: "#fff", true: "#f3fee8" }}
+            thumbColor={pushNotifications ? "#006a4d" : "#006a4d"}
+            ios_backgroundColor="#fff"
           />
         </View>
         <View style={styles.row}>
@@ -53,6 +59,9 @@ export default function SettingsScreen() {
           <Switch
             value={emailAlerts}
             onValueChange={(value) => setEmailAlerts(value)}
+            trackColor={{ false: "#fff", true: "#f3fee8" }}
+            thumbColor={emailAlerts ? "#006a4d" : "#006a4d"}
+            ios_backgroundColor="#fff"
           />
         </View>
       </View>

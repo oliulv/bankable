@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,6 +9,8 @@ import {
   Dimensions,
   ActivityIndicator,
   SafeAreaView,
+  NativeSyntheticEvent,
+  NativeScrollEvent
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,6 +54,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
     energy: 95.4,
   });
   const [selectedPeriod, setSelectedPeriod] = useState<string>('month');
+  const [hasScrolled, setHasScrolled] = useState(false);
 
   const recentTransactions: Transaction[] = [
     {
@@ -144,8 +147,8 @@ const EcoFinancialImpactScreen: React.FC = () => {
   }, []);
 
   const chartConfig = {
-    backgroundGradientFrom: '#fff',
-    backgroundGradientTo: '#fff',
+    backgroundGradientFrom: '#f3fee8',
+    backgroundGradientTo: '#f3fee8',
     color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
     strokeWidth: 2,
     barPercentage: 0.6,
@@ -187,6 +190,15 @@ const EcoFinancialImpactScreen: React.FC = () => {
     },
   ];
 
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    if (scrollY > 0 && !hasScrolled) {
+      setHasScrolled(true);
+    } else if (scrollY <= 0 && hasScrolled) {
+      setHasScrolled(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {loading ? (
@@ -196,13 +208,20 @@ const EcoFinancialImpactScreen: React.FC = () => {
         </View>
       ) : (
         <>
-          {/* Static Header */}
-          <View style={styles.headerContainer}>
+          {/* Header with conditional shadow */}
+          <View style={[
+            styles.headerContainer, 
+            hasScrolled && styles.headerWithShadow
+          ]}>
             <Text style={styles.title}>Eco Financial Impact</Text>
             <Text style={styles.subtitle}>Track your sustainable spending footprint</Text>
           </View>
           
-          <ScrollView style={styles.scrollView}>
+          <ScrollView 
+            style={styles.scrollView}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          >
             {/* Carbon Footprint Summary Card */}
             <View style={styles.carbonSummaryContainer}>
               <View style={styles.carbonSummary}>
@@ -314,40 +333,46 @@ const EcoFinancialImpactScreen: React.FC = () => {
             {/* Tab Content */}
             {activeTab === 'impact' && (
               <View style={styles.tabContent}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Carbon Impact Over Time</Text>
-                  <TouchableOpacity>
-                    <Text style={styles.seeAllText}>Details</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.chartContainer}>
-                  <LineChart
-                    data={impactData}
-                    width={screenWidth - 40}
-                    height={220}
-                    chartConfig={chartConfig}
-                    bezier
-                    style={styles.chart}
-                  />
+                {/* Carbon Impact Over Time Section */}
+                <View style={styles.chartSectionContainer}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Carbon Impact Over Time</Text>
+                    <TouchableOpacity>
+                      <Text style={styles.seeAllText}>Details</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.chartContainer}>
+                    <LineChart
+                      data={impactData}
+                      width={screenWidth - 60}
+                      height={220}
+                      chartConfig={chartConfig}
+                      bezier
+                      style={styles.chart}
+                    />
+                  </View>
                 </View>
 
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Spending by Impact Category</Text>
-                  <TouchableOpacity>
-                    <Text style={styles.seeAllText}>Details</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.chartContainer}>
-                  <PieChart
-                    data={spendingCategoryData}
-                    width={screenWidth - 40}
-                    height={200}
-                    chartConfig={chartConfig}
-                    accessor="impact"
-                    backgroundColor="transparent"
-                    paddingLeft="15"
-                    absolute
-                  />
+                {/* Spending by Impact Category Section */}
+                <View style={styles.chartSectionContainer}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Spending by Impact Category</Text>
+                    <TouchableOpacity>
+                      <Text style={styles.seeAllText}>Details</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.chartContainer}>
+                    <PieChart
+                      data={spendingCategoryData}
+                      width={screenWidth - 40}
+                      height={200}
+                      chartConfig={chartConfig}
+                      accessor="impact"
+                      backgroundColor="transparent"
+                      paddingLeft="15"
+                      absolute
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.sectionHeader}>
@@ -421,7 +446,6 @@ const EcoFinancialImpactScreen: React.FC = () => {
                   </View>
                   <View style={styles.ecoPointsContainer}>
                     <MaterialCommunityIcons name="leaf" size={18} color="#006a4d" />
-                    <Text style={styles.ecoPoints}>1,250 points</Text>
                   </View>
                 </View>
 
@@ -580,14 +604,11 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     padding: 16,
-    backgroundColor: '#f3fee8', // Changed from #FFF
+    backgroundColor: '#ffffff', //Changed from #FF
     borderRadius: 12,
     marginHorizontal: 16, // Match the tabs container margins
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+
     elevation: 2,
   },
   loadingText: {
@@ -604,8 +625,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 14,
     backgroundColor: '#ffffff', // Changed from #fff
-    borderBottomWidth: 1,
-    borderBottomColor: '#eaeaea',
+    zIndex: 10, // Ensure header stays above content
   },
   title: {
     fontSize: 24,
@@ -643,18 +663,13 @@ const styles = StyleSheet.create({
   },
   // Carbon summary styling to match portfolio summary in InvestmentsScreen
   carbonSummaryContainer: {
-    padding: 16,
+    padding: 10,
     paddingBottom: 0,
   },
   carbonSummary: {
-    backgroundColor: '#f3fee8', // Changed from #fff
+    backgroundColor: '#ffffff', // Changed from #fff
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    padding: 10,
     elevation: 2,
   },
   carbonValueContainer: {
@@ -674,7 +689,7 @@ const styles = StyleSheet.create({
   periodSelectorContainer: {
     flexDirection: 'row',
     marginTop: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '##f3fee8',
   },
   periodButton: {
     paddingVertical: 6,
@@ -703,16 +718,13 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   metricCard: {
-    backgroundColor: '#f3fee8', // Changed from #FFF
+    backgroundColor: '#ffffff', // Changed from #FFF
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
     flex: 1,
     marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+
     elevation: 2,
   },
   metricValue: {
@@ -744,15 +756,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#006a4d',
   },
-  chartContainer: {
-    backgroundColor: '#FFF',
+  chartContainer2: {
+    backgroundColor: '#f3fee8',
     borderRadius: 12,
-    padding: 10,
+    padding: 13,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
     elevation: 2,
     alignItems: 'center',
   },
@@ -767,10 +775,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+
     elevation: 2,
   },
   transactionIconContainer: {
@@ -800,6 +805,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  chartSectionContainer: {
+  backgroundColor: '#f3fee8',
+  borderRadius: 12,
+  padding: 8,
+  marginBottom: 20,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 5,
+  elevation: 2,
+  },
+  chartContainer: {
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    marginVertical: 14,
+    alignItems: 'center',
+  },
   carbonAmount: {
     fontSize: 13,
     color: '#006a4d',
@@ -812,10 +834,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
     elevation: 2,
   },
   actionIconContainer: {
@@ -1116,10 +1134,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#F5F5F5',
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
+    paddingTop: 10,
+    backgroundColor: '#ffffff',
+    paddingBottom: 20,
   },
   footerText: {
     fontSize: 12,
@@ -1164,6 +1181,13 @@ const styles = StyleSheet.create({
   enhancedActiveTabText: {
     color: '#006a4d',
     fontWeight: '600',
+  },
+  headerWithShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });
 

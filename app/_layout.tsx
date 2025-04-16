@@ -45,10 +45,14 @@ export default function RootLayout() {
 function CustomSafeLayout({ isLoginScreen, hasScrolled }: { isLoginScreen: boolean, hasScrolled: boolean }) {
   const { editMode, toggleEditMode } = useEditMode();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname(); // Add this line to get the current pathname
   
   // Calculate reduced insets (50% of original)
   const topInset = Math.max(insets.top * 0.9, 5); // At least 5px for status bar
   const bottomInset = Math.max(insets.bottom * 0.5, 3);
+
+  // Check if current path is BankableAIScreen
+  const isBankableAIScreen = pathname === '/BankableAIScreen';
 
   return (
     <View style={[
@@ -70,7 +74,7 @@ function CustomSafeLayout({ isLoginScreen, hasScrolled }: { isLoginScreen: boole
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
       </View>
       
-      {!isLoginScreen && <Footer />}
+      {!isLoginScreen && <Footer noShadow={isBankableAIScreen} />}
     </View>
   );
 }
