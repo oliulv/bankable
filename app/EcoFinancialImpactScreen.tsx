@@ -571,7 +571,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#ffffff', // Changed from #F9F9F9
   },
   loadingContainer: {
     flex: 1,
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     padding: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #FFF
     borderRadius: 12,
     marginHorizontal: 16, // Match the tabs container margins
     marginBottom: 16,
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 14,
     paddingBottom: 14,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff', // Changed from #fff
     borderBottomWidth: 1,
     borderBottomColor: '#eaeaea',
   },
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   carbonSummary: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f3fee8', // Changed from #fff
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   metricCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #FFF
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
   transactionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #FFF
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #FFF
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   challengeCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #FFF
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
@@ -999,7 +999,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   communityCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #fff
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
@@ -1059,7 +1059,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tipCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #fff
     borderRadius: 12,
     width: 150,
     marginRight: 12,
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: '#f3fee8', // Changed from #fff
     borderRadius: 12,
     padding: 15,
     marginTop: 10,

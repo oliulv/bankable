@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
   },
   widgetPreview: {
     padding: 16,
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.01,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: SPACING,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#ffffff',
   },
   noAccountText: {
     fontSize: 16,
@@ -229,18 +229,18 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     elevation: 3,
     shadowColor: "#000",
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowRadius: 4, // Add explicit white background
   },
   cardImage: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
-    height: '100%',
+    height: '100%', // Add white background to images
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0)", // Increase opacity from 0.3 to 0.5
   },
   headerCardContent: {
     position: "absolute",
@@ -248,6 +248,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    paddingLeft: 26, 
     padding: 16,
     justifyContent: "center",
   },
@@ -258,17 +259,18 @@ const styles = StyleSheet.create({
   },
   accountType: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "500",
     color: "#fff",
     marginBottom: 4,
   },
   accountNumber: {
     fontSize: 14,
     color: "#fff",
+    paddingBottom: 14,
   },
   balance: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "500",
     color: "#fff",
     marginBottom: 12,
   },
@@ -278,11 +280,11 @@ const styles = StyleSheet.create({
   widgetContainer: {
     position: "relative",
     marginBottom: 16,
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -310,12 +312,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   affirmationSection: {
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 16,
     padding: 16,
   },
   affirmationBox: {
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 8,
     padding: 16,
     marginTop: 8,
@@ -328,7 +330,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   transactionItem: {
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -354,10 +356,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   inflow: {
-    color: "#4CAF50",
+    color: "#015F45", // Changed from "#4CAF50" to "#015F45"
   },
   outflow: {
-    color: "#333", // Changed from #F44336 (red) to black
+    color: "#333",
   },
   goalRow: {
     flexDirection: "row",
@@ -386,7 +388,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   insightsBox: {
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 8,
     padding: 12,
     flexDirection: "row",
@@ -404,7 +406,7 @@ const styles = StyleSheet.create({
   },
   quickActionButton: {
     width: "48%",
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
@@ -439,8 +441,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
     elevation: 5,
   },
   modalContainer: {
@@ -458,7 +460,7 @@ const styles = StyleSheet.create({
     width: screenWidth - 40,
     padding: 16,
     marginRight: 16,
-    backgroundColor: "#f8fff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 12,
   },
   widgetPreviewContent: {
@@ -959,6 +961,20 @@ export default function HomeScreen(): JSX.Element {
       fetchTransactionsForAccount(accounts[currentIndex].account_id);
     }
   }, [currentIndex, accounts]);
+
+  // Preload all card images when component mounts
+  useEffect(() => {
+    // Preload all card images when component mounts
+    if (accounts.length > 0) {
+      accounts.forEach(item => {
+        const imageSource = productTypeToImage[item.product.product_type] || 
+                      require("../assets/images/carddesign.png");
+        if (typeof imageSource === 'number') {
+          Image.prefetch(Image.resolveAssetSource(imageSource).uri);
+        }
+      });
+    }
+  }, [accounts]);
 
   // Format transactions for display
   const formatTransactions = (rawTransactions: any[] = []): Transaction[] => {
@@ -1467,6 +1483,7 @@ export default function HomeScreen(): JSX.Element {
                             size={20}
                             color="#fff"
                             style={{ marginRight: 8 }}
+                            paddingBottom={14}
                           />
                           <Text style={styles.accountNumber}>{item.account_id}</Text>
                         </View>

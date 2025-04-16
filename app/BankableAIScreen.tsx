@@ -477,15 +477,18 @@ export default function BankableAIScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: '#ffffff', // Changed from #f9f9f9
   },
   header: {
-    backgroundColor: "#fff",
+    backgroundColor: '#ffffff', // Changed from #fff
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   headerTitle: {
     fontSize: 18,
@@ -499,7 +502,7 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#ffffff",
   },
   scrollView: {
     flex: 1,
@@ -530,16 +533,16 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   assistantBubble: {
-    backgroundColor: "#eaeaea",
+    backgroundColor: '#015F45', // Changed from #eaeaea
   },
   userBubble: {
-    backgroundColor: "#006a4d",
+    backgroundColor: "#f3fee8",
   },
   assistantText: {
-    color: "#333",
+    color: "#ffffff",
   },
   userText: {
-    color: "#fff",
+    color: "#000000",
   },
   messageText: {
     fontSize: 14,
@@ -548,14 +551,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     padding: 8,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#ddd",
+    backgroundColor: '#ffffff', // Changed from #fff
     alignItems: "center",
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#f1f1f1",
+    backgroundColor: "#f3fee8",
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -586,7 +587,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   navigationButton: {
-    backgroundColor: "#006a4d",
+    backgroundColor: "#f3fee8",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
@@ -596,9 +597,10 @@ const styles = StyleSheet.create({
   },
   navigationButtonIcon: {
     marginRight: 6,
+    color: "#000000",
   },
   navigationButtonText: {
-    color: "#fff",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "500",
   },

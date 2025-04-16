@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   containerLight: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: '#ffffff', // Changed from #f5f5f5
   },
   containerDark: {
     backgroundColor: "#1e1e1e",
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: "#e0e0e0",
+    backgroundColor: '#f3fee8', // Changed from #e0e0e0
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,

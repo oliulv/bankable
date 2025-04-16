@@ -60,7 +60,7 @@ export default function Header({ hasScrolled = false, editMode = false, toggleEd
               style={styles.editButton}
             >
               <Ionicons 
-                name={editMode ? "checkmark" : "pencil-outline"} 
+                name={editMode ? "checkmark" : "pencil"} 
                 size={22} 
                 color="#015f45" 
               />

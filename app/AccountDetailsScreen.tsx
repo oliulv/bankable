@@ -136,7 +136,7 @@ export default function AccountDetailsScreen() {
                   <Ionicons
                     name={getIconForCategory(item.transaction_category)}
                     size={24}
-                    color="##015F45"
+                    color="#015F45"
                     style={styles.transactionIcon}
                   />
                   <View>
@@ -172,13 +172,13 @@ export default function AccountDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
+    backgroundColor: '#ffffff', // Changed from #f5f5f7
   },
   headerContainer: {
     padding: 16,
     paddingTop: 14,
     paddingBottom: 6,
-    backgroundColor: '#f5f5f7',
+    backgroundColor: '#ffffff', // Changed from #f5f5f7
   },
   title: {
     fontSize: 24,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 8,
     paddingBottom: 16,
-    backgroundColor: '#f5f5f7',
+    backgroundColor: '#ffffff', // Changed from #f5f5f7
   },
   balanceLabel: {
     fontSize: 14,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   transactionItem: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f3fee8', // Changed from #ffffff
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
@@ -272,9 +272,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   positive: {
-    color: '#4caf50',
+    color: '#015F45', // Changed from '#4caf50' to '#015F45'
   },
   negative: {
-    color: '#f44336',
+    color: '#000000', // Changed from '#f44336' (red) to black
   },
 });
