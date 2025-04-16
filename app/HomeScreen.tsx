@@ -22,6 +22,8 @@ import { getAccountTransactions } from "../api/userData";
 import { BlurView } from 'expo-blur';
 import { useScrollStatus } from "./_layout";
 import { useEditMode } from '../context/EditModeContext';
+import { Image as ExpoImage } from 'expo-image';
+
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth * 0.85; 
@@ -1470,11 +1472,12 @@ export default function HomeScreen(): JSX.Element {
                         });
                       }}
                     >
-                      <Image
-                        source={imageSource}
-                        style={styles.cardImage}
-                        resizeMode="cover"
-                      />
+                      <ExpoImage
+                                source={require('../assets/images/carddesign.png')}
+                                style={styles.cardImage}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                              />
                       <View style={styles.overlay} />
                       <View style={styles.headerCardContent}>
                         <Text style={styles.accountType}>{item.product.product_type}</Text>
