@@ -629,7 +629,7 @@ const InvestmentsScreen: React.FC = () => {
     const listData: any[] = [];
 
     if (activePortfolioTab === 'holdings') {
-      // Holdings Data
+      // Holdings Data handling (unchanged)
       const holdingsData = Object.entries(portfolio.assets)
         .map(([assetId, holding]): (HoldingDataItem & { type: 'holding'; id: string }) | null => {
           if (holding.quantity <= 0) return null;
@@ -651,7 +651,7 @@ const InvestmentsScreen: React.FC = () => {
       if (portfolio.transactions.length > 0) {
         const transactionItems = portfolio.transactions.map(t => ({ 
           ...t, 
-          type: 'transaction', 
+          itemType: 'transaction', // Change to itemType instead of type
           id: `tx-${t.id}` 
         }));
         listData.push(...transactionItems);
@@ -664,11 +664,12 @@ const InvestmentsScreen: React.FC = () => {
   };
 
   const renderPortfolioItem = ({ item }: { item: any }) => {
-    switch (item.type) {
+    // Check for itemType first (for transactions), then fall back to type for other items
+    switch (item.itemType === 'transaction' ? item.itemType : item.type) {
       case 'header':
-        // Add some margin below the header for spacing
         return <Text style={[styles.sectionTitle, { marginTop: 16, marginBottom: 8 }]}>{item.title}</Text>;
       case 'holding':
+        // Holding rendering code (unchanged)
         const { asset, holding } = item;
         const currentValue = asset.currentPrice * holding.quantity;
         const investedValue = holding.averagePrice * holding.quantity;
@@ -703,7 +704,7 @@ const InvestmentsScreen: React.FC = () => {
           </TouchableOpacity>
         );
       case 'transaction':
-        // Ensure renderTransactionItem is adapted if needed, or call it directly
+        // Now the original item.type (buy/sell) is preserved
         return renderTransactionItem({ item });
       case 'emptyHoldings':
          return (
