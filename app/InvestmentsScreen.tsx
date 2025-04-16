@@ -729,9 +729,10 @@ const InvestmentsScreen: React.FC = () => {
                 }}
                 initialNumToRender={3}
                 maxToRenderPerBatch={5}
-                showsVerticalScrollIndicator={true}
+                showsVerticalScrollIndicator={false}
                 style={styles.holdingsList}
                 contentContainerStyle={styles.holdingsListContent}
+                scrollEnabled={false} // Add this line
               />
               {holdingsData.length > 3 && (
                 <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
@@ -756,9 +757,10 @@ const InvestmentsScreen: React.FC = () => {
                 renderItem={({ item }) => renderTransactionItem({ item })}
                 initialNumToRender={3}
                 maxToRenderPerBatch={5}
-                showsVerticalScrollIndicator={true}
+                showsVerticalScrollIndicator={false}
                 style={styles.transactionsList}
                 contentContainerStyle={styles.transactionsListContent}
+                scrollEnabled={false} // Add this line
               />
               {portfolio.transactions.length > 3 && (
                 <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
@@ -1049,19 +1051,33 @@ const InvestmentsScreen: React.FC = () => {
         <Text style={styles.title}>Investments</Text>
         <Text style={styles.subtitle}>Take control of your financial future.</Text>
       </View>
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'assets' && styles.activeTab]}
-          onPress={() => setActiveTab('assets')}
-        >
-          <Text style={[styles.tabText, activeTab === 'assets' && styles.activeTabText]}>Assets</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'portfolio' && styles.activeTab]}
-          onPress={() => setActiveTab('portfolio')}
-        >
-          <Text style={[styles.tabText, activeTab === 'portfolio' && styles.activeTabText]}>Portfolio</Text>
-        </TouchableOpacity>
+      <View style={styles.pillTabContainer}>
+        <View style={styles.pillTabWrapper}>
+          <TouchableOpacity
+            style={[
+              styles.pillTab,
+              activeTab === 'assets' && styles.activePillTab
+            ]}
+            onPress={() => setActiveTab('assets')}
+          >
+            <Text style={[
+              styles.pillTabText,
+              activeTab === 'assets' && styles.activePillTabText
+            ]}>Assets</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.pillTab,
+              activeTab === 'portfolio' && styles.activePillTab
+            ]}
+            onPress={() => setActiveTab('portfolio')}
+          >
+            <Text style={[
+              styles.pillTabText,
+              activeTab === 'portfolio' && styles.activePillTabText
+            ]}>Portfolio</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -1072,32 +1088,6 @@ const InvestmentsScreen: React.FC = () => {
         <View style={styles.contentContainer}>
           {activeTab === 'assets' ? (
             <View style={{ flex: 1 }}>
-              <View style={styles.filtersContainer}>
-                <View style={styles.searchContainer}>
-                  <Ionicons name="search" size={20} color="#777" />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search assets..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    clearButtonMode="while-editing"
-                  />
-                </View>
-                <TouchableOpacity
-                  style={styles.sortButton}
-                  onPress={() => {
-                    const options: ('name' | 'price' | 'change')[] = ['name', 'price', 'change'];
-                    const currentIndex = options.indexOf(sortOption);
-                    const nextIndex = (currentIndex + 1) % options.length;
-                    setSortOption(options[nextIndex]);
-                  }}
-                >
-                  <MaterialCommunityIcons name="sort" size={24} color="#333" />
-                  <Text style={styles.sortLabel}>
-                    {sortOption === 'name' ? 'Name' : sortOption === 'price' ? 'Price' : 'Change'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
               <View style={{ backgroundColor: '#ffffff'}}>
                 {renderCategoryFilter()}
               </View>
@@ -1117,9 +1107,13 @@ const InvestmentsScreen: React.FC = () => {
               />
             </View>
           ) : (
-            <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-              {renderPortfolioAnalytics()}
-            </ScrollView>
+            // Replace ScrollView with FlatList for the Portfolio tab
+            <FlatList
+              data={[{key: 'portfolio_analytics'}]}
+              renderItem={() => renderPortfolioAnalytics()}
+              keyExtractor={item => item.key}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            />
           )}
         </View>
       )}
@@ -1195,7 +1189,7 @@ const styles = StyleSheet.create({
   favoriteButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#f3fee8',
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1279,17 +1273,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f3fee8',
   },
   categoryFilterButtonActive: {
     backgroundColor: '#006a4d',
   },
   categoryFilterText: {
     fontSize: 14,
-    color: '#555',
+    color: '#015F45',
   },
   categoryFilterTextActive: {
-    color: '#fff',
+    color: '#f3fee8',
     fontWeight: '600',
   },
   scrollIndicator: {
@@ -1317,7 +1311,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   assetCard: {
-    backgroundColor: '#f3fee8',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
@@ -1728,7 +1722,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   holdingCard: {
-    backgroundColor: '#f3fee8',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -1901,6 +1895,38 @@ const styles = StyleSheet.create({
   },
   transactionsListContent: {
     paddingVertical: 4,
+  },
+  pillTabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    backgroundColor: '#ffffff',
+  },
+  pillTabWrapper: {
+    flexDirection: 'row',
+    backgroundColor: '#f3fee8',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  pillTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  activePillTab: {
+    backgroundColor: '#015F45',
+  },
+  pillTabText: {
+    fontSize: 16,
+    color: '#015F45',
+  },
+  activePillTabText: {
+    color: '#f3fee8',
+    fontWeight: '600',
   },
 });
 
