@@ -17,9 +17,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../context/UserContext";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { getAccountTransactions } from "../api/userData";
 import { BlurView } from 'expo-blur';
+import { useScrollStatus } from "./_layout";
+import { useEditMode } from '../context/EditModeContext';
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth * 0.85; 
@@ -122,7 +124,7 @@ const CARD_HEIGHT = 200;
 const styles = StyleSheet.create({
   container: {
     paddingBottom: 32,
-    backgroundColor: "#f5f5f7",
+    backgroundColor: "#ffffff", // Changed to white
   },
   miniProgressBar: {
     height: 4,
@@ -133,7 +135,7 @@ const styles = StyleSheet.create({
   },
   miniProgressFill: {
     height: '100%',
-    backgroundColor: '#4f9f9f',
+    backgroundColor: '#015F45', // Changed from #015F45 to dark green
     borderRadius: 2,
   },
   previewTitle: {
@@ -152,7 +154,7 @@ const styles = StyleSheet.create({
   },
   widgetPreview: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcomeHeader: {
-    backgroundColor: "#4f9f9f",
+    backgroundColor: "#015F45",
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 16,
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
   paginationDotActive: {
-    backgroundColor: "#4f9f9f",
+    backgroundColor: "#015F45", // Changed from #015F45 to dark green
     width: 10,
     height: 10,
     borderRadius: 5,
@@ -276,7 +278,7 @@ const styles = StyleSheet.create({
   widgetContainer: {
     position: "relative",
     marginBottom: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -292,7 +294,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   section: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffff1", // Changed to light green
     borderRadius: 16,
     padding: 16,
   },
@@ -308,12 +310,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   affirmationSection: {
-    backgroundColor: "#fff",
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 16,
     padding: 16,
   },
   affirmationBox: {
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 8,
     padding: 16,
     marginTop: 8,
@@ -326,7 +328,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   transactionItem: {
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -355,7 +357,7 @@ const styles = StyleSheet.create({
     color: "#4CAF50",
   },
   outflow: {
-    color: "#F44336",
+    color: "#333", // Changed from #F44336 (red) to black
   },
   goalRow: {
     flexDirection: "row",
@@ -370,7 +372,7 @@ const styles = StyleSheet.create({
   goalPercent: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#4f9f9f",
+    color: "#015F45", // Changed from #015F45 to dark green
   },
   progressBarBackground: {
     height: 8,
@@ -380,11 +382,11 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#4f9f9f",
+    backgroundColor: "#015F45", // Changed from #015F45 to dark green
     borderRadius: 4,
   },
   insightsBox: {
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 8,
     padding: 12,
     flexDirection: "row",
@@ -402,7 +404,7 @@ const styles = StyleSheet.create({
   },
   quickActionButton: {
     width: "48%",
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
@@ -419,7 +421,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    color: "#4f9f9f",
+    color: "#015F45", // Changed from #015F45 to dark green
     fontWeight: "500",
   },
   addButtonContainer: {
@@ -456,7 +458,7 @@ const styles = StyleSheet.create({
     width: screenWidth - 40,
     padding: 16,
     marginRight: 16,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: "#f8fff1", // Changed to light green
     borderRadius: 12,
   },
   widgetPreviewContent: {
@@ -494,7 +496,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#4f9f9f',
+    borderColor: '#015F45', // Changed from #015F45 to dark green
     borderStyle: 'dashed',
     zIndex: 5,
   },
@@ -502,7 +504,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     right: 20,
-    backgroundColor: '#4f9f9f',
+    backgroundColor: '#015F45', // Changed from #015F45 to dark green
     borderRadius: 20,
     padding: 8,
     zIndex: 1000,
@@ -578,7 +580,7 @@ const styles = StyleSheet.create({
   },
   widgetPreviewButtonText: {
     fontSize: 12,
-    color: '#4f9f9f',
+    color: '#015F45', // Changed from #015F45 to dark green
     fontWeight: '500',
   },
 });
@@ -616,7 +618,7 @@ const InvestmentPreview = () => {
     <View style={styles.widgetPreview}>
       <View style={styles.widgetPreviewHeader}>
         <View style={styles.widgetIconPreview}>
-          <Ionicons name="trending-up" size={24} color="#4f9f9f" />
+          <Ionicons name="trending-up" size={24} color="#015F45" />
         </View>
         <View>
           <Text style={styles.widgetPreviewTitle}>Investment Portfolio</Text>
@@ -654,7 +656,7 @@ const LoansPreview = () => {
     <View style={styles.widgetPreview}>
       <View style={styles.widgetPreviewHeader}>
         <View style={styles.widgetIconPreview}>
-          <Ionicons name="cash" size={24} color="#4f9f9f" />
+          <Ionicons name="cash" size={24} color="#015F45" />
         </View>
         <View>
           <Text style={styles.widgetPreviewTitle}>Active Loans</Text>
@@ -689,7 +691,7 @@ const GroupSavingsPreview = () => {
     <View style={styles.widgetPreview}>
       <View style={styles.widgetPreviewHeader}>
         <View style={styles.widgetIconPreview}>
-          <Ionicons name="people" size={24} color="#4f9f9f" />
+          <Ionicons name="people" size={24} color="#015F45" />
         </View>
         <View>
           <Text style={styles.widgetPreviewTitle}>Group Savings</Text>
@@ -726,7 +728,7 @@ const StockPricePreview = () => {
     <View style={styles.widgetPreview}>
       <View style={styles.widgetPreviewHeader}>
         <View style={styles.widgetIconPreview}>
-          <Ionicons name="stats-chart" size={24} color="#4f9f9f" />
+          <Ionicons name="stats-chart" size={24} color="#015F45" />
         </View>
         <View>
           <Text style={styles.widgetPreviewTitle}>Market Watch</Text>
@@ -766,7 +768,7 @@ const VirtualPetPreview = () => {
     <View style={styles.widgetPreview}>
       <View style={styles.widgetPreviewHeader}>
         <View style={styles.widgetIconPreview}>
-          <Ionicons name="paw" size={24} color="#4f9f9f" />
+          <Ionicons name="paw" size={24} color="#015F45" />
         </View>
         <View>
           <Text style={styles.widgetPreviewTitle}>Virtual Pet: {mockData.petName}</Text>
@@ -804,7 +806,7 @@ const EcoImpactPreview = () => {
     <View style={styles.widgetPreview}>
       <View style={styles.widgetPreviewHeader}>
         <View style={styles.widgetIconPreview}>
-          <Ionicons name="leaf" size={24} color="#4f9f9f" />
+          <Ionicons name="leaf" size={24} color="#015F45" />
         </View>
         <View>
           <Text style={styles.widgetPreviewTitle}>Eco Impact</Text>
@@ -899,6 +901,7 @@ const availableWidgets: AvailableWidget[] = [
 export default function HomeScreen(): JSX.Element {
   const router = useRouter();
   const { accounts, customerName, customerId, fetchAccountsData, isLoading } = useUser();
+  const { setHasScrolled } = useScrollStatus();
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const flatListRef = useRef<FlatList<any>>(null);
   const [todayAffirmation] = useState<string>(
@@ -906,8 +909,10 @@ export default function HomeScreen(): JSX.Element {
   );
   const [accountTransactions, setAccountTransactions] = useState<Record<string, any[]>>({});
   const [loadingTransactions, setLoadingTransactions] = useState(false);
-  const [editMode, setEditMode] = useState(false);
   const [showWidgetPicker, setShowWidgetPicker] = useState(false);
+
+  // Use the edit mode from context instead of local state
+  const { editMode, toggleEditMode } = useEditMode();
 
   // Widget configuration state
   const [widgets, setWidgets] = useState<WidgetConfig[]>([
@@ -979,12 +984,12 @@ export default function HomeScreen(): JSX.Element {
     const newIndex = Math.round(offsetX / (CARD_WIDTH + 8));
     
     // If there's any movement, prepare to snap to next/prev card
-    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < accounts.length) {
+    if (newIndex !== currentIndex && newIndex >= 0 && newIndex <= accounts.length) {
       setCurrentIndex(newIndex);
     }
   };
   
-  // On scroll end, ensure we snap correctly
+  // Enhanced onScrollEndDrag with circular scrolling support
   const onScrollEndDrag = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (accounts.length === 0) return;
     
@@ -995,7 +1000,7 @@ export default function HomeScreen(): JSX.Element {
     let newIndex = currentIndex;
     
     // Even small swipe should change card
-    if (velocity < -0.1 && currentIndex < accounts.length - 1) {
+    if (velocity < -0.1 && currentIndex < accounts.length) {
       newIndex = currentIndex + 1;
     } else if (velocity > 0.1 && currentIndex > 0) {
       newIndex = currentIndex - 1;
@@ -1004,8 +1009,27 @@ export default function HomeScreen(): JSX.Element {
       newIndex = Math.round(offsetX / (CARD_WIDTH + 8));
     }
     
+    // Handle circular navigation
+    if (newIndex > accounts.length) {
+      newIndex = 0;
+      if (flatListRef.current) {
+        flatListRef.current.scrollToIndex({
+          index: 0,
+          animated: false,
+        });
+      }
+    } else if (newIndex < 0) {
+      newIndex = accounts.length;
+      if (flatListRef.current) {
+        flatListRef.current.scrollToIndex({
+          index: accounts.length,
+          animated: false,
+        });
+      }
+    }
+    
     // Ensure we're in bounds
-    newIndex = Math.max(0, Math.min(newIndex, accounts.length - 1));
+    newIndex = Math.max(0, Math.min(newIndex, accounts.length));
     
     // Snap to position
     if (flatListRef.current) {
@@ -1070,7 +1094,7 @@ export default function HomeScreen(): JSX.Element {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{widget.title}</Text>
             {loadingTransactions ? (
-              <ActivityIndicator size="small" color="#4f9f9f" style={{marginVertical: 20}} />
+              <ActivityIndicator size="small" color="#015F45" style={{marginVertical: 20}} />
             ) : currentTransactions.length > 0 ? (
               <>
                 {currentTransactions.map((tx) => (
@@ -1087,7 +1111,7 @@ export default function HomeScreen(): JSX.Element {
                     }}
                   >
                     <View style={styles.transactionDetails}>
-                      <Ionicons name={tx.icon} size={20} color="#4f9f9f" />
+                      <Ionicons name={tx.icon} size={20} color="#015F45" />
                       <View style={{ marginLeft: 12 }}>
                         <Text style={styles.transactionName}>{tx.name}</Text>
                         <Text style={styles.transactionDate}>{tx.date}</Text>
@@ -1152,7 +1176,7 @@ export default function HomeScreen(): JSX.Element {
               <Ionicons
                 name="pie-chart"
                 size={24}
-                color="#4f9f9f"
+                color="#015F45"
                 style={{ marginRight: 12 }}
               />
               <Text style={styles.insightsText}>
@@ -1188,19 +1212,19 @@ export default function HomeScreen(): JSX.Element {
             <Text style={styles.sectionTitle}>{widget.title}</Text>
             <View style={styles.quickActionsContainer}>
               <TouchableOpacity style={styles.quickActionButton}>
-                <Ionicons name="send" size={24} color="#4f9f9f" />
+                <Ionicons name="send" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Transfer</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickActionButton}>
-                <Ionicons name="document-text" size={24} color="#4f9f9f" />
+                <Ionicons name="document-text" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Pay Bills</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickActionButton}>
-                <Ionicons name="card" size={24} color="#4f9f9f" />
+                <Ionicons name="card" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Freeze Card</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickActionButton}>
-                <Ionicons name="pulse" size={24} color="#4f9f9f" />
+                <Ionicons name="pulse" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Investments</Text>
               </TouchableOpacity>
             </View>
@@ -1316,7 +1340,7 @@ export default function HomeScreen(): JSX.Element {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#4f9f9f" />
+        <ActivityIndicator size="large" color="#015F45" />
         <Text style={{marginTop: 20, color: '#666'}}>Loading your accounts...</Text>
       </View>
     );
@@ -1346,7 +1370,7 @@ export default function HomeScreen(): JSX.Element {
                 style={styles.dragHandle} 
                 onLongPress={() => setDraggingWidget(widget.id)}
               >
-                <Ionicons name="move" size={20} color="#4f9f9f" />
+                <Ionicons name="move" size={20} color="#015F45" />
               </TouchableOpacity>
               
               {widget.removable && (
@@ -1364,22 +1388,26 @@ export default function HomeScreen(): JSX.Element {
     );
   };
 
+  // Add a scroll handler
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    if (scrollY > 10) {
+      setHasScrolled(true);
+    } else {
+      setHasScrolled(false);
+    }
+  };
+
   return (
     <>
       <ScrollView 
         contentContainerStyle={styles.container} 
         showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: '#ffffff' }}
+        bounces={true}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        {/* Edit Mode Toggle Button */}
-        <TouchableOpacity 
-          style={styles.editModeButton}
-          onPress={() => setEditMode(!editMode)}
-        >
-          <Text style={styles.editModeButtonText}>
-            {editMode ? "Done" : "Edit Widgets"}
-          </Text>
-        </TouchableOpacity>
-        
         {/* Static Account Cards Section - Not Editable */}
         <View style={styles.accountCardsSection}>
           {/* Swipeable Header Cards */}
@@ -1520,7 +1548,7 @@ export default function HomeScreen(): JSX.Element {
                   onPress={() => addWidget(item)}
                 >
                   <View style={styles.widgetPreviewContent}>
-                    <Ionicons name={item.icon} size={24} color="#4f9f9f" />
+                    <Ionicons name={item.icon} size={24} color="#015F45" />
                     <Text style={styles.widgetTitle}>{item.title}</Text>
                   </View>
                   <Text style={styles.widgetDescription}>{item.description}</Text>

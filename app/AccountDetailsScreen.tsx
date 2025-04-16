@@ -136,7 +136,7 @@ export default function AccountDetailsScreen() {
                   <Ionicons
                     name={getIconForCategory(item.transaction_category)}
                     size={24}
-                    color="#4f9f9f"
+                    color="##015F45"
                     style={styles.transactionIcon}
                   />
                   <View>

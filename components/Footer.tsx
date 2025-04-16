@@ -14,7 +14,7 @@ export default function Footer() {
         style={styles.iconContainer}
         onPress={() => router.push("/BankableVirtualPetScreen")}
       >
-        <Ionicons name="bug" size={24} color="#fff" />
+        <Ionicons name="bug" size={24} color="#015f45" />
       </TouchableOpacity>
 
       {/* Group Savings Goals */}
@@ -22,7 +22,7 @@ export default function Footer() {
         style={styles.iconContainer}
         onPress={() => router.push("/InvestmentsScreen")}
       >
-        <Ionicons name="trending-up-outline" size={24} color="#fff" />
+        <Ionicons name="trending-up-outline" size={24} color="#015f45" />
       </TouchableOpacity>
 
       {/* Home - Center */}
@@ -30,7 +30,7 @@ export default function Footer() {
         style={[styles.iconContainer, styles.homeIcon]}
         onPress={() => router.push("/HomeScreen")}
       >
-        <Ionicons name="home" size={28} color="#fff" />
+        <Ionicons name="home" size={28} color="#015f45" />
       </TouchableOpacity>
 
       {/* Bankable AI */}
@@ -38,7 +38,7 @@ export default function Footer() {
         style={styles.iconContainer}
         onPress={() => router.push("/BankableAIScreen")}
       >
-        <Ionicons name="bulb" size={24} color="#fff" />
+        <Ionicons name="bulb" size={24} color="#015f45" />
       </TouchableOpacity>
 
       {/* Settings */}
@@ -46,7 +46,7 @@ export default function Footer() {
         style={styles.iconContainer}
         onPress={() => router.push("/SettingsScreen")}
       >
-        <Ionicons name="settings" size={24} color="#fff" />
+        <Ionicons name="settings" size={24} color="#015f45" />
       </TouchableOpacity>
     </View>
   );
@@ -55,10 +55,19 @@ export default function Footer() {
 const styles = StyleSheet.create({
   footer: {
     height: 60,
-    backgroundColor: "#015f45",
+    backgroundColor: "#ffffff",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
+    // Remove border
+    // borderTopWidth: 1,
+    // borderTopColor: "#f0f0f0",
+    // Add shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   iconContainer: {
     padding: 8,
