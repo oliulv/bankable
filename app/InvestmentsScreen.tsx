@@ -462,9 +462,9 @@ const InvestmentsScreen: React.FC = () => {
       const percentage = (value / totalValue) * 100;
       const roundedPercentage = percentage.toFixed(1);
       return {
-        name: `% ${category}`,
+        name: `${category}`,
         value: parseFloat(roundedPercentage),
-        legend: `% ${category}`,
+        legend: `${category}: ${roundedPercentage}%`,
         color: backgroundColor,
         legendFontColor: '#333333',
         legendFontSize: 12
@@ -537,14 +537,16 @@ const InvestmentsScreen: React.FC = () => {
     const holding = portfolio.assets[asset.id];
     const hasHolding = holding && holding.quantity > 0;
     const holdingValue = hasHolding ? holding.quantity * asset.currentPrice : 0;
+    const categoryStyle = getCategoryStyle(asset.category);
+    
     return (
       <TouchableOpacity style={styles.assetCard} onPress={() => openAssetDetails(asset)}>
         <View style={styles.assetHeader}>
           <View style={styles.assetTitleContainer}>
             <Text style={styles.assetSymbol}>{asset.symbol}</Text>
             <Text style={styles.assetName}>{asset.name}</Text>
-            <View style={[styles.categoryTag, getCategoryStyle(asset.category)]}>
-              <Text style={styles.categoryText}>{asset.category}</Text>
+            <View style={[styles.categoryTag, { backgroundColor: categoryStyle.backgroundColor }]}>
+              <Text style={[styles.categoryText, { color: categoryStyle.textColor }]}>{asset.category}</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.favoriteButton} onPress={() => toggleFavorite(asset.id)}>
@@ -729,10 +731,13 @@ const InvestmentsScreen: React.FC = () => {
                 }}
                 initialNumToRender={3}
                 maxToRenderPerBatch={5}
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={true} // Changed to true for better UX
                 style={styles.holdingsList}
-                contentContainerStyle={styles.holdingsListContent}
-                scrollEnabled={false} // Add this line
+                contentContainerStyle={{ paddingBottom: 8 }}
+                scrollEnabled={true}
+                nestedScrollEnabled={true} // Ensure this is true
+                scrollEventThrottle={16} // Better scroll performance
+                removeClippedSubviews={false}
               />
               {holdingsData.length > 3 && (
                 <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
@@ -757,10 +762,13 @@ const InvestmentsScreen: React.FC = () => {
                 renderItem={({ item }) => renderTransactionItem({ item })}
                 initialNumToRender={3}
                 maxToRenderPerBatch={5}
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={true} // Changed to true for better UX
                 style={styles.transactionsList}
-                contentContainerStyle={styles.transactionsListContent}
-                scrollEnabled={false} // Add this line
+                contentContainerStyle={{ paddingBottom: 8 }}
+                scrollEnabled={true}
+                nestedScrollEnabled={true} // Ensure this is true
+                scrollEventThrottle={16} // Better scroll performance
+                removeClippedSubviews={false}
               />
               {portfolio.transactions.length > 3 && (
                 <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
@@ -1126,17 +1134,17 @@ const InvestmentsScreen: React.FC = () => {
 const getCategoryStyle = (category: AssetCategory) => {
   switch (category) {
     case 'Stocks':
-      return { backgroundColor: '#3498DB' };
+      return { backgroundColor: '#015f45', textColor: '#FFFFFF' };
     case 'ETFs':
-      return { backgroundColor: '#9B59B6' };
+      return { backgroundColor: '#f3fee8', textColor: '#333333' };
     case 'Crypto':
-      return { backgroundColor: '#F1C40F' };
+      return { backgroundColor: '#F1E6DC', textColor: '#333333' };
     case 'Bonds':
-      return { backgroundColor: '#16A085' };
+      return { backgroundColor: '#4A4A4A', textColor: '#FFFFFF' };
     case 'Real Estate':
-      return { backgroundColor: '#E74C3C' };
+      return { backgroundColor: '#B49A67', textColor: '#333333' };
     default:
-      return { backgroundColor: '#CCCCCC' };
+      return { backgroundColor: '#CCCCCC', textColor: '#333333' };
   }
 };
 
@@ -1824,7 +1832,9 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   holdingsList: {
-    maxHeight: 350,
+    flexGrow: 1,    // Add this to allow content to determine size
+    maxHeight: 350, // Change from 'height' to 'maxHeight'
+    backgroundColor: '#ffffff',
   },
   cleanChartContainer: {
     backgroundColor: "#ffffff",
@@ -1868,9 +1878,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   holdingsListContainer: {
-    height: 350, // Set a fixed height for the container
+    maxHeight: 350,  // Change from 'height' to 'maxHeight'
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: '#f9f9f9', // Add a slight background color to indicate it's scrollable
   },
   holdingsListContent: {
     paddingVertical: 4,
@@ -1889,9 +1900,10 @@ const styles = StyleSheet.create({
     borderTopColor: '#eee',
   },
   transactionsListContainer: {
-    height: 250, // Set a fixed height for the container
+    maxHeight: 250,  // Change from 'height' to 'maxHeight'
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: '#ffffff', // Add a slight background color to indicate it's scrollable
   },
   transactionsListContent: {
     paddingVertical: 4,
