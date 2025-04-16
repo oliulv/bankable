@@ -111,6 +111,7 @@ const InvestmentsScreen: React.FC = () => {
   const [sortOption, setSortOption] = useState<'name' | 'price' | 'change'>('name');
   const categoryScrollViewRef = React.useRef<ScrollView>(null);
   const [showCategoryIndicator, setShowCategoryIndicator] = useState(true);
+  const [activePortfolioTab, setActivePortfolioTab] = useState<'holdings' | 'transactions'>('holdings');
 
   interface ChartData {
     isLoading: boolean;
@@ -586,24 +587,39 @@ const InvestmentsScreen: React.FC = () => {
   const renderTransactionItem = ({ item }: { item: Transaction & { type?: string } }) => {
     const asset = assets.find(a => a.id === item.assetId);
     if (!asset) return null;
-    // Make sure styles like transactionItem are appropriate for direct rendering in the main FlatList
+    
     return (
-      <View style={styles.transactionItem}>
-        <View style={styles.transactionInfo}>
-          <Text style={styles.transactionType}>
-            {item.type === 'buy' ? 'Bought' : 'Sold'} {asset.symbol}
-          </Text>
-          <Text style={styles.transactionDate}>
-            {new Date(item.date).toLocaleDateString()} {new Date(item.date).toLocaleTimeString()}
-          </Text>
+      <View style={styles.transactionCard}>
+        <View style={styles.transactionHeader}>
+          <View style={styles.transactionTitleContainer}>
+            <Text style={styles.transactionTitle}>
+              {item.type === 'buy' ? 'Bought' : 'Sold'} {asset.symbol}
+            </Text>
+            <Text style={styles.transactionSubtitle}>
+              {new Date(item.date).toLocaleDateString()} at {new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </Text>
+          </View>
         </View>
-        <View style={styles.transactionDetails}>
-          <Text style={styles.transactionQuantity}>
-            {item.quantity.toFixed(6)} {asset.symbol}
-          </Text>
-          <Text style={[styles.transactionAmountValue, item.type === 'buy' ? styles.negativeChange : styles.positiveChange]}>
-            {item.type === 'buy' ? '-' : '+'}£{item.amount.toFixed(2)}
-          </Text>
+        <View style={styles.transactionDetailsRow}>
+          <View style={styles.transactionDetail}>
+            <Text style={styles.transactionDetailLabel}>Quantity</Text>
+            <Text style={styles.transactionDetailValue}>
+              {item.quantity.toFixed(item.quantity < 0.01 ? 6 : 4)} {asset.symbol}
+            </Text>
+          </View>
+          <View style={styles.transactionDetail}>
+            <Text style={styles.transactionDetailLabel}>Price</Text>
+            <Text style={styles.transactionDetailValue}>£{item.price.toFixed(2)}</Text>
+          </View>
+          <View style={styles.transactionDetail}>
+            <Text style={styles.transactionDetailLabel}>Total</Text>
+            <Text style={[
+              styles.transactionDetailValue, 
+              item.type === 'buy' ? styles.negativeChange : styles.positiveChange
+            ]}>
+              {item.type === 'buy' ? '-' : '+'}£{item.amount.toFixed(2)}
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -612,32 +628,36 @@ const InvestmentsScreen: React.FC = () => {
   const generatePortfolioListData = () => {
     const listData: any[] = [];
 
-    // Holdings Data
-    const holdingsData = Object.entries(portfolio.assets)
-      .map(([assetId, holding]): (HoldingDataItem & { type: 'holding'; id: string }) | null => {
-        if (holding.quantity <= 0) return null;
-        const asset = assets.find(a => a.id === assetId);
-        if (!asset) return null;
-        const currentValue = asset.currentPrice * holding.quantity;
-        return { assetId, asset, holding, value: currentValue, type: 'holding', id: `holding-${assetId}` };
-      })
-      .filter((item): item is HoldingDataItem & { type: 'holding'; id: string } => item !== null)
-      .sort((a, b) => b.value - a.value);
+    if (activePortfolioTab === 'holdings') {
+      // Holdings Data
+      const holdingsData = Object.entries(portfolio.assets)
+        .map(([assetId, holding]): (HoldingDataItem & { type: 'holding'; id: string }) | null => {
+          if (holding.quantity <= 0) return null;
+          const asset = assets.find(a => a.id === assetId);
+          if (!asset) return null;
+          const currentValue = asset.currentPrice * holding.quantity;
+          return { assetId, asset, holding, value: currentValue, type: 'holding', id: `holding-${assetId}` };
+        })
+        .filter((item): item is HoldingDataItem & { type: 'holding'; id: string } => item !== null)
+        .sort((a, b) => b.value - a.value);
 
-    if (holdingsData.length > 0) {
-      listData.push({ type: 'header', title: 'Your Holdings', id: 'holdings-header' });
-      listData.push(...holdingsData);
+      if (holdingsData.length > 0) {
+        listData.push(...holdingsData);
+      } else {
+        listData.push({ type: 'emptyHoldings', id: 'empty-holdings' });
+      }
     } else {
-       listData.push({ type: 'emptyHoldings', id: 'empty-holdings' });
-    }
-
-    // Transactions Data
-    if (portfolio.transactions.length > 0) {
-      listData.push({ type: 'header', title: 'Recent Transactions', id: 'transactions-header' });
-      const transactionItems = portfolio.transactions.map(t => ({ ...t, type: 'transaction', id: `tx-${t.id}` }));
-      listData.push(...transactionItems);
-    } else {
-       listData.push({ type: 'emptyTransactions', id: 'empty-transactions' });
+      // Transactions Data
+      if (portfolio.transactions.length > 0) {
+        const transactionItems = portfolio.transactions.map(t => ({ 
+          ...t, 
+          type: 'transaction', 
+          id: `tx-${t.id}` 
+        }));
+        listData.push(...transactionItems);
+      } else {
+        listData.push({ type: 'emptyTransactions', id: 'empty-transactions' });
+      }
     }
 
     return listData;
@@ -790,6 +810,36 @@ const InvestmentsScreen: React.FC = () => {
             />
           </View>
         )}
+        
+        {/* Add Sub-Tab Pills */}
+        <View style={styles.pillTabContainer}>
+          <View style={styles.pillTabWrapper}>
+            <TouchableOpacity
+              style={[
+                styles.pillTab,
+                activePortfolioTab === 'holdings' && styles.activePillTab
+              ]}
+              onPress={() => setActivePortfolioTab('holdings')}
+            >
+              <Text style={[
+                styles.pillTabText,
+                activePortfolioTab === 'holdings' && styles.activePillTabText
+              ]}>Your Holdings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.pillTab,
+                activePortfolioTab === 'transactions' && styles.activePillTab
+              ]}
+              onPress={() => setActivePortfolioTab('transactions')}
+            >
+              <Text style={[
+                styles.pillTabText,
+                activePortfolioTab === 'transactions' && styles.activePillTabText
+              ]}>Recent Transactions</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     );
   };
@@ -1986,6 +2036,49 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  transactionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  transactionHeader: {
+    marginBottom: 12,
+  },
+  transactionTitleContainer: {
+    flex: 1,
+  },
+  transactionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  transactionSubtitle: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 2,
+  },
+  transactionDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  transactionDetail: {
+    flex: 1,
+  },
+  transactionDetailLabel: {
+    fontSize: 12,
+    color: '#777',
+  },
+  transactionDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
 });
 
