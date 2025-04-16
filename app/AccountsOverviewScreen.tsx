@@ -11,7 +11,7 @@ import {
 import { useUser } from '../context/UserContext';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image as ExpoImage } from 'expo-image';
 
 // Define card colors for different account types
 const accountTypeColors: Record<string, string[]> = {
@@ -50,11 +50,6 @@ export default function AccountsOverviewScreen() {
       currency: 'GBP',
     }).format(amount);
   };
-
-  // Get appropriate gradient colors based on account type
-  const getAccountGradient = (type: string): [string, string, ...string[]] => {
-    return (accountTypeColors[type] as [string, string, ...string[]]) || defaultGradient;
-  };
   
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -66,8 +61,6 @@ export default function AccountsOverviewScreen() {
     });
   };
 
-  // Render each account card
-  // Update the rendercarddesign function
   const rendercarddesign = ({ item }: { item: any }) => {
     return (
       <TouchableOpacity 
@@ -75,10 +68,11 @@ export default function AccountsOverviewScreen() {
         onPress={() => handleAccountPress(item.account_id)}
         activeOpacity={0.8}
       >
-        <Image
+        <ExpoImage
           source={require('../assets/images/carddesign.png')}
           style={styles.cardImage}
-          resizeMode="cover"
+          contentFit="cover"
+          cachePolicy="memory-disk"
         />
         <View style={styles.overlay} />
         
