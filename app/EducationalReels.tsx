@@ -12,8 +12,12 @@ import {
   StatusBar,
   Platform,
   Image,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+// Import financial tips from JSON file
+import FINANCIAL_TIPS_DATA from '../data/reels.json';
 
 // Types
 interface FinancialTip {
@@ -24,81 +28,30 @@ interface FinancialTip {
   isFavorite: boolean;
 }
 
-// Sample data
-const FINANCIAL_TIPS: FinancialTip[] = [
-  {
-    id: '1',
-    title: 'Emergency Fund',
-    content: 'Save 3-6 months of expenses in an easily accessible account for emergencies.',
-    category: 'Saving',
-    isFavorite: false,
-  },
-  {
-    id: '2',
-    title: 'Debt Snowball',
-    content: 'Pay minimum on all debts, but put extra money on smallest debt first for quick wins.',
-    category: 'Debt',
-    isFavorite: false,
-  },
-  {
-    id: '3',
-    title: '50/30/20 Rule',
-    content: 'Allocate 50% of income to needs, 30% to wants, and 20% to savings and debt repayment.',
-    category: 'Budgeting',
-    isFavorite: false,
-  },
-  {
-    id: '4',
-    title: 'Compound Interest',
-    content: 'Start investing early. £1,000 invested at 8% annual return becomes £10,063 in 30 years.',
-    category: 'Investing',
-    isFavorite: false,
-  },
-  {
-    id: '5',
-    title: 'Credit Score Hack',
-    content: 'Keep credit card utilisation under 30% of your total limit to boost your credit score.',
-    category: 'Credit',
-    isFavorite: false,
-  },
-  {
-    id: '6',
-    title: 'Automation',
-    content: 'Set up automatic transfers to savings on payday so you never see the money in checking.',
-    category: 'Saving',
-    isFavorite: false,
-  },
-  {
-    id: '7',
-    title: 'Pay Yourself First',
-    content: 'Allocate money to savings before spending on discretionary items.',
-    category: 'Saving',
-    isFavorite: false,
-  },
-  {
-    id: '8',
-    title: '401(k) Match',
-    content: 'Always contribute enough to get full employer match - it\'s free money!',
-    category: 'Investing',
-    isFavorite: false,
-  },
-];
-
 // Get screen dimensions
 const { width, height } = Dimensions.get('window');
 
 const EducationalReels: React.FC = () => {
   // State
-  const [tips, setTips] = useState<FinancialTip[]>(FINANCIAL_TIPS);
+  const [tips, setTips] = useState<FinancialTip[]>(FINANCIAL_TIPS_DATA);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSavedTips, setShowSavedTips] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
   // Refs
   const flatListRef = useRef<FlatList>(null);
   const favoriteAnimation = useRef(new Animated.Value(1)).current;
 
+  // Get unique categories
+  const categories = ['All', ...Array.from(new Set(tips.map(tip => tip.category)))];
+
   // Derived state
   const savedTips = tips.filter(tip => tip.isFavorite);
+  
+  // Filter tips by selected category
+  const filteredTips = selectedCategory === 'All' 
+    ? tips 
+    : tips.filter(tip => tip.category === selectedCategory);
 
   // Toggle favorite status for a tip
   const toggleFavorite = (id: string) => {
@@ -208,39 +161,28 @@ const EducationalReels: React.FC = () => {
     itemVisiblePercentThreshold: 50
   }).current;
 
-  // Render pagination dots
-  const renderPaginationDots = () => {
-    return (
-      <View style={styles.paginationContainer}>
-        {tips.map((_, index) => (
-          <TouchableOpacity 
-            key={index} 
-            style={[
-              styles.paginationDot,
-              currentIndex === index && styles.paginationDotActive
-            ]}
-            onPress={() => {
-              flatListRef.current?.scrollToIndex({
-                index,
-                animated: true,
-              });
-            }}
-            accessibilityLabel={`Go to tip ${index + 1} of ${tips.length}`}
-            accessibilityRole="button"
-          />
-        ))}
-      </View>
-    );
-  };
+  // Reset to first item when category changes
+  useEffect(() => {
+    if (flatListRef.current && filteredTips.length > 0) {
+      flatListRef.current.scrollToIndex({
+        index: 0,
+        animated: false,
+      });
+      setCurrentIndex(0);
+    }
+  }, [selectedCategory]);
+
+  // Render category filter
+
 
   // Main render
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
-      {/* Header */}
+      {/* Header with shadow */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Educational Reels</Text>
+        <Text style={styles.headerTitle}>Financial Reels</Text>
         <TouchableOpacity 
           style={styles.savedButton}
           onPress={() => setShowSavedTips(true)}
@@ -259,7 +201,7 @@ const EducationalReels: React.FC = () => {
       <View style={styles.reelsContainer}>
         <FlatList
           ref={flatListRef}
-          data={tips}
+          data={filteredTips}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
@@ -270,10 +212,13 @@ const EducationalReels: React.FC = () => {
           onViewableItemsChanged={onViewableItemsChanged}
           pagingEnabled
           contentContainerStyle={styles.flatListContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="document-text-outline" size={60} color="#ccc" />
+              <Text style={styles.emptyText}>No tips found for this category</Text>
+            </View>
+          }
         />
-        
-        {/* Pagination Dots */}
-        {renderPaginationDots()}
       </View>
       
       {/* Saved Tips Modal */}
@@ -334,17 +279,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: '#fff',
+    // Added shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 4, // Android shadow
+    zIndex: 1, // Ensure shadow is visible
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
+  categoryFilterContainer: {
+    backgroundColor: '#fff',
+    zIndex: 0,
+  },
+  categoryFilterContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  categoryFilterItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  categoryFilterItemActive: {
+    backgroundColor: '#015f45',
+  },
+  categoryFilterText: {
+    color: '#666',
+    fontWeight: '500',
+  },
+  categoryFilterTextActive: {
+    color: '#fff',
+  },
   headerSubtitle: {
     fontSize: 16,
     color: '#666',
     paddingHorizontal: 20,
     marginBottom: 15,
+    marginTop: 4,
   },
   savedButton: {
     flexDirection: 'row',
@@ -380,8 +358,6 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    // Gradient-like background using a linear gradient from dark green to light green
-    // In React Native, you'd use a LinearGradient component, but for simplicity:
     backgroundColor: '#f3fee8', // Light mint green background
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -430,26 +406,18 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
   },
-  paginationContainer: {
-    position: 'absolute',
-    right: 10,
-    top: '50%',
-    transform: [{ translateY: -50 }],
-    alignItems: 'center',
+  emptyContainer: {
+    flex: 1,
+    height: height * 0.5,
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
-    marginVertical: 4,
-  },
-  paginationDotActive: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#015f45',
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 16,
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -470,8 +438,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   closeButton: {
     padding: 4,
