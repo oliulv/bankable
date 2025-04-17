@@ -86,7 +86,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
           />
           <MenuItem 
             icon="book-outline" 
-            title="Educational Tips" 
+            title="Educational Reels" 
             onPress={() => navigateTo("/EducationalReels")} 
           />
           <MenuItem 

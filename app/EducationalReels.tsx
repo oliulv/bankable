@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,15 @@ import {
   Animated,
   Modal,
   SafeAreaView,
+  StatusBar,
+  Platform,
+  Image,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+// Import financial tips from JSON file
+import FINANCIAL_TIPS_DATA from '../data/reels.json';
 
 // Types
 interface FinancialTip {
@@ -21,77 +28,32 @@ interface FinancialTip {
   isFavorite: boolean;
 }
 
-// Sample data
-const FINANCIAL_TIPS: FinancialTip[] = [
-  {
-    id: '1',
-    title: 'Emergency Fund',
-    content: 'Save 3-6 months of expenses in an easily accessible account for emergencies.',
-    category: 'Saving',
-    isFavorite: false,
-  },
-  {
-    id: '2',
-    title: 'Debt Snowball',
-    content: 'Pay minimum on all debts, but put extra money on smallest debt first for quick wins.',
-    category: 'Debt',
-    isFavorite: false,
-  },
-  {
-    id: '3',
-    title: '50/30/20 Rule',
-    content: 'Allocate 50% of income to needs, 30% to wants, and 20% to savings and debt repayment.',
-    category: 'Budgeting',
-    isFavorite: false,
-  },
-  {
-    id: '4',
-    title: 'Compound Interest',
-    content: 'Start investing early. $1,000 invested at 8% annual return becomes $10,063 in 30 years.',
-    category: 'Investing',
-    isFavorite: false,
-  },
-  {
-    id: '5',
-    title: 'Credit Score Hack',
-    content: 'Keep credit card utilization under 30% of your total limit to boost your credit score.',
-    category: 'Credit',
-    isFavorite: false,
-  },
-  {
-    id: '6',
-    title: 'Automation',
-    content: 'Set up automatic transfers to savings on payday so you never see the money in checking.',
-    category: 'Saving',
-    isFavorite: false,
-  },
-  {
-    id: '7',
-    title: 'Pay Yourself First',
-    content: 'Allocate money to savings before spending on discretionary items.',
-    category: 'Saving',
-    isFavorite: false,
-  },
-  {
-    id: '8',
-    title: '401(k) Match',
-    content: 'Always contribute enough to get full employer match - it\'s free money!',
-    category: 'Investing',
-    isFavorite: false,
-  },
-];
-
+// Get screen dimensions
 const { width, height } = Dimensions.get('window');
 
-const FinancialTipsReels: React.FC = () => {
-  const [tips, setTips] = useState<FinancialTip[]>(FINANCIAL_TIPS);
+const EducationalReels: React.FC = () => {
+  // State
+  const [tips, setTips] = useState<FinancialTip[]>(FINANCIAL_TIPS_DATA);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSavedTips, setShowSavedTips] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  
+  // Refs
   const flatListRef = useRef<FlatList>(null);
   const favoriteAnimation = useRef(new Animated.Value(1)).current;
 
-  const savedTips = tips.filter(tip => tip.isFavorite);
+  // Get unique categories
+  const categories = ['All', ...Array.from(new Set(tips.map(tip => tip.category)))];
 
+  // Derived state
+  const savedTips = tips.filter(tip => tip.isFavorite);
+  
+  // Filter tips by selected category
+  const filteredTips = selectedCategory === 'All' 
+    ? tips 
+    : tips.filter(tip => tip.category === selectedCategory);
+
+  // Toggle favorite status for a tip
   const toggleFavorite = (id: string) => {
     setTips(prevTips =>
       prevTips.map(tip =>
@@ -114,156 +76,263 @@ const FinancialTipsReels: React.FC = () => {
     ]).start();
   };
 
+  // Share functionality (placeholder)
+  const shareTip = (tip: FinancialTip) => {
+    // Implement your sharing logic here
+    console.log(`Sharing tip: ${tip.title}`);
+  };
+
+  // Render individual tip item
   const renderItem = ({ item, index }: { item: FinancialTip; index: number }) => {
     return (
       <View style={styles.tipContainer}>
-        <View style={styles.contentContainer}>
+        <View style={styles.tipCard}>
           <View style={styles.categoryTag}>
             <Text style={styles.categoryText}>{item.category}</Text>
           </View>
           
           <Text style={styles.tipTitle}>{item.title}</Text>
           <Text style={styles.tipContent}>{item.content}</Text>
-        </View>
-        
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => toggleFavorite(item.id)}
-          >
-            <Animated.View style={{ transform: [{ scale: item.isFavorite ? favoriteAnimation : 1 }] }}>
-              <Ionicons
-                name={item.isFavorite ? 'heart' : 'heart-outline'}
-                size={28}
-                color="white"
-              />
-            </Animated.View>
-            <Text style={styles.actionText}>Save</Text>
-          </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="share-social-outline" size={28} color="white" />
-            <Text style={styles.actionText}>Share</Text>
-          </TouchableOpacity>
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => toggleFavorite(item.id)}
+              accessibilityLabel={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              accessibilityRole="button"
+            >
+              <Animated.View style={{ transform: [{ scale: item.isFavorite ? favoriteAnimation : 1 }] }}>
+                <Ionicons
+                  name={item.isFavorite ? 'heart' : 'heart-outline'}
+                  size={24}
+                  color="#015f45"
+                />
+              </Animated.View>
+              <Text style={styles.actionText}>Save</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => shareTip(item)}
+              accessibilityLabel="Share this tip"
+              accessibilityRole="button"
+            >
+              <Ionicons name="share-social-outline" size={24} color="#015f45" />
+              <Text style={styles.actionText}>Share</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   };
 
-  const renderSavedTip = ({ item }: { item: FinancialTip }) => (
-    <View style={styles.savedTipItem}>
-      <View>
-        <View style={styles.smallCategoryTag}>
-          <Text style={styles.smallCategoryText}>{item.category}</Text>
+  // Render saved tip item
+  const renderSavedTip = ({ item }: { item: FinancialTip }) => {
+    return (
+      <View style={styles.savedTipItem}>
+        <View style={styles.savedTipContent}>
+          <View style={styles.smallCategoryTag}>
+            <Text style={styles.smallCategoryText}>{item.category}</Text>
+          </View>
+          <Text style={styles.savedTipTitle}>{item.title}</Text>
+          <Text style={styles.savedTipDescription} numberOfLines={2}>{item.content}</Text>
         </View>
-        <Text style={styles.savedTipTitle}>{item.title}</Text>
-        <Text style={styles.savedTipContent} numberOfLines={2}>{item.content}</Text>
+        <TouchableOpacity 
+          onPress={() => toggleFavorite(item.id)}
+          style={styles.savedTipAction}
+          accessibilityLabel="Remove from favorites"
+          accessibilityRole="button"
+        >
+          <Ionicons name="heart" size={24} color="#015f45" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
-        <Ionicons name="heart" size={24} color="#015f45" />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
+  // Track viewable items to update current index
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setCurrentIndex(viewableItems[0].index);
     }
   }).current;
 
+  // Configuration for viewability
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50
   }).current;
 
+  // Reset to first item when category changes
+  useEffect(() => {
+    if (flatListRef.current && filteredTips.length > 0) {
+      flatListRef.current.scrollToIndex({
+        index: 0,
+        animated: false,
+      });
+      setCurrentIndex(0);
+    }
+  }, [selectedCategory]);
+
+  // Render category filter
+
+
+  // Main render
   return (
-    <View style={styles.container}>
-      {/* Financial Tips Title and Saved Button */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.reelsTitle}>Financial Tips</Text>
-        <TouchableOpacity 
-          style={styles.savedButton}
-          onPress={() => setShowSavedTips(true)}
-        >
-          <Ionicons name="bookmark" size={20} color="#fff" />
-          <Text style={styles.savedText}>Saved</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      
+      {/* Header with shadow */}
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Financial Reels</Text>
+          <TouchableOpacity 
+            style={styles.savedButton}
+            onPress={() => setShowSavedTips(true)}
+            accessibilityLabel="View saved tips"
+            accessibilityRole="button"
+          >
+            <Ionicons name="bookmark-outline" size={20} color="#fff" />
+            <Text style={styles.savedText}>Saved</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Subtitle */}
+        <Text style={styles.headerSubtitle}>Swipe to learn financial wisdom</Text>
       </View>
       
       {/* Main Content - Financial Tips Reels */}
-      <FlatList
-        ref={flatListRef}
-        data={tips}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={height - 200} // Adjusted for your screen size
-        snapToAlignment="start"
-        decelerationRate="fast"
-        viewabilityConfig={viewabilityConfig}
-        onViewableItemsChanged={onViewableItemsChanged}
-        pagingEnabled
-      />
+      <View style={styles.reelsContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={filteredTips}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          snapToInterval={height * 0.65} // Card height
+          snapToAlignment="start"
+          decelerationRate="fast"
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
+          pagingEnabled
+          contentContainerStyle={styles.flatListContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="document-text-outline" size={60} color="#ccc" />
+              <Text style={styles.emptyText}>No tips found for this category</Text>
+            </View>
+          }
+        />
+      </View>
       
       {/* Saved Tips Modal */}
       <Modal
         visible={showSavedTips}
         animationType="slide"
-        transparent={false}
+        transparent={true}
         onRequestClose={() => setShowSavedTips(false)}
       >
-        <SafeAreaView style={styles.savedTipsContainer}>
-          <View style={styles.savedTipsHeader}>
-            <TouchableOpacity onPress={() => setShowSavedTips(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.savedTipsTitle}>Saved Tips</Text>
-            <View style={{ width: 24 }} />
+        <View style={styles.modalOverlay}>
+          <View style={styles.savedTipsContainer}>
+            <View style={styles.savedTipsHeader}>
+              <Text style={styles.savedTipsTitle}>Saved Tips</Text>
+              <TouchableOpacity 
+                onPress={() => setShowSavedTips(false)}
+                style={styles.closeButton}
+                accessibilityLabel="Close saved tips"
+                accessibilityRole="button"
+              >
+                <Ionicons name="close" size={24} color="#015f45" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.savedTipsContent}>
+              {savedTips.length > 0 ? (
+                <FlatList
+                  data={savedTips}
+                  renderItem={renderSavedTip}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.savedTipsList}
+                  showsVerticalScrollIndicator={false}
+                />
+              ) : (
+                <View style={styles.noSavedTips}>
+                  <Ionicons name="bookmark-outline" size={60} color="#ccc" />
+                  <Text style={styles.noSavedTipsText}>No saved tips yet</Text>
+                  <Text style={styles.noSavedTipsSubtext}>Save tips by tapping the heart icon</Text>
+                </View>
+              )}
+            </View>
           </View>
-          
-          <View style={styles.savedTipsContent}>
-            {savedTips.length > 0 ? (
-              <FlatList
-                data={savedTips}
-                renderItem={renderSavedTip}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.savedTipsList}
-              />
-            ) : (
-              <View style={styles.noSavedTips}>
-                <Ionicons name="bookmark-outline" size={60} color="#777" />
-                <Text style={styles.noSavedTipsText}>No saved tips yet</Text>
-                <Text style={styles.noSavedTipsSubtext}>Save tips by tapping the heart icon</Text>
-              </View>
-            )}
-          </View>
-        </SafeAreaView>
+        </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#fff',
   },
-  titleContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+  headerContainer: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 4, // Android shadow
+    zIndex: 1, // Ensure shadow is visible
+  },
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
   },
-  reelsTitle: {
-    fontSize: 28,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#333',
+  },
+  categoryFilterContainer: {
+    backgroundColor: '#fff',
+    zIndex: 0,
+  },
+  categoryFilterContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  categoryFilterItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  categoryFilterItemActive: {
+    backgroundColor: '#015f45',
+  },
+  categoryFilterText: {
+    color: '#666',
+    fontWeight: '500',
+  },
+  categoryFilterTextActive: {
+    color: '#fff',
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    paddingHorizontal: 20,
+    marginBottom: 15,
+    marginTop: 4,
   },
   savedButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 14,
+    backgroundColor: '#015f45',
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
   },
@@ -272,28 +341,40 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: '500',
   },
+  reelsContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  flatListContent: {
+    paddingBottom: 20,
+  },
   tipContainer: {
     width,
-    height: height - 200, // Adjusted for spacing in your app
-    position: 'relative',
-    backgroundColor: '#121212',
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 20,
-    // Shifted content upward to have more space from bottom buttons
-    paddingTop: 0,
-    paddingBottom: 140, // Increased bottom padding for more space from buttons
+    height: height * 0.65,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  tipCard: {
+    width: '100%',
+    height: '90%',
+    borderRadius: 20,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3fee8', // Light mint green background
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   categoryTag: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    backgroundColor: '#015f45',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 50,
-    marginBottom: 70, // More space before title
-    marginTop: -60, // Move tag up higher on screen
+    marginBottom: 30,
   },
   categoryText: {
     color: 'white',
@@ -301,78 +382,110 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   tipTitle: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#333',
     marginBottom: 20,
     textAlign: 'center',
   },
   tipContent: {
     fontSize: 18,
-    color: 'white',
+    color: '#555',
     lineHeight: 26,
     textAlign: 'center',
-    paddingHorizontal: 20,
-    maxWidth: '90%', // Limit content width for better readability
+    marginBottom: 30,
   },
   actions: {
-    position: 'absolute',
-    right: 20,
-    bottom: 90, // Slightly higher from bottom
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    marginTop: 20,
   },
   actionButton: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginHorizontal: 20,
   },
   actionText: {
-    color: 'white',
+    color: '#015f45',
     marginTop: 6,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    height: height * 0.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   savedTipsContainer: {
-    flex: 1,
-    backgroundColor: '#015f45',
+    width: '90%',
+    height: '70%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   savedTipsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
+    // Add shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 4, // Android shadow
+    zIndex: 1, // Ensure shadow is visible
+  },
+  closeButton: {
+    padding: 4,
   },
   savedTipsTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#333',
   },
   savedTipsContent: {
     flex: 1,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: 1,
   },
   savedTipsList: {
     padding: 16,
   },
   savedTipItem: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f3fee8',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 2,
     elevation: 2,
   },
+  savedTipContent: {
+    flex: 1,
+    marginRight: 12,
+  },
   smallCategoryTag: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#015f45',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -385,15 +498,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   savedTipTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#222',
+    color: '#333',
     marginBottom: 4,
   },
-  savedTipContent: {
+  savedTipDescription: {
     fontSize: 14,
     color: '#555',
-    width: '90%',
+  },
+  savedTipAction: {
+    padding: 4,
   },
   noSavedTips: {
     flex: 1,
@@ -402,17 +517,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   noSavedTipsText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#444',
+    color: '#333',
     marginTop: 16,
   },
   noSavedTipsSubtext: {
-    fontSize: 16,
-    color: '#777',
+    fontSize: 14,
+    color: '#666',
     marginTop: 8,
     textAlign: 'center',
   },
 });
 
-export default FinancialTipsReels;
+export default EducationalReels;
