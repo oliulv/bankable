@@ -20,24 +20,6 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={[styles.container, containerStyle]}>
-      {/* Appearance Section */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, textStyle]}>Appearance</Text>
-        <Text style={[styles.sectionSubtitle, textStyle]}>
-          Customise your app appearance
-        </Text>
-        <View style={styles.row}>
-          <Text style={[styles.label, textStyle]}>Dark Mode</Text>
-          <Switch
-            value={darkMode}
-            onValueChange={(value) => setDarkMode(value)}
-            trackColor={{ false: "#f9f9f9", true: "#f3fee8" }}
-            thumbColor={darkMode ? "#006a4d" : "#006a4d"}
-            ios_backgroundColor="#fff"
-          />
-        </View>
-      </View>
-
       {/* Notifications Section */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, textStyle]}>Notifications</Text>
