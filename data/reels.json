@@ -1,0 +1,58 @@
+[
+  {
+    "id": "1",
+    "title": "Emergency Fund",
+    "content": "Save 3-6 months of expenses in an easily accessible account for emergencies.",
+    "category": "Saving",
+    "isFavorite": false
+  },
+  {
+    "id": "2",
+    "title": "Debt Snowball",
+    "content": "Pay minimum on all debts, but put extra money on smallest debt first for quick wins.",
+    "category": "Debt",
+    "isFavorite": false
+  },
+  {
+    "id": "3",
+    "title": "50/30/20 Rule",
+    "content": "Allocate 50% of income to needs, 30% to wants, and 20% to savings and debt repayment.",
+    "category": "Budgeting",
+    "isFavorite": false
+  },
+  {
+    "id": "4",
+    "title": "Compound Interest",
+    "content": "Start investing early. £1,000 invested at 8% annual return becomes £10,063 in 30 years.",
+    "category": "Investing",
+    "isFavorite": false
+  },
+  {
+    "id": "5",
+    "title": "Credit Score Hack",
+    "content": "Keep credit card utilisation under 30% of your total limit to boost your credit score.",
+    "category": "Credit",
+    "isFavorite": false
+  },
+  {
+    "id": "6",
+    "title": "Automation",
+    "content": "Set up automatic transfers to savings on payday so you never see the money in checking.",
+    "category": "Saving",
+    "isFavorite": false
+  },
+  {
+    "id": "7",
+    "title": "Pay Yourself First",
+    "content": "Allocate money to savings before spending on discretionary items.",
+    "category": "Saving",
+    "isFavorite": false
+  },
+  {
+    "id": "8",
+    "title": "401(k) Match",
+    "content": "Always contribute enough to get full employer match - it's free money!",
+    "category": "Investing",
+    "isFavorite": false
+  }
+]
