@@ -209,6 +209,8 @@ const InvestmentsScreen: React.FC = () => {
             date: new Date(t.date)
           }));
         }
+        // Reset the balance to £1000 every time the app loads
+        parsedData.balance = 1000;
         setPortfolio(parsedData);
       }
     } catch (error) {
