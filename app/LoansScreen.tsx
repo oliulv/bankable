@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,10 @@ import {
   Alert,
   FlatList,
   Platform,
+  Keyboard,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  KeyboardAvoidingView // Add this import
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -85,7 +89,7 @@ const chartConfig = {
   backgroundGradient: "#fff",
   backgroundGradientFrom: "#fff",
   backgroundGradientTo: "#fff",
-  color: (opacity = 1) => `rgba(0, 106, 77, ${opacity})`,
+  color: (opacity = 1) => `rgba(1, 95, 69, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
   strokeWidth: 2,
   barPercentage: 0.7,
@@ -457,6 +461,7 @@ const LoansScreen: React.FC = () => {
   const [sortOption, setSortOption] = useState<'name' | 'balance' | 'date'>('balance');
   const loanTypeScrollViewRef = React.useRef<ScrollView>(null);
   const [showTypeIndicator, setShowTypeIndicator] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Loan application state
   const [applicationLoanAmount, setApplicationLoanAmount] = useState<string>('');
@@ -1015,6 +1020,12 @@ const LoansScreen: React.FC = () => {
     updateLoanData();
   }, [loans]);
 
+  // Handle scroll event for tabs shadow
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollOffset = event.nativeEvent.contentOffset.y;
+    setIsScrolled(scrollOffset > 5); // Add shadow after scrolling 5px
+  };
+
   // Render individual loan item
   const renderLoanItem = ({ item }: { item: Loan }) => {
     const dueDate = item.nextPaymentDate.toLocaleDateString('en-US', { 
@@ -1022,7 +1033,7 @@ const LoansScreen: React.FC = () => {
       day: 'numeric' 
     });
     
-    const statusColor = item.status === 'Active' ? '#006A4D' : 
+    const statusColor = item.status === 'Active' ? '#015F45' : 
                        item.status === 'Paid Off' ? '#4CAF50' : 
                        item.status === 'Pending Approval' ? '#FFC107' : '#FF5722';
     
@@ -1065,7 +1076,7 @@ const LoansScreen: React.FC = () => {
         <View style={styles.progressContainer}>
           <ProgressBar 
             progress={item.progress} 
-            color="#006A4D" 
+            color="#015F45" 
             style={styles.progressBar} 
           />
           <Text style={styles.progressText}>{Math.round(item.progress * 100)}% Paid</Text>
@@ -1505,161 +1516,178 @@ const LoansScreen: React.FC = () => {
       onRequestClose={() => setShowLoanApplicationModal(false)}
     >
       <SafeAreaView style={styles.modalContainer}>
-        <ScrollView style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Loan Application</Text>
-            <TouchableOpacity onPress={() => setShowLoanApplicationModal(false)}>
-              <Ionicons name="close" size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
-          
-          {selectedOffer && (
-            <View style={styles.loanApplicationContent}>
-              <Text style={styles.loanApplicationTitle}>{selectedOffer.name}</Text>
-              
-              <View style={styles.loanAmountSection}>
-                <Text style={styles.applicationSectionTitle}>Loan Amount</Text>
-                <Text style={styles.applicationSectionSubtitle}>
-                  ${selectedOffer.minAmount.toLocaleString()} - ${selectedOffer.maxAmount.toLocaleString()}
-                </Text>
-                
-                <View style={styles.applicationInputContainer}>
-                  <Text style={styles.currencySymbol}>$</Text>
-                  <TextInput
-                    style={styles.applicationInput}
-                    value={applicationLoanAmount}
-                    onChangeText={setApplicationLoanAmount}
-                    placeholder="Enter loan amount"
-                    keyboardType="decimal-pad"
-                    placeholderTextColor="#999"
-                  />
-                </View>
-                
-                <Slider
-                  style={styles.slider}
-                  minimumValue={selectedOffer.minAmount}
-                  maximumValue={selectedOffer.maxAmount}
-                  value={parseFloat(applicationLoanAmount) || selectedOffer.minAmount}
-                  onValueChange={(value) => setApplicationLoanAmount(Math.round(value).toString())}
-                  minimumTrackTintColor="#006A4D"
-                  maximumTrackTintColor="#DCDCDC"
-                  thumbTintColor="#006A4D"
-                  step={1000}
-                />
-                
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>${selectedOffer.minAmount.toLocaleString()}</Text>
-                  <Text style={styles.sliderLabel}>${selectedOffer.maxAmount.toLocaleString()}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.loanTermSection}>
-                <Text style={styles.applicationSectionTitle}>Loan Term</Text>
-                <Text style={styles.applicationSectionSubtitle}>
-                  {selectedOffer.minTerm} - {selectedOffer.maxTerm} months
-                </Text>
-                
-                <View style={styles.applicationInputContainer}>
-                  <TextInput
-                    style={styles.applicationInput}
-                    value={applicationLoanTerm}
-                    onChangeText={setApplicationLoanTerm}
-                    placeholder="Enter term in months"
-                    keyboardType="number-pad"
-                    placeholderTextColor="#999"
-                  />
-                  <Text style={styles.inputSuffix}>months</Text>
-                </View>
-                
-                <Slider
-                  style={styles.slider}
-                  minimumValue={selectedOffer.minTerm}
-                  maximumValue={selectedOffer.maxTerm}
-                  value={parseInt(applicationLoanTerm) || selectedOffer.minTerm}
-                  onValueChange={(value) => setApplicationLoanTerm(Math.round(value).toString())}
-                  minimumTrackTintColor="#006A4D"
-                  maximumTrackTintColor="#DCDCDC"
-                  thumbTintColor="#006A4D"
-                  step={selectedOffer.maxTerm > 120 ? 12 : 6}
-                />
-                
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>{selectedOffer.minTerm} months</Text>
-                  <Text style={styles.sliderLabel}>{selectedOffer.maxTerm} months</Text>
-                </View>
-              </View>
-              
-              <View style={styles.loanPurposeSection}>
-                <Text style={styles.applicationSectionTitle}>Loan Purpose</Text>
-                <TextInput
-                  style={styles.textAreaInput}
-                  value={applicationPurpose}
-                  onChangeText={setApplicationPurpose}
-                  placeholder="Please describe the purpose of this loan..."
-                  placeholderTextColor="#999"
-                  multiline
-                  numberOfLines={4}
-                />
-              </View>
-              
-              {parseFloat(applicationLoanAmount) > 0 && parseInt(applicationLoanTerm) > 0 && (
-                <View style={styles.loanCalculationSection}>
-                  <Text style={styles.calculationTitle}>Your Personalized Loan</Text>
-                  
-                  <View style={styles.calculationRow}>
-                    <View style={styles.calculationItem}>
-                      <Text style={styles.calculationLabel}>Monthly Payment</Text>
-                      <Text style={styles.calculationValue}>
-                        ${calculatedMonthlyPayment.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      </Text>
-                    </View>
-                    
-                    <View style={styles.calculationItem}>
-                      <Text style={styles.calculationLabel}>Interest Rate</Text>
-                      <Text style={styles.calculationValue}>{calculatedInterestRate.toFixed(2)}% APR</Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.calculationRow}>
-                    <View style={styles.calculationItem}>
-                      <Text style={styles.calculationLabel}>Total Interest</Text>
-                      <Text style={styles.calculationValue}>
-                        ${calculatedTotalInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      </Text>
-                    </View>
-                    
-                    <View style={styles.calculationItem}>
-                      <Text style={styles.calculationLabel}>Total Payments</Text>
-                      <Text style={styles.calculationValue}>
-                        ${(calculatedMonthlyPayment * parseInt(applicationLoanTerm)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  {/* Credit impact warning */}
-                  <View style={styles.creditImpactContainer}>
-                    <MaterialCommunityIcons name="information-outline" size={20} color="#FFC107" />
-                    <Text style={styles.creditImpactText}>
-                      This loan would increase your debt-to-income ratio to approximately {((creditProfile.totalDebt + parseFloat(applicationLoanAmount)) / (creditProfile.monthlyIncome * 12) * 100).toFixed(1)}%.
-                    </Text>
-                  </View>
-                </View>
-              )}
-              
-              <TouchableOpacity 
-                style={styles.submitApplicationButton}
-                onPress={handleLoanApplicationSubmit}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.submitApplicationButtonText}>Submit Application</Text>
-                )}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Loan Application</Text>
+              <TouchableOpacity onPress={() => setShowLoanApplicationModal(false)}>
+                <Ionicons name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
-          )}
-        </ScrollView>
+            
+            {selectedOffer && (
+              <ScrollView style={styles.modalScrollContent}>
+                <View style={styles.loanApplicationContent}>
+                  <Text style={styles.loanApplicationTitle}>{selectedOffer.name}</Text>
+                  
+                  <View style={styles.loanAmountSection}>
+                    <Text style={styles.applicationSectionTitle}>Loan Amount</Text>
+                    <Text style={styles.applicationSectionSubtitle}>
+                      ${selectedOffer.minAmount.toLocaleString()} - ${selectedOffer.maxAmount.toLocaleString()}
+                    </Text>
+                    
+                    <View style={styles.applicationInputContainer}>
+                      <Text style={styles.currencySymbol}>$</Text>
+                      <TextInput
+                        style={styles.applicationInput}
+                        value={applicationLoanAmount}
+                        onChangeText={setApplicationLoanAmount}
+                        placeholder="Enter loan amount"
+                        keyboardType="decimal-pad"
+                        placeholderTextColor="#999"
+                        returnKeyType="done"
+                        onSubmitEditing={() => Keyboard.dismiss()}
+                      />
+                    </View>
+                    
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={selectedOffer.minAmount}
+                      maximumValue={selectedOffer.maxAmount}
+                      value={parseFloat(applicationLoanAmount) || selectedOffer.minAmount}
+                      onValueChange={(value) => setApplicationLoanAmount(Math.round(value).toString())}
+                      minimumTrackTintColor="#006A4D"
+                      maximumTrackTintColor="#DCDCDC"
+                      thumbTintColor="#006A4D"
+                      step={1000}
+                    />
+                    
+                    <View style={styles.sliderLabels}>
+                      <Text style={styles.sliderLabel}>${selectedOffer.minAmount.toLocaleString()}</Text>
+                      <Text style={styles.sliderLabel}>${selectedOffer.maxAmount.toLocaleString()}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.loanTermSection}>
+                    <Text style={styles.applicationSectionTitle}>Loan Term</Text>
+                    <Text style={styles.applicationSectionSubtitle}>
+                      {selectedOffer.minTerm} - {selectedOffer.maxTerm} months
+                    </Text>
+                    
+                    <View style={styles.applicationInputContainer}>
+                      <TextInput
+                        style={styles.applicationInput}
+                        value={applicationLoanTerm}
+                        onChangeText={setApplicationLoanTerm}
+                        placeholder="Enter term in months"
+                        keyboardType="number-pad"
+                        placeholderTextColor="#999"
+                        returnKeyType="done"
+                        onSubmitEditing={() => Keyboard.dismiss()}
+                      />
+                      <Text style={styles.inputSuffix}>months</Text>
+                    </View>
+                    
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={selectedOffer.minTerm}
+                      maximumValue={selectedOffer.maxTerm}
+                      value={parseInt(applicationLoanTerm) || selectedOffer.minTerm}
+                      onValueChange={(value) => setApplicationLoanTerm(Math.round(value).toString())}
+                      minimumTrackTintColor="#006A4D"
+                      maximumTrackTintColor="#DCDCDC"
+                      thumbTintColor="#006A4D"
+                      step={selectedOffer.maxTerm > 120 ? 12 : 6}
+                    />
+                    
+                    <View style={styles.sliderLabels}>
+                      <Text style={styles.sliderLabel}>{selectedOffer.minTerm} months</Text>
+                      <Text style={styles.sliderLabel}>{selectedOffer.maxTerm} months</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.loanPurposeSection}>
+                    <Text style={styles.applicationSectionTitle}>Loan Purpose</Text>
+                    <View>
+                      <TextInput
+                        style={styles.textAreaInput}
+                        value={applicationPurpose}
+                        onChangeText={setApplicationPurpose}
+                        placeholder="Please describe the purpose of this loan..."
+                        placeholderTextColor="#999"
+                        multiline
+                        numberOfLines={4}
+                        returnKeyType="done"
+                        blurOnSubmit={true}
+                        onSubmitEditing={() => Keyboard.dismiss()}
+                      />
+                      {Platform.OS === 'ios' && <KeyboardToolbar />}
+                    </View>
+                  </View>
+                  
+                  {parseFloat(applicationLoanAmount) > 0 && parseInt(applicationLoanTerm) > 0 && (
+                    <View style={styles.loanCalculationSection}>
+                      <Text style={styles.calculationTitle}>Your Personalized Loan</Text>
+                      
+                      <View style={styles.calculationRow}>
+                        <View style={styles.calculationItem}>
+                          <Text style={styles.calculationLabel}>Monthly Payment</Text>
+                          <Text style={styles.calculationValue}>
+                            ${calculatedMonthlyPayment.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </Text>
+                        </View>
+                        
+                        <View style={styles.calculationItem}>
+                          <Text style={styles.calculationLabel}>Interest Rate</Text>
+                          <Text style={styles.calculationValue}>{calculatedInterestRate.toFixed(2)}% APR</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.calculationRow}>
+                        <View style={styles.calculationItem}>
+                          <Text style={styles.calculationLabel}>Total Interest</Text>
+                          <Text style={styles.calculationValue}>
+                            ${calculatedTotalInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </Text>
+                        </View>
+                        
+                        <View style={styles.calculationItem}>
+                          <Text style={styles.calculationLabel}>Total Payments</Text>
+                          <Text style={styles.calculationValue}>
+                            ${(calculatedMonthlyPayment * parseInt(applicationLoanTerm)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </Text>
+                        </View>
+                      </View>
+                      
+                      {/* Credit impact warning */}
+                      <View style={styles.creditImpactContainer}>
+                        <MaterialCommunityIcons name="information-outline" size={20} color="#FFC107" />
+                        <Text style={styles.creditImpactText}>
+                          This loan would increase your debt-to-income ratio to approximately {((creditProfile.totalDebt + parseFloat(applicationLoanAmount)) / (creditProfile.monthlyIncome * 12) * 100).toFixed(1)}%.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  
+                  <TouchableOpacity 
+                    style={styles.submitApplicationButton}
+                    onPress={handleLoanApplicationSubmit}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.submitApplicationButtonText}>Submit Application</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -1708,32 +1736,6 @@ const LoansScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Loans</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={onRefresh}
-          >
-            <Ionicons name="refresh" size={24} color="#006A4D" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={() => {
-              const newSortOption = sortOption === 'name' ? 'balance' : 
-                                 sortOption === 'balance' ? 'date' : 'name';
-              setSortOption(newSortOption);
-            }}
-          >
-            <MaterialCommunityIcons 
-              name={
-                sortOption === 'name' ? 'sort-alphabetical-ascending' : 
-                sortOption === 'balance' ? 'sort-numeric-descending' : 
-                'calendar-month'
-              } 
-              size={24} 
-              color="#006A4D" 
-            />
-          </TouchableOpacity>
-        </View>
       </View>
       
       {/* Search Bar */}
@@ -1759,7 +1761,7 @@ const LoansScreen: React.FC = () => {
       {renderLoanTypeFilter()}
       
       {/* Tab Switcher */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, isScrolled && styles.tabContainerShadow]}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'loans' ? styles.activeTab : {}]}
           onPress={() => setActiveTab('loans')}
@@ -1781,7 +1783,7 @@ const LoansScreen: React.FC = () => {
       {/* Main Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#006A4D" />
+          <ActivityIndicator size="large" color="#015F45" />
           <Text style={styles.loadingText}>Loading your loan information...</Text>
         </View>
       ) : (
@@ -1795,6 +1797,8 @@ const LoansScreen: React.FC = () => {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
               <MaterialCommunityIcons 
@@ -1814,8 +1818,8 @@ const LoansScreen: React.FC = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#006A4D']}
-              tintColor="#006A4D"
+              colors={['#015F45']}
+              tintColor="#015F45"
             />
           }
         />
@@ -1844,16 +1848,29 @@ const LoansScreen: React.FC = () => {
   );
 };
 
+// Add this function in your component before the return statement
+
+// Add a keyboard toolbar specifically for iOS multiline text inputs
+const KeyboardToolbar = () => {
+  if (Platform.OS !== 'ios') return null;
+  
+  return (
+    <TouchableOpacity 
+      style={styles.keyboardToolbar}
+      onPress={() => Keyboard.dismiss()}
+    >
+      <Text style={styles.keyboardToolbarText}>Done</Text>
+    </TouchableOpacity>
+  );
+};
+
 // Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
+    backgroundColor: '#ffffff',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? 16 : 0,
     paddingBottom: 8,
@@ -1864,74 +1881,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333'
   },
-  headerActions: {
-    flexDirection: 'row'
-  },
-  headerButton: {
-    padding: 8,
-    marginLeft: 8
-  },
-  creditProfileContainer: {
-    padding: 16,
-    borderRadius: 16,
-    margin: 16,
-    marginTop: 8,
-    marginBottom: 8
-  },
-  creditScoreContainer: {
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  creditScoreLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4
-  },
-  creditScoreValue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8
-  },
-  creditScoreIndicator: {
-    height: 8,
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 4
-  },
-  creditScoreBar: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 4
-  },
-  creditScoreLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%'
-  },
-  creditScoreRangeLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)'
-  },
-  creditDetailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  creditDetailItem: {
-    alignItems: 'center'
-  },
-  creditDetailLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 2
-  },
-  creditDetailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff'
-  },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -1939,8 +1888,8 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    backgroundColor: '#f3fee8',
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     alignItems: 'center'
@@ -1967,17 +1916,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: '#f0f0f0'
+    backgroundColor: '#f3fee8'
   },
   loanTypeButtonActive: {
-    backgroundColor: '#006A4D'
+    backgroundColor: '#015F45'
   },
   loanTypeButtonText: {
-    color: '#333',
+    color: '#015F45',
     fontWeight: '500'
   },
   loanTypeButtonTextActive: {
-    color: '#fff'
+    color: '#f3fee8'
   },
   scrollIndicator: {
     flexDirection: 'row',
@@ -1993,25 +1942,34 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    zIndex: 10,
+  },
+  tabContainerShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center'
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 20,
+    marginHorizontal: 4
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#006A4D'
+    backgroundColor: '#015F45',
   },
   tabText: {
     fontWeight: '500',
     color: '#666'
   },
   activeTabText: {
-    color: '#006A4D'
+    color: '#fff'
   },
   loadingContainer: {
     flex: 1,
@@ -2028,15 +1986,15 @@ const styles = StyleSheet.create({
     paddingBottom: 80 // Space for the action button
   },
   loanCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: '#f3fee8', // Updated to match transaction cards
+    borderRadius: 12, 
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3
+    shadowRadius: 4,
+    elevation: 2
   },
   loanCardHeader: {
     flexDirection: 'row',
@@ -2044,13 +2002,12 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   loanTypeTag: {
-    backgroundColor: 'rgba(0, 106, 77, 0.1)',
-    paddingHorizontal: 8,
+    backgroundColor: 'transparent',
     paddingVertical: 4,
     borderRadius: 4
   },
   loanTypeText: {
-    color: '#006A4D',
+    color: '#015F45',
     fontWeight: '500',
     fontSize: 12
   },
@@ -2087,7 +2044,8 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    borderRadius: 3
+    borderRadius: 3,
+    backgroundColor: '#f0f0f0'
   },
   progressText: {
     fontSize: 12,
@@ -2096,19 +2054,18 @@ const styles = StyleSheet.create({
     textAlign: 'right'
   },
   offerCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: '#f3fee8', // Updated to match transaction cards
+    borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3
+    shadowRadius: 4,
+    elevation: 2
   },
   featuredOfferCard: {
-    borderWidth: 1,
-    borderColor: '#006A4D'
+    backgroundColor: '#f3fee8',
   },
   featuredTag: {
     position: 'absolute',
@@ -2160,7 +2117,7 @@ const styles = StyleSheet.create({
     color: '#333'
   },
   applyButton: {
-    backgroundColor: '#006A4D',
+    backgroundColor: '#015F45', 
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center'
@@ -2206,7 +2163,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: '#006A4D',
+    backgroundColor: '#015F45',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 30,
@@ -2488,10 +2445,15 @@ const styles = StyleSheet.create({
     color: '#333'
   },
   submitPaymentButton: {
-    backgroundColor: '#006A4D',
+    backgroundColor: '#015F45',
     paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center'
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3
   },
   submitPaymentButtonText: {
     color: '#fff',
@@ -2531,18 +2493,17 @@ const styles = StyleSheet.create({
   applicationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    backgroundColor: '#f3fee8',
+    borderRadius: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
-    marginBottom: 12
+    paddingVertical: 10,
+    marginBottom: 12,
   },
   applicationInput: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 12,
-    color: '#333'
+    paddingVertical: 8,
+    color: '#333',
   },
   inputSuffix: {
     fontSize: 16,
@@ -2550,16 +2511,14 @@ const styles = StyleSheet.create({
     marginLeft: 4
   },
   textAreaInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    backgroundColor: '#f3fee8',
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     fontSize: 16,
     color: '#333',
     textAlignVertical: 'top',
-    minHeight: 100
+    minHeight: 100,
   },
   slider: {
     width: '100%',
@@ -2631,7 +2590,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16
-  }
+  },
+  keyboardToolbar: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    margin: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  keyboardToolbarText: {
+    color: '#015F45',
+    fontWeight: '600',
+  },
 });
 
 export default LoansScreen;
