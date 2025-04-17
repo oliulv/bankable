@@ -181,21 +181,23 @@ const EducationalReels: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
       {/* Header with shadow */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Financial Reels</Text>
-        <TouchableOpacity 
-          style={styles.savedButton}
-          onPress={() => setShowSavedTips(true)}
-          accessibilityLabel="View saved tips"
-          accessibilityRole="button"
-        >
-          <Ionicons name="bookmark-outline" size={20} color="#fff" />
-          <Text style={styles.savedText}>Saved</Text>
-        </TouchableOpacity>
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Financial Reels</Text>
+          <TouchableOpacity 
+            style={styles.savedButton}
+            onPress={() => setShowSavedTips(true)}
+            accessibilityLabel="View saved tips"
+            accessibilityRole="button"
+          >
+            <Ionicons name="bookmark-outline" size={20} color="#fff" />
+            <Text style={styles.savedText}>Saved</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Subtitle */}
+        <Text style={styles.headerSubtitle}>Swipe to learn financial wisdom</Text>
       </View>
-      
-      {/* Subtitle */}
-      <Text style={styles.headerSubtitle}>Swipe to learn financial wisdom</Text>
       
       {/* Main Content - Financial Tips Reels */}
       <View style={styles.reelsContainer}>
@@ -272,6 +274,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  headerContainer: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 4, // Android shadow
+    zIndex: 1, // Ensure shadow is visible
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -279,13 +290,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: '#fff',
-    // Added shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 4, // Android shadow
-    zIndex: 1, // Ensure shadow is visible
   },
   headerTitle: {
     fontSize: 24,
@@ -438,6 +442,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
+    backgroundColor: '#fff',
+    // Add shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 4, // Android shadow
+    zIndex: 1, // Ensure shadow is visible
   },
   closeButton: {
     padding: 4,
