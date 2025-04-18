@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -1633,11 +1633,14 @@ export default function HomeScreen(): JSX.Element {
       </ScrollView>
 
       {/* Add Widget Button */}
+      {editMode && (
       <Animated.View style={styles.addButtonContainer}>
         <TouchableOpacity style={styles.addButton} onPress={() => setShowWidgetPicker(true)}>
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </Animated.View>
+    )}
+
 
       {/* Widget Picker Modal */}
       <Modal
@@ -1699,7 +1702,7 @@ export default function HomeScreen(): JSX.Element {
                 renderItem={renderDraggableItem}
                 keyExtractor={(item) => item.id}
                 onDragEnd={handleDragEnd}
-                dragItemOverflow={true}
+                dragItemOverflow={false}
               />
             </View>
 
