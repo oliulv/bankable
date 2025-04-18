@@ -347,15 +347,15 @@ const VirtualPetBanking: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Savings Turtle</Text>
+      {/* Updated Header */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Bankable Pet</Text>
         <View style={styles.pointsDisplay}>
           <Text style={styles.pointsText}>{points} pts</Text>
         </View>
       </View>
 
-      {/* Pet Display */}
+      {/* Pet Display with updated styling */}
       <View style={styles.petCard}>
         <View style={styles.petCardGradient}>
           <View style={styles.petHeaderRow}>
@@ -576,7 +576,7 @@ const VirtualPetBanking: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Notification */}
+      {/* Updated Notification */}
       {showNotification && (
         <View style={styles.notification}>
           <Text style={styles.notificationText}>{notificationMessage}</Text>
@@ -593,32 +593,35 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "white",
   },
-  header: {
+  // Updated header styles to match BudgetingScreen
+  headerContainer: {
+    padding: 16,
+    backgroundColor: "#ffffff",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
-    paddingTop: 10,
-    backgroundColor: "black",
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-    paddingBottom: 15,
   },
-  headerTitle: {
+  title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#333333",
   },
   pointsDisplay: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "#f3fee8",
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   pointsText: {
-    color: "#ffffff",
+    color: "#015F45",
     fontWeight: "bold",
   },
+  // Updated pet card - removed border and kept shadow
   petCard: {
     borderRadius: 18,
     overflow: "hidden",
@@ -628,10 +631,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    backgroundColor: "#f3fee8", // Updated to match other screens
-    borderWidth: 1,
-    borderColor: "#e2e8e0",
+    backgroundColor: "#f3fee8", // Kept the light green background
   },
+  // ...existing code...
+
+  // Updated notification to match BudgetingScreen tooltip style
+  notification: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(1, 95, 69, 0.9)", // Using the green from BudgetingScreen
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  notificationText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  // ...existing code...
+  // Keep all other styles unchanged
   petCardGradient: {
     padding: 16,
     borderRadius: 18,
@@ -647,7 +673,7 @@ const styles = StyleSheet.create({
   },
   happinessLabel: {
     fontSize: 14,
-    color: "#015F45", // Updated to match other screens
+    color: "#015F45", 
     marginBottom: 4,
     fontWeight: "500",
   },
@@ -659,7 +685,7 @@ const styles = StyleSheet.create({
   },
   happinessBarFill: {
     height: "100%",
-    backgroundColor: "#015F45", // Updated to match other screens
+    backgroundColor: "#015F45", 
     borderRadius: 4,
   },
   petWrapper: {
@@ -958,20 +984,6 @@ const styles = StyleSheet.create({
   yourRankPoints: {
     fontSize: 16,
     color: "#64748b",
-  },
-  notification: {
-    position: "absolute",
-    top: 40,
-    left: 20,
-    right: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.9)",
-    borderRadius: 12,
-    padding: 15,
-    alignItems: "center",
-  },
-  notificationText: {
-    color: "white",
-    fontSize: 16,
   },
   emptyText: {
     textAlign: "center",
