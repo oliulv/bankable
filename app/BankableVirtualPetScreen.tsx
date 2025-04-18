@@ -1716,7 +1716,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     height: 44,
     borderRadius: 24,
-    backgroundColor: "#f3fee8",
+    backgroundColor: "#015F45",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -1726,7 +1726,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   buttonText: {
-    color: "#015F45",
+    color: "#f3fee8",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -1917,7 +1917,7 @@ const styles = StyleSheet.create({
   
   // Stats container styles
   statsContainer: {
-    backgroundColor: "#f3fee8",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -1981,7 +1981,7 @@ const styles = StyleSheet.create({
   
   // Financial challenges styles
   challengesContainer: {
-    backgroundColor: "#f3fee8",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
