@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect, useMemo, useRef } from "react"
 import {
   View,
@@ -87,6 +89,9 @@ const DynamicBudgetCalendarScreen = () => {
   // Default to November 2024
   const defaultMonth = new Date(2024, 10, 1) // November 2024 (month is 0-indexed)
   const [selectedMonth, setSelectedMonth] = useState<Date>(defaultMonth)
+
+  // Add state for month picker modal
+  const [showMonthPicker, setShowMonthPicker] = useState<boolean>(false)
 
   // Category budgets state
   const [categoryBudgets, setCategoryBudgets] = useState<CategoryBudget[]>([])
@@ -271,7 +276,7 @@ const DynamicBudgetCalendarScreen = () => {
       .filter((t) => t.amount < 0)
       .forEach((t) => {
         const category = t.category || "Other"
-        // Only include expense categories
+        // Only include expense categories and explicitly exclude Transfer
         if (EXPENSE_CATEGORIES.includes(category) && category !== "Transfer") {
           if (categorySpending[category]) {
             categorySpending[category] += Math.abs(t.amount)
@@ -299,6 +304,7 @@ const DynamicBudgetCalendarScreen = () => {
         }
       })
       .sort((a, b) => b.amount - a.amount)
+      .filter(item => item.name !== "Transfer"); // Additional filter to ensure Transfer is removed
   }, [transactions])
 
   // Calculate daily spending for the selected month
@@ -503,8 +509,8 @@ const DynamicBudgetCalendarScreen = () => {
         .filter((t) => t.amount < 0)
         .forEach((t) => {
           const category = t.category || "Other"
-          // Only include expense categories and exclude Transfer
-          if (EXPENSE_CATEGORIES.includes(category) && category !== "Transfer") {
+          // Explicitly exclude Transfer category
+          if (category !== "Transfer") {
             if (categorySpending[category]) {
               categorySpending[category] += Math.abs(t.amount)
             } else {
@@ -534,8 +540,9 @@ const DynamicBudgetCalendarScreen = () => {
           }
         })
         .sort((a, b) => b.amount - a.amount)
+        .filter(item => item.name !== "Transfer"); // Extra safety filter
     }, [transactions])
-
+  
     if (allCategories.length === 0) {
       return (
         <View style={styles.noDataContainer}>
@@ -559,8 +566,8 @@ const DynamicBudgetCalendarScreen = () => {
                   height: 40,
                   borderRadius: 20,
                   position: "absolute",
-                  top: 80 + Math.sin(index * (Math.PI / 6)) * 60,
-                  left: 150 + Math.cos(index * (Math.PI / 6)) * 60,
+                  top: 80 + Math.sin(index * (Math.PI / 4)) * 80, // Changed from Math.PI/6 to Math.PI/4 and increased radius from 60 to 80
+                  left: 150 + Math.cos(index * (Math.PI / 4)) * 80, // Changed from Math.PI/6 to Math.PI/4 and increased radius from 60 to 80
                   zIndex: 5 - (index % 5),
                   transform: [{ scale: category.percentage / 15 }],
                 },
@@ -597,6 +604,16 @@ const DynamicBudgetCalendarScreen = () => {
     },
   ])
 
+  // Update the handleScroll function to reset scroll position when switching tabs
+  // Add this function to handle tab switching with scroll reset
+  const switchTab = (tab: "overview" | "transactions" | "settings") => {
+    setActiveTab(tab)
+    // Reset scroll position when switching tabs
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true })
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with no shadow */}
@@ -605,6 +622,40 @@ const DynamicBudgetCalendarScreen = () => {
         <Text style={styles.subtitle}>
           {selectedMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
         </Text>
+
+        {/* Month Selector */}
+        <View style={styles.monthSelectorContainer}>
+          <TouchableOpacity
+            style={styles.monthArrowButton}
+            onPress={() => {
+              const newMonth = new Date(selectedMonth)
+              newMonth.setMonth(newMonth.getMonth() - 1)
+              if (newMonth.getFullYear() === 2024 && newMonth.getMonth() >= 0) {
+                setSelectedMonth(newMonth)
+              }
+            }}
+          >
+            <Ionicons name="chevron-back" size={24} color="#015F45" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.monthButton} onPress={() => setShowMonthPicker(true)}>
+            <Text style={styles.monthButtonText}>{selectedMonth.toLocaleDateString("en-GB", { month: "long" })}</Text>
+            <Ionicons name="calendar-outline" size={18} color="#015F45" style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.monthArrowButton}
+            onPress={() => {
+              const newMonth = new Date(selectedMonth)
+              newMonth.setMonth(newMonth.getMonth() + 1)
+              if (newMonth.getFullYear() === 2024 && newMonth.getMonth() <= 11) {
+                setSelectedMonth(newMonth)
+              }
+            }}
+          >
+            <Ionicons name="chevron-forward" size={24} color="#015F45" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Main Content */}
@@ -618,14 +669,10 @@ const DynamicBudgetCalendarScreen = () => {
           {/* Enhanced Tab Navigation with conditional shadow */}
           <View style={[styles.pillTabContainer, hasScrolled && styles.pillTabContainerWithShadow]}>
             <View style={styles.pillTabWrapper}>
+              {/* Update the tab buttons to use the new switchTab function */}
               <TouchableOpacity
                 style={[styles.pillTab, activeTab === "overview" && styles.activePillTab]}
-                onPress={() => {
-                  setActiveTab("overview")
-                  if (flatListRef.current) {
-                    flatListRef.current.scrollToOffset({ offset: 0, animated: true })
-                  }
-                }}
+                onPress={() => switchTab("overview")}
               >
                 <View style={styles.tabIconTextContainer}>
                   <Ionicons
@@ -640,12 +687,7 @@ const DynamicBudgetCalendarScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.pillTab, activeTab === "transactions" && styles.activePillTab]}
-                onPress={() => {
-                  setActiveTab("transactions")
-                  if (flatListRef.current) {
-                    flatListRef.current.scrollToOffset({ offset: 0, animated: true })
-                  }
-                }}
+                onPress={() => switchTab("transactions")}
               >
                 <View style={styles.tabIconTextContainer}>
                   <Ionicons
@@ -660,12 +702,7 @@ const DynamicBudgetCalendarScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.pillTab, activeTab === "settings" && styles.activePillTab]}
-                onPress={() => {
-                  setActiveTab("settings")
-                  if (flatListRef.current) {
-                    flatListRef.current.scrollToOffset({ offset: 0, animated: true })
-                  }
-                }}
+                onPress={() => switchTab("settings")}
               >
                 <View style={styles.tabIconTextContainer}>
                   <Ionicons
@@ -845,7 +882,9 @@ const DynamicBudgetCalendarScreen = () => {
                         )
                       }}
                     />
-                    <Text style={styles.chartXAxisLabel}>November 2024</Text>
+                    <Text style={styles.chartXAxisLabel}>
+                      {selectedMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
+                    </Text>
                   </View>
                 ) : (
                   <View style={styles.noDataContainer}>
@@ -864,7 +903,10 @@ const DynamicBudgetCalendarScreen = () => {
                 ))}
                 {filteredTransactions.length > 5 && (
                   <TouchableOpacity style={styles.viewAllButton} onPress={() => setActiveTab("transactions")}>
-                    <Text style={styles.viewAllText}>View All Transactions for November 2024</Text>
+                    <Text style={styles.viewAllText}>
+                      View All Transactions for{" "}
+                      {selectedMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
+                    </Text>
                     <Ionicons name="chevron-forward" size={16} color="#015F45" />
                   </TouchableOpacity>
                 )}
@@ -1033,6 +1075,46 @@ const DynamicBudgetCalendarScreen = () => {
               <TouchableOpacity style={styles.saveChatButton} onPress={handleUpdateBudget}>
                 <Text style={styles.saveChatButtonText}>Save</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Month Picker Modal */}
+      <Modal
+        visible={showMonthPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMonthPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.monthPickerContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Month</Text>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowMonthPicker(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.monthGrid}>
+              {Array.from({ length: 12 }, (_, i) => {
+                const monthDate = new Date(2024, i, 1)
+                const monthName = monthDate.toLocaleDateString("en-GB", { month: "short" })
+                const isSelected = selectedMonth.getMonth() === i
+
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.monthGridItem, isSelected && styles.selectedMonthGridItem]}
+                    onPress={() => {
+                      setSelectedMonth(new Date(2024, i, 1))
+                      setShowMonthPicker(false)
+                    }}
+                  >
+                    <Text style={[styles.monthGridText, isSelected && styles.selectedMonthGridText]}>{monthName}</Text>
+                  </TouchableOpacity>
+                )
+              })}
             </View>
           </View>
         </View>
@@ -1323,7 +1405,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   overBudgetBar: {
-    backgroundColor: "#FF5252",
+    backgroundColor: "#000000",
   },
   remainingBudget: {
     fontSize: 12,
@@ -1727,6 +1809,62 @@ const styles = StyleSheet.create({
   pieChartLegendContainer: {
     flex: 1,
     paddingHorizontal: 10,
+  },
+  monthSelectorContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  monthArrowButton: {
+    padding: 10,
+  },
+  monthButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#f3fee8",
+  },
+  monthButtonText: {
+    fontSize: 16,
+    color: "#015F45",
+    fontWeight: "500",
+  },
+  monthPickerContent: {
+    width: width - 40,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  monthGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  monthGridItem: {
+    width: (width - 80) / 3,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  selectedMonthGridItem: {
+    backgroundColor: "#015F45",
+  },
+  monthGridText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  selectedMonthGridText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 })
 

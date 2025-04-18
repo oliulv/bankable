@@ -15,6 +15,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import financial tips from JSON file
 import FINANCIAL_TIPS_DATA from '../data/reels.json';
@@ -37,10 +38,49 @@ const EducationalReels: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSavedTips, setShowSavedTips] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [headerShadowVisible, setHeaderShadowVisible] = useState(false);
   
   // Refs
   const flatListRef = useRef<FlatList>(null);
   const favoriteAnimation = useRef(new Animated.Value(1)).current;
+  const savedTipsScrollY = useRef<number>(0);
+
+  // Load saved favorites on component mount
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  // Load favorites from AsyncStorage
+  const loadFavorites = async () => {
+    try {
+      const favoritesJson = await AsyncStorage.getItem('@bankable_favorites');
+      if (favoritesJson) {
+        const favoritesIds = JSON.parse(favoritesJson);
+        
+        setTips(prevTips => 
+          prevTips.map(tip => ({
+            ...tip,
+            isFavorite: favoritesIds.includes(tip.id)
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+
+  // Save favorites to AsyncStorage
+  const saveFavorites = async (updatedTips: FinancialTip[]) => {
+    try {
+      const favoriteIds = updatedTips
+        .filter(tip => tip.isFavorite)
+        .map(tip => tip.id);
+      
+      await AsyncStorage.setItem('@bankable_favorites', JSON.stringify(favoriteIds));
+    } catch (error) {
+      console.error('Error saving favorites:', error);
+    }
+  };
 
   // Get unique categories
   const categories = ['All', ...Array.from(new Set(tips.map(tip => tip.category)))];
@@ -55,11 +95,16 @@ const EducationalReels: React.FC = () => {
 
   // Toggle favorite status for a tip
   const toggleFavorite = (id: string) => {
-    setTips(prevTips =>
-      prevTips.map(tip =>
+    setTips(prevTips => {
+      const updatedTips = prevTips.map(tip =>
         tip.id === id ? { ...tip, isFavorite: !tip.isFavorite } : tip
-      )
-    );
+      );
+      
+      // Save favorites to AsyncStorage
+      saveFavorites(updatedTips);
+      
+      return updatedTips;
+    });
 
     // Animate heart icon
     Animated.sequence([
@@ -172,8 +217,18 @@ const EducationalReels: React.FC = () => {
     }
   }, [selectedCategory]);
 
-  // Render category filter
-
+  // Handle scroll for saved tips header shadow
+  const handleSavedTipsScroll = (event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    savedTipsScrollY.current = scrollY;
+    
+    // Show shadow if scrolled down
+    if (scrollY > 2 && !headerShadowVisible) {
+      setHeaderShadowVisible(true);
+    } else if (scrollY <= 2 && headerShadowVisible) {
+      setHeaderShadowVisible(false);
+    }
+  };
 
   // Main render
   return (
@@ -232,7 +287,10 @@ const EducationalReels: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.savedTipsContainer}>
-            <View style={styles.savedTipsHeader}>
+            <View style={[
+              styles.savedTipsHeader, 
+              headerShadowVisible && styles.savedTipsHeaderWithShadow
+            ]}>
               <Text style={styles.savedTipsTitle}>Saved Tips</Text>
               <TouchableOpacity 
                 onPress={() => setShowSavedTips(false)}
@@ -252,6 +310,8 @@ const EducationalReels: React.FC = () => {
                   keyExtractor={(item) => item.id}
                   contentContainerStyle={styles.savedTipsList}
                   showsVerticalScrollIndicator={false}
+                  onScroll={handleSavedTipsScroll}
+                  scrollEventThrottle={16}
                 />
               ) : (
                 <View style={styles.noSavedTips}>
@@ -443,13 +503,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: '#fff',
-    // Add shadow
+    zIndex: 1,
+  },
+  savedTipsHeaderWithShadow: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 4, // Android shadow
-    zIndex: 1, // Ensure shadow is visible
   },
   closeButton: {
     padding: 4,
