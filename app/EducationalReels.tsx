@@ -13,6 +13,8 @@ import {
   Platform,
   Image,
   ScrollView,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,23 +34,155 @@ interface FinancialTip {
 // Get screen dimensions
 const { width, height } = Dimensions.get('window');
 
+// Constants for pagination
+const INITIAL_BATCH_SIZE = 15;
+const LOAD_MORE_BATCH_SIZE = 10;
+
+// Utility function to shuffle array (Fisher-Yates algorithm)
+const shuffleArray = <T extends any>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const EducationalReels: React.FC = () => {
   // State
-  const [tips, setTips] = useState<FinancialTip[]>(FINANCIAL_TIPS_DATA);
+  const [allTips, setAllTips] = useState<FinancialTip[]>([]); // All shuffled tips
+  const [visibleTips, setVisibleTips] = useState<FinancialTip[]>([]); // Currently visible subset
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSavedTips, setShowSavedTips] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [headerShadowVisible, setHeaderShadowVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshLocked, setIsRefreshLocked] = useState(false);
   
   // Refs
   const flatListRef = useRef<FlatList>(null);
   const favoriteAnimation = useRef(new Animated.Value(1)).current;
   const savedTipsScrollY = useRef<number>(0);
 
-  // Load saved favorites on component mount
+  // Initial load with randomized order
   useEffect(() => {
-    loadFavorites();
+    initializeData();
   }, []);
+
+  // Initialize data with shuffled order and pagination
+  const initializeData = async () => {
+    const shuffledData = shuffleArray(FINANCIAL_TIPS_DATA);
+    
+    // Load saved favorites
+    try {
+      const favoritesJson = await AsyncStorage.getItem('@bankable_favorites');
+      let tipsWithFavorites: FinancialTip[];
+      
+      if (favoritesJson) {
+        const favoritesIds = JSON.parse(favoritesJson);
+        
+        // Apply favorites status to shuffled data
+        tipsWithFavorites = shuffledData.map(tip => ({
+          ...tip,
+          isFavorite: favoritesIds.includes(tip.id)
+        }));
+      } else {
+        tipsWithFavorites = shuffledData;
+      }
+      
+      // Store all data but only show initial batch
+      setAllTips(tipsWithFavorites);
+      setVisibleTips(tipsWithFavorites.slice(0, INITIAL_BATCH_SIZE));
+      
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      setAllTips(shuffledData);
+      setVisibleTips(shuffledData.slice(0, INITIAL_BATCH_SIZE));
+    }
+  };
+
+  // Handle refresh with improved experience
+  const onRefresh = async () => {
+    // Prevent multiple refreshes from occurring simultaneously
+    if (isRefreshLocked) return;
+    
+    try {
+      setIsRefreshLocked(true);
+      setRefreshing(true);
+      
+      // Get current favorite IDs before reshuffling
+      const favoriteIds = allTips
+        .filter(tip => tip.isFavorite)
+        .map(tip => tip.id);
+      
+      // Reshuffle all data
+      const shuffledData = shuffleArray(FINANCIAL_TIPS_DATA).map(tip => ({
+        ...tip,
+        isFavorite: favoriteIds.includes(tip.id)
+      }));
+      
+      // Add artificial delay to make refresh feel more substantial
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Update data and reset view
+      setAllTips(shuffledData);
+      setVisibleTips(shuffledData.slice(0, INITIAL_BATCH_SIZE));
+      
+      // Reset to first item
+      if (flatListRef.current) {
+        flatListRef.current.scrollToOffset({
+          offset: 0,
+          animated: false,
+        });
+        setCurrentIndex(0);
+      }
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      // Always ensure these states are reset
+      setRefreshing(false);
+      
+      // Keep refresh locked for a short period to prevent accidental double-pulls
+      setTimeout(() => {
+        setIsRefreshLocked(false);
+      }, 500);
+    }
+  };
+
+  // Load more items when user approaches the end of the list
+  const loadMoreItems = () => {
+    // Early return if we're already loading or at the end of all tips
+    if (isLoadingMore || visibleTips.length >= allTips.length) {
+      return;
+    }
+    
+    try {
+      setIsLoadingMore(true);
+      
+      console.log(`Loading more items. Current: ${visibleTips.length}, Total: ${allTips.length}`);
+      
+      // Add artificial delay to make loading feel smoother
+      setTimeout(() => {
+        // Get next batch of items
+        const nextBatchStart = visibleTips.length;
+        const nextBatchEnd = Math.min(nextBatchStart + LOAD_MORE_BATCH_SIZE, allTips.length);
+        
+        const nextBatch = allTips.slice(nextBatchStart, nextBatchEnd);
+        
+        console.log(`Adding ${nextBatch.length} new items to visible tips`);
+        
+        if (nextBatch.length > 0) {
+          setVisibleTips(prev => [...prev, ...nextBatch]);
+        }
+        
+        setIsLoadingMore(false);
+      }, 800);
+    } catch (error) {
+      console.error('Error loading more items:', error);
+      setIsLoadingMore(false);
+    }
+  };
 
   // Load favorites from AsyncStorage
   const loadFavorites = async () => {
@@ -57,7 +191,15 @@ const EducationalReels: React.FC = () => {
       if (favoritesJson) {
         const favoritesIds = JSON.parse(favoritesJson);
         
-        setTips(prevTips => 
+        // Update both allTips and visibleTips for consistency
+        setAllTips(prevTips => 
+          prevTips.map(tip => ({
+            ...tip,
+            isFavorite: favoritesIds.includes(tip.id)
+          }))
+        );
+        
+        setVisibleTips(prevTips => 
           prevTips.map(tip => ({
             ...tip,
             isFavorite: favoritesIds.includes(tip.id)
@@ -83,27 +225,31 @@ const EducationalReels: React.FC = () => {
   };
 
   // Get unique categories
-  const categories = ['All', ...Array.from(new Set(tips.map(tip => tip.category)))];
+  const categories = ['All', ...Array.from(new Set(visibleTips.map(tip => tip.category)))];
 
   // Derived state
-  const savedTips = tips.filter(tip => tip.isFavorite);
+  const savedTips = allTips.filter(tip => tip.isFavorite);
   
   // Filter tips by selected category
   const filteredTips = selectedCategory === 'All' 
-    ? tips 
-    : tips.filter(tip => tip.category === selectedCategory);
+    ? visibleTips 
+    : visibleTips.filter(tip => tip.category === selectedCategory);
 
   // Toggle favorite status for a tip
   const toggleFavorite = (id: string) => {
-    setTips(prevTips => {
+    // Update both allTips and visibleTips for consistency
+    setAllTips(prevTips => {
       const updatedTips = prevTips.map(tip =>
         tip.id === id ? { ...tip, isFavorite: !tip.isFavorite } : tip
       );
-      
-      // Save favorites to AsyncStorage
       saveFavorites(updatedTips);
-      
       return updatedTips;
+    });
+    
+    setVisibleTips(prevTips => {
+      return prevTips.map(tip =>
+        tip.id === id ? { ...tip, isFavorite: !tip.isFavorite } : tip
+      );
     });
 
     // Animate heart icon
@@ -230,6 +376,18 @@ const EducationalReels: React.FC = () => {
     }
   };
 
+  // Render FooterComponent for FlatList
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    
+    return (
+      <View style={styles.loadingMoreContainer}>
+        <ActivityIndicator size="large" color="#015f45" />
+        <Text style={styles.loadingMoreText}>Loading more wisdom...</Text>
+      </View>
+    );
+  };
+
   // Main render
   return (
     <SafeAreaView style={styles.container}>
@@ -269,6 +427,25 @@ const EducationalReels: React.FC = () => {
           onViewableItemsChanged={onViewableItemsChanged}
           pagingEnabled
           contentContainerStyle={styles.flatListContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#015f45']}
+              tintColor="#015f45"
+              title="Pull to refresh"
+              titleColor="#015f45"
+              progressViewOffset={10}
+            />
+          }
+          onEndReached={loadMoreItems}
+          onEndReachedThreshold={0.2} // Trigger earlier
+          ListFooterComponent={renderFooter}
+          removeClippedSubviews={true} // Performance optimization
+          maxToRenderPerBatch={5} // Performance optimization
+          updateCellsBatchingPeriod={100} // Performance optimization
+          windowSize={7} // Performance optimization
+          initialNumToRender={INITIAL_BATCH_SIZE}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="document-text-outline" size={60} color="#ccc" />
@@ -588,6 +765,18 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 8,
     textAlign: 'center',
+  },
+  loadingMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 100,
+  },
+  loadingMoreText: {
+    color: '#015f45',
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 
