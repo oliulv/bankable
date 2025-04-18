@@ -347,7 +347,7 @@ const VirtualPetBanking: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Updated Header */}
+      {/* Updated Header with Shadow */}
       <View style={styles.headerContainer}>
         <Text style={styles.title}>Bankable Pet</Text>
         <View style={styles.pointsDisplay}>
@@ -355,7 +355,7 @@ const VirtualPetBanking: React.FC = () => {
         </View>
       </View>
 
-      {/* Pet Display with updated styling */}
+      {/* Pet Display with updated styling and shadow */}
       <View style={styles.petCard}>
         <View style={styles.petCardGradient}>
           <View style={styles.petHeaderRow}>
@@ -404,7 +404,7 @@ const VirtualPetBanking: React.FC = () => {
         </View>
       </View>
 
-      {/* Navigation Buttons */}
+      {/* Navigation Buttons - Updated to Pill Style */}
       <View style={styles.buttonsContainer}>
         <TouchableOpacity style={styles.navButton} onPress={() => setShowItemShop(true)}>
           <Text style={styles.buttonText}>Pet Shop</Text>
@@ -576,7 +576,7 @@ const VirtualPetBanking: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Updated Notification */}
+      {/* Updated Notification with Rounder Shape */}
       {showNotification && (
         <View style={styles.notification}>
           <Text style={styles.notificationText}>{notificationMessage}</Text>
@@ -593,14 +593,15 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "white",
   },
-  // Updated header styles to match BudgetingScreen
+  // Updated header styles with shadow
   headerContainer: {
-    padding: 16,
-    backgroundColor: "#ffffff",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 4, // Android shadow
+    zIndex: 1, // Ensure shadow is visible
   },
   title: {
     fontSize: 24,
@@ -621,29 +622,29 @@ const styles = StyleSheet.create({
     color: "#015F45",
     fontWeight: "bold",
   },
-  // Updated pet card - removed border and kept shadow
+  // Updated pet card with stronger shadow
   petCard: {
     borderRadius: 18,
     overflow: "hidden",
     marginBottom: 16,
-    elevation: 3,
+    elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    backgroundColor: "#f3fee8", // Kept the light green background
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    backgroundColor: "#f3fee8",
   },
   // ...existing code...
 
-  // Updated notification to match BudgetingScreen tooltip style
+  // Updated notification to match BudgetingScreen pill style
   notification: {
     position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: "rgba(1, 95, 69, 0.9)", // Using the green from BudgetingScreen
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: "#f3fee8",
+    borderRadius: 24,
+    padding: 16,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -652,12 +653,55 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   notificationText: {
-    color: "white",
+    color: "#015F45",
     fontSize: 16,
     fontWeight: "500",
   },
   // ...existing code...
-  // Keep all other styles unchanged
+
+  // Updated buttons to match pill style from budget page
+  buttonsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  navButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    height: 44,
+    borderRadius: 24,
+    backgroundColor: "#f3fee8",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  buttonText: {
+    color: "#015F45",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  // ...existing code...
+
+  // Updated leaderboard friend items with shadow
+  friendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3fee8",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  // ...existing code...
   petCardGradient: {
     padding: 16,
     borderRadius: 18,
@@ -722,29 +766,6 @@ const styles = StyleSheet.create({
     height: 70,
     top: 20,
     zIndex: 2,
-  },
-  buttonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  navButton: {
-    width: "31%",
-    height: 48,
-    borderRadius: 24, // Updated to be more rounded like other screens
-    backgroundColor: "#015F45", // Updated to match other screens
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, // Reduced shadow opacity to match other screens
-    shadowRadius: 4,
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
   },
   modalContainer: {
     flex: 1,
@@ -929,14 +950,6 @@ const styles = StyleSheet.create({
   },
   friendsList: {
     paddingBottom: 20,
-  },
-  friendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f3fee8", // Updated to match other screens
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 10,
   },
   friendRank: {
     fontSize: 18,

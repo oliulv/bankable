@@ -1633,11 +1633,14 @@ export default function HomeScreen(): JSX.Element {
       </ScrollView>
 
       {/* Add Widget Button */}
+      {editMode && (
       <Animated.View style={styles.addButtonContainer}>
         <TouchableOpacity style={styles.addButton} onPress={() => setShowWidgetPicker(true)}>
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </Animated.View>
+    )}
+
 
       {/* Widget Picker Modal */}
       <Modal
