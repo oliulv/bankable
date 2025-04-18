@@ -1,6 +1,7 @@
 export default {
     expo: {
       name: "BankableApp",
+      "scheme": "myapp",
       // ... other expo config
       extra: {
         supabaseUrl: process.env.SUPABASE_URL,

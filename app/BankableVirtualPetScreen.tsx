@@ -304,18 +304,7 @@ const VirtualPetBanking: React.FC = () => {
   // Load saved data when component mounts
   useEffect(() => {
     loadSavedData()
-    
-    // Add the default happy turtle to owned items if not already owned
-    setTimeout(() => {
-      if (ownedItems.length === 0) {
-        // Find the happy turtle (id: 1)
-        const defaultSkin = petItems.find(item => item.id === "1");
-        if (defaultSkin) {
-          setOwnedItems([defaultSkin]);
-          setEquippedSkin(defaultSkin);
-        }
-      }
-    }, 500);
+    // Remove the problematic timeout that overwrites saved data
   }, [])
 
   // Save data whenever it changes
@@ -338,25 +327,65 @@ const VirtualPetBanking: React.FC = () => {
       const savedRewards = await AsyncStorage.getItem(STORAGE_KEYS.PURCHASED_REWARDS)
 
       if (savedPoints) setPoints(parseInt(savedPoints))
-      if (savedOwnedItems) setOwnedItems(JSON.parse(savedOwnedItems))
-      if (savedActiveSkin) {
-        const skin = JSON.parse(savedActiveSkin)
-        setEquippedSkin(skin)
+      
+      // Load owned items, or set default if none exist
+      if (savedOwnedItems) {
+        const parsedItems = JSON.parse(savedOwnedItems);
+        setOwnedItems(parsedItems);
       } else {
-        // If no skin is equipped, use the default happy turtle
-        const defaultSkin = petItems.find(item => item.id === "1")
+        // Only add default item if no saved items exist
+        const defaultSkin = petItems.find(item => item.id === "1");
         if (defaultSkin) {
-          setEquippedSkin(defaultSkin)
+          setOwnedItems([defaultSkin]);
+          AsyncStorage.setItem(STORAGE_KEYS.OWNED_ITEMS, JSON.stringify([defaultSkin]));
+          console.log('No saved items found, added default skin');
         }
       }
-      if (savedPetName) setPetName(savedPetName)
-      if (savedHappiness) setPetHappiness(parseInt(savedHappiness))
-      if (savedVouchers) setRedeemedVouchers(JSON.parse(savedVouchers))
       
+      // Load active skin or set default only if no active skin exists
+      if (savedActiveSkin) {
+        try {
+          const skin = JSON.parse(savedActiveSkin);
+          setEquippedSkin(skin);
+        } catch (error) {
+          console.error('Error parsing saved active skin:', error);
+          setDefaultSkin();
+        }
+      } else {
+        setDefaultSkin();
+      }
+      
+      if (savedPetName) setPetName(savedPetName);
+      if (savedHappiness) setPetHappiness(parseInt(savedHappiness));
+      if (savedVouchers) {
+        const parsedVouchers = JSON.parse(savedVouchers);
+        setRedeemedVouchers(parsedVouchers);
+      }
+      
+      if (savedRewards) {
+        try {
+          const parsedRewards = JSON.parse(savedRewards);
+          // Merge with redeemedVouchers if needed
+        } catch (error) {
+          console.error('Error parsing saved rewards:', error);
+        }
+      }
     } catch (error) {
       console.error("Error loading data:", error)
     } finally {
       setIsLoading(false)
+    }
+  }
+  
+  // Helper function to set the default skin
+  const setDefaultSkin = () => {
+    // If no skin is equipped, use the default happy turtle
+    const defaultSkin = petItems.find(item => item.id === "1");
+    if (defaultSkin) {
+      setEquippedSkin(defaultSkin);
+      // Save default skin if it's being set
+      AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SKIN, JSON.stringify(defaultSkin))
+        .catch(error => console.error("Error saving default skin:", error));
     }
   }
 
@@ -369,6 +398,7 @@ const VirtualPetBanking: React.FC = () => {
       await AsyncStorage.setItem(STORAGE_KEYS.PET_NAME, petName)
       await AsyncStorage.setItem(STORAGE_KEYS.HAPPINESS, petHappiness.toString())
       await AsyncStorage.setItem(STORAGE_KEYS.VOUCHERS, JSON.stringify(redeemedVouchers))
+      
     } catch (error) {
       console.error("Error saving data:", error)
     }
@@ -471,8 +501,13 @@ const VirtualPetBanking: React.FC = () => {
       setOwnedItems(newOwnedItems);
       
       // Save to AsyncStorage immediately to ensure persistence
-      AsyncStorage.setItem(STORAGE_KEYS.POINTS, newPoints.toString());
-      AsyncStorage.setItem(STORAGE_KEYS.OWNED_ITEMS, JSON.stringify(newOwnedItems));
+      AsyncStorage.setItem(STORAGE_KEYS.POINTS, newPoints.toString())
+        .catch(error => console.error("Error saving points:", error));
+        
+      AsyncStorage.setItem(STORAGE_KEYS.OWNED_ITEMS, JSON.stringify(newOwnedItems))
+        .catch(error => console.error("Error saving owned items:", error));
+      
+      console.log(`Item purchased and saved: ${item.name}`);
       
       setNotificationMessage(`You bought ${item.name}!`);
       setShowNotification(true);
@@ -483,13 +518,18 @@ const VirtualPetBanking: React.FC = () => {
     }
   }
 
-  // Equip item - updated to handle single skin selection
+  // Equip item - updated to handle single skin selection and ensure persistence
   const toggleEquipItem = (item: PetItem) => {
     // If the item is already equipped, do nothing
     if (equippedSkin && equippedSkin.id === item.id) return;
     
     // Equip the new skin
     setEquippedSkin(item);
+    
+    // Save to AsyncStorage immediately to ensure persistence
+    AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SKIN, JSON.stringify(item))
+      .then(() => console.log(`Item equipped and saved: ${item.name}`))
+      .catch(error => console.error("Error saving equipped skin:", error));
     
     setNotificationMessage(`${item.name} equipped!`);
     setShowNotification(true);
@@ -510,8 +550,17 @@ const VirtualPetBanking: React.FC = () => {
       setRedeemedVouchers(newRedeemedVouchers);
       
       // Save to AsyncStorage immediately to ensure persistence
-      AsyncStorage.setItem(STORAGE_KEYS.POINTS, newPoints.toString());
-      AsyncStorage.setItem(STORAGE_KEYS.VOUCHERS, JSON.stringify(newRedeemedVouchers));
+      AsyncStorage.setItem(STORAGE_KEYS.POINTS, newPoints.toString())
+        .catch(error => console.error("Error saving points after reward:", error));
+        
+      AsyncStorage.setItem(STORAGE_KEYS.VOUCHERS, JSON.stringify(newRedeemedVouchers))
+        .catch(error => console.error("Error saving vouchers:", error));
+      
+      // Also save to purchased rewards for additional backup
+      AsyncStorage.setItem(STORAGE_KEYS.PURCHASED_REWARDS, JSON.stringify(newRedeemedVouchers))
+        .catch(error => console.error("Error saving purchased rewards:", error));
+      
+      console.log(`Reward purchased and saved: ${reward.name}`);
       
       setNotificationMessage(`You bought ${reward.name}!`);
       setShowNotification(true);
@@ -583,8 +632,14 @@ const VirtualPetBanking: React.FC = () => {
     );
   }
 
-  // Handle pet name edit toggle
+  // Handle pet name edit toggle - enhanced to save name immediately
   const togglePetNameEdit = () => {
+    if (editingPetName) {
+      // Save name when exiting edit mode
+      AsyncStorage.setItem(STORAGE_KEYS.PET_NAME, petName)
+        .then(() => console.log(`Pet name saved: ${petName}`))
+        .catch(error => console.error("Error saving pet name:", error));
+    }
     setEditingPetName(!editingPetName);
   }
 
@@ -626,6 +681,7 @@ const VirtualPetBanking: React.FC = () => {
   useEffect(() => {
     if (!isLoading && equippedSkin) {
       AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SKIN, JSON.stringify(equippedSkin))
+        .then(() => console.log(`Active skin saved from effect: ${equippedSkin.name}`))
         .catch(error => console.error("Error saving equipped skin:", error));
     }
   }, [equippedSkin, isLoading]);
