@@ -950,7 +950,6 @@ const VirtualPetBanking: React.FC = () => {
               <ScrollView style={styles.vouchersScrollView}>
                 {redeemedVouchers.length > 0 ? (
                   <View style={styles.vouchersListContainer}>
-                    <Text style={styles.vouchersSectionTitle}>Your Vouchers</Text>
                     {redeemedVouchers.map(voucher => (
                       <View key={voucher.id + "-redeemed"}>
                         {renderRedeemedVoucher({item: voucher})}
@@ -964,8 +963,6 @@ const VirtualPetBanking: React.FC = () => {
                     <Text style={styles.emptyVouchersSubtext}>Earn points through good financial habits!</Text>
                   </View>
                 )}
-                
-                {renderFinancialChallenges()}
               </ScrollView>
             )}
           </View>
