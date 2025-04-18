@@ -209,6 +209,8 @@ const InvestmentsScreen: React.FC = () => {
             date: new Date(t.date)
           }));
         }
+        // Reset the balance to £1000 every time the app loads
+        parsedData.balance = 1000;
         setPortfolio(parsedData);
       }
     } catch (error) {
@@ -463,7 +465,7 @@ const InvestmentsScreen: React.FC = () => {
       const percentage = (value / totalValue) * 100;
       const roundedPercentage = percentage.toFixed(1);
       return {
-        name: `${category}`,
+        name: `% ${category}`,
         value: parseFloat(roundedPercentage),
         legend: `${category}: ${roundedPercentage}%`,
         color: backgroundColor,

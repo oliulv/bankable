@@ -10,23 +10,16 @@ const categoryToIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
   "food": "fast-food-outline",
   "shopping": "cart-outline",
   "monthly income": "trending-up-outline",
-  "leisure": "game-controller-outline",
+  "leisure": "videocam-outline",
   "saving": "wallet-outline",
   "utility": "flash-outline",
   "withdrawal": "cash-outline",
-  "entertainment": "game-controller-outline",
   "interest": "trending-up-outline",
   "health": "fitness-outline",
-  "other": "apps-outline",
-  "income": "trending-up-outline",
-  "expense": "trending-down-outline",
   "transfer": "swap-horizontal-outline",
-  "grocery": "basket-outline",
-  "restaurant": "restaurant-outline",
-  "coffee": "cafe-outline",
-  "subscription": "repeat-outline",
   "clothing": "shirt-outline",
-  "personal": "person-outline"
+  "mortgage": "home-outline",
+  "gambling": "game-controller-outline",
 };
 
 // Helper function to get appropriate icon
