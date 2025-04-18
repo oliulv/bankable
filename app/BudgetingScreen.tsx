@@ -503,10 +503,13 @@ const DynamicBudgetCalendarScreen = () => {
         .filter((t) => t.amount < 0)
         .forEach((t) => {
           const category = t.category || "Other"
-          if (categorySpending[category]) {
-            categorySpending[category] += Math.abs(t.amount)
-          } else {
-            categorySpending[category] = Math.abs(t.amount)
+          // Only include expense categories and exclude Transfer
+          if (EXPENSE_CATEGORIES.includes(category) && category !== "Transfer") {
+            if (categorySpending[category]) {
+              categorySpending[category] += Math.abs(t.amount)
+            } else {
+              categorySpending[category] = Math.abs(t.amount)
+            }
           }
         })
 
