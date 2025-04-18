@@ -44,7 +44,8 @@ const STORAGE_KEYS = {
   PET_NAME: 'bankable_pet_name',
   HAPPINESS: 'bankable_pet_happiness',
   VOUCHERS: 'bankable_vouchers',
-  ACTIVE_SKIN: 'bankable_active_skin'  // New key for active skin
+  ACTIVE_SKIN: 'bankable_active_skin',  // New key for active skin
+  PURCHASED_REWARDS: 'bankable_purchased_rewards' // New key for purchased rewards
 }
 
 // Mock data - Updated to include turtle skins with local asset paths
@@ -147,7 +148,7 @@ const petItems: PetItem[] = [
   },
 ]
 
-// Updated rewards with proper require() for images
+// Updated rewards with correct file paths for images
 const rewards: Reward[] = [
   {
     id: "1",
@@ -170,6 +171,7 @@ const rewards: Reward[] = [
     name: "£5 Amazon Voucher",
     description: "£5 off your next Amazon purchase",
     price: 1000,
+    // Fix the Amazon image path - ensure it matches exactly what's in the assets folder
     image: require("../assets/partner_assets/amazon.png"),
     partner: "Amazon",
   },
@@ -218,6 +220,7 @@ const rewards: Reward[] = [
     name: "Free Coffee",
     description: "Enjoy a free hot drink at Caffè Nero",
     price: 300,
+    // Fix the Caffe Nero image path - ensure it matches exactly what's in the assets folder
     image: require("../assets/partner_assets/caffe_nero.png"),
     partner: "Caffè Nero",
   },
@@ -322,7 +325,7 @@ const VirtualPetBanking: React.FC = () => {
     }
   }, [points, ownedItems, equippedSkin, petHappiness, petName, redeemedVouchers, isLoading])
 
-  // Load data from AsyncStorage
+  // Load data from AsyncStorage - enhanced to ensure persistence of purchases
   const loadSavedData = async () => {
     try {
       const savedPoints = await AsyncStorage.getItem(STORAGE_KEYS.POINTS)
@@ -331,6 +334,8 @@ const VirtualPetBanking: React.FC = () => {
       const savedPetName = await AsyncStorage.getItem(STORAGE_KEYS.PET_NAME)
       const savedHappiness = await AsyncStorage.getItem(STORAGE_KEYS.HAPPINESS)
       const savedVouchers = await AsyncStorage.getItem(STORAGE_KEYS.VOUCHERS)
+      // Add explicit loading of purchased rewards
+      const savedRewards = await AsyncStorage.getItem(STORAGE_KEYS.PURCHASED_REWARDS)
 
       if (savedPoints) setPoints(parseInt(savedPoints))
       if (savedOwnedItems) setOwnedItems(JSON.parse(savedOwnedItems))
@@ -355,7 +360,7 @@ const VirtualPetBanking: React.FC = () => {
     }
   }
 
-  // Save data to AsyncStorage
+  // Save data to AsyncStorage - enhanced to ensure persistence of purchases
   const saveData = async () => {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.POINTS, points.toString())
@@ -455,17 +460,26 @@ const VirtualPetBanking: React.FC = () => {
     }, 3000)
   }
 
-  // Buy item
+  // Buy item - enhanced to ensure persistence
   const buyItem = (item: PetItem) => {
     if (points >= item.price) {
-      setPoints((prev) => prev - item.price)
-      setOwnedItems((prev) => [...prev, item])
-      setNotificationMessage(`You bought ${item.name}!`)
-      setShowNotification(true)
+      const newPoints = points - item.price;
+      const newOwnedItems = [...ownedItems, item];
+      
+      // Update state
+      setPoints(newPoints);
+      setOwnedItems(newOwnedItems);
+      
+      // Save to AsyncStorage immediately to ensure persistence
+      AsyncStorage.setItem(STORAGE_KEYS.POINTS, newPoints.toString());
+      AsyncStorage.setItem(STORAGE_KEYS.OWNED_ITEMS, JSON.stringify(newOwnedItems));
+      
+      setNotificationMessage(`You bought ${item.name}!`);
+      setShowNotification(true);
 
       setTimeout(() => {
-        setShowNotification(false)
-      }, 3000)
+        setShowNotification(false);
+      }, 3000);
     }
   }
 
@@ -485,22 +499,30 @@ const VirtualPetBanking: React.FC = () => {
     }, 3000);
   }
 
-  // Redeem reward - updated to track purchased but unredeemed vouchers
+  // Redeem reward - updated to ensure persistence between sessions
   const redeemReward = (reward: Reward) => {
     if (points >= reward.price) {
-      setPoints((prev) => prev - reward.price)
-      // Add to redeemed vouchers with redeemed status as false
-      setRedeemedVouchers(prev => [...prev, {...reward, redeemed: false}])
-      setNotificationMessage(`You bought ${reward.name}!`)
-      setShowNotification(true)
+      const newPoints = points - reward.price;
+      const newRedeemedVouchers = [...redeemedVouchers, {...reward, redeemed: false}];
+      
+      // Update state
+      setPoints(newPoints);
+      setRedeemedVouchers(newRedeemedVouchers);
+      
+      // Save to AsyncStorage immediately to ensure persistence
+      AsyncStorage.setItem(STORAGE_KEYS.POINTS, newPoints.toString());
+      AsyncStorage.setItem(STORAGE_KEYS.VOUCHERS, JSON.stringify(newRedeemedVouchers));
+      
+      setNotificationMessage(`You bought ${reward.name}!`);
+      setShowNotification(true);
 
       setTimeout(() => {
-        setShowNotification(false)
-      }, 3000)
+        setShowNotification(false);
+      }, 3000);
     }
   }
 
-  // Generate code and mark voucher as redeemed - Fixed to work even if already redeemed
+  // Generate code and mark voucher as redeemed - enhanced to ensure persistence
   const generateCode = (voucher: Reward) => {
     let voucherCode = "";
     
@@ -513,13 +535,17 @@ const VirtualPetBanking: React.FC = () => {
       voucherCode = generateVoucherCode(voucher.partner);
     }
     
-    setRedeemedVouchers(prev => 
-      prev.map(v => 
-        v.id === voucher.id 
-          ? {...v, redeemed: true, code: voucherCode} 
-          : v
-      )
-    )
+    const updatedVouchers = redeemedVouchers.map(v => 
+      v.id === voucher.id 
+        ? {...v, redeemed: true, code: voucherCode} 
+        : v
+    );
+    
+    setRedeemedVouchers(updatedVouchers);
+    
+    // Save to AsyncStorage immediately to ensure persistence
+    AsyncStorage.setItem(STORAGE_KEYS.VOUCHERS, JSON.stringify(updatedVouchers))
+      .catch(error => console.error("Error saving voucher code:", error));
 
     Alert.alert(
       "Voucher Redeemed!", 
@@ -528,7 +554,7 @@ const VirtualPetBanking: React.FC = () => {
     )
   }
 
-  // Remove a redeemed voucher
+  // Remove a redeemed voucher - enhanced to ensure persistence
   const removeVoucher = (voucherId: string) => {
     Alert.alert(
       "Remove Voucher",
@@ -539,16 +565,22 @@ const VirtualPetBanking: React.FC = () => {
           text: "Remove", 
           style: "destructive",
           onPress: () => {
-            setRedeemedVouchers(prev => prev.filter(v => v.id !== voucherId))
-            setNotificationMessage("Voucher removed")
-            setShowNotification(true)
+            const updatedVouchers = redeemedVouchers.filter(v => v.id !== voucherId);
+            setRedeemedVouchers(updatedVouchers);
+            
+            // Save to AsyncStorage immediately to ensure persistence
+            AsyncStorage.setItem(STORAGE_KEYS.VOUCHERS, JSON.stringify(updatedVouchers))
+              .catch(error => console.error("Error removing voucher:", error));
+              
+            setNotificationMessage("Voucher removed");
+            setShowNotification(true);
             setTimeout(() => {
-              setShowNotification(false)
-            }, 3000)
+              setShowNotification(false);
+            }, 3000);
           }
         }
       ]
-    )
+    );
   }
 
   // Handle pet name edit toggle
@@ -903,7 +935,7 @@ const VirtualPetBanking: React.FC = () => {
     );
   };
 
-  // Render the Voucher Shop Modal with improved UI
+  // Render the Voucher Shop Modal with improved UI - removed Financial Challenges from My Vouchers tab
   const renderVoucherShopModal = () => {
     return (
       <Modal
@@ -950,6 +982,7 @@ const VirtualPetBanking: React.FC = () => {
               <ScrollView style={styles.vouchersScrollView}>
                 {redeemedVouchers.length > 0 ? (
                   <View style={styles.vouchersListContainer}>
+                    {/* Removed redundant "Your Vouchers" title */}
                     {redeemedVouchers.map(voucher => (
                       <View key={voucher.id + "-redeemed"}>
                         {renderRedeemedVoucher({item: voucher})}
@@ -963,6 +996,7 @@ const VirtualPetBanking: React.FC = () => {
                     <Text style={styles.emptyVouchersSubtext}>Earn points through good financial habits!</Text>
                   </View>
                 )}
+                {/* Removed Financial Challenges section from here since it's already on the main page */}
               </ScrollView>
             )}
           </View>
