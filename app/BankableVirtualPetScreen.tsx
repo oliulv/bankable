@@ -575,6 +575,29 @@ const VirtualPetBanking: React.FC = () => {
     }
   };
 
+  // Calculate stats for rewards whenever redeemedVouchers changes
+  useEffect(() => {
+    const savedAmount = redeemedVouchers.reduce((sum, voucher) => {
+      // Estimate the monetary value of each reward
+      const value = voucher.price / 200; // Rough conversion from points to currency
+      return sum + value;
+    }, 0);
+    
+    setRewardStats({
+      totalSaved: savedAmount,
+      totalRedeemed: redeemedVouchers.filter(v => v.redeemed).length,
+      streak: Math.min(redeemedVouchers.length, 5), // Cap streak at 5
+    });
+  }, [redeemedVouchers]);
+
+  // Add additional effect to ensure equipped skin is saved when changed
+  useEffect(() => {
+    if (!isLoading && equippedSkin) {
+      AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SKIN, JSON.stringify(equippedSkin))
+        .catch(error => console.error("Error saving equipped skin:", error));
+    }
+  }, [equippedSkin, isLoading]);
+
   // Render item in shop
   const renderShopItem = ({ item }: { item: PetItem }) => {
     const isOwned = ownedItems.some((i) => i.id === item.id)
@@ -925,8 +948,6 @@ const VirtualPetBanking: React.FC = () => {
             
             {activeRewardShopTab === "myVouchers" && (
               <ScrollView style={styles.vouchersScrollView}>
-                {renderRewardStats()}
-                
                 {redeemedVouchers.length > 0 ? (
                   <View style={styles.vouchersListContainer}>
                     <Text style={styles.vouchersSectionTitle}>Your Vouchers</Text>
@@ -982,7 +1003,11 @@ const VirtualPetBanking: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Pet Display with updated styling and shadow */}
         <View style={styles.petCard}>
           <View style={styles.petCardGradient}>
@@ -1041,7 +1066,81 @@ const VirtualPetBanking: React.FC = () => {
             <Text style={styles.buttonText}>Leaderboard</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        
+        {/* Reward Progress - Moved from modal to main page */}
+        <View style={[styles.statsContainer, styles.mainPageCard]}>
+          <Text style={styles.statsTitle}>Your Reward Progress</Text>
+          
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>£{rewardStats.totalSaved.toFixed(2)}</Text>
+              <Text style={styles.statLabel}>Total Saved</Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{rewardStats.totalRedeemed}</Text>
+              <Text style={styles.statLabel}>Redeemed</Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{rewardStats.streak}</Text>
+              <Text style={styles.statLabel}>Streak</Text>
+            </View>
+          </View>
+          
+          <View style={styles.streakProgressContainer}>
+            <Text style={styles.streakLabel}>Savings Streak</Text>
+            <View style={styles.streakDots}>
+              {[1, 2, 3, 4, 5].map((dot) => (
+                <View 
+                  key={dot} 
+                  style={[
+                    styles.streakDot,
+                    dot <= rewardStats.streak ? styles.streakDotActive : {}
+                  ]} 
+                />
+              ))}
+            </View>
+            <Text style={styles.streakHint}>
+              {rewardStats.streak >= 5 
+                ? "Maximum streak achieved! Great job!" 
+                : `${5 - rewardStats.streak} more to reach maximum streak bonus`}
+            </Text>
+          </View>
+        </View>
+        
+        {/* Financial Challenges - Moved from modal to main page */}
+        <View style={[styles.challengesContainer, styles.mainPageCard]}>
+          <View style={styles.challengesHeader}>
+            <Text style={styles.challengesTitle}>Financial Challenges</Text>
+            <TouchableOpacity>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {[
+            { id: "1", title: "Save £5 this week", completed: true },
+            { id: "2", title: "Complete your budget tracker", completed: true },
+            { id: "3", title: "Avoid impulse purchases for 3 days", completed: false },
+          ].map((challenge) => (
+            <View key={challenge.id} style={styles.challengeItem}>
+              <View style={styles.challengeCheckbox}>
+                {challenge.completed ? (
+                  <Ionicons name="checkmark-circle" size={24} color="#015F45" />
+                ) : (
+                  <Ionicons name="ellipse-outline" size={24} color="#64748b" />
+                )}
+              </View>
+              <Text style={[
+                styles.challengeTitle,
+                challenge.completed ? styles.challengeCompleted : {}
+              ]}>
+                {challenge.title}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
 
       {/* Item Shop Modal */}
       <Modal
@@ -2006,6 +2105,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333333",
     lineHeight: 20,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  
+  // New style for main page cards
+  mainPageCard: {
+    marginTop: 16,
+    marginHorizontal: 0,
   },
 })
 
