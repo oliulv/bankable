@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, Modal, Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, Modal, Animated, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithNames } from '../api/auth';
 import { useUser } from '../context/UserContext';
 import { Button } from '../components/ui/button';
-import * as AV from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,15 +17,20 @@ export default function IndexScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [splashComplete, setSplashComplete] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const videoRef = useRef<AV.Video | null>(null);
   const hasSetFinalFrame = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [inputStage, setInputStage] = useState('username'); // 'username' or 'password'
   const usernameInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   
-  // Hardcoded video duration
-  const VIDEO_DURATION = 5437;
+  // Hardcoded video duration - adjusted to stop before logo fades
+  const VIDEO_DURATION = 5300; // Reduced slightly to stop before logo fades
+
+  // Create video player instance
+  const videoPlayer = useVideoPlayer(require('../assets/videos/VIDEO.mp4'), (player) => {
+    player.loop = false;
+    player.play();
+  });
 
   // Add animation values for transitions
   const usernameAnimOpacity = useRef(new Animated.Value(1)).current;
@@ -33,79 +38,38 @@ export default function IndexScreen() {
   const usernameAnimTranslate = useRef(new Animated.Value(0)).current;
   const passwordAnimTranslate = useRef(new Animated.Value(20)).current;
 
+  // Monitor video playback progress
   useEffect(() => {
-    const playSplashVideo = async () => {
-      try {
-        if (videoRef.current) {
-          // Load and play the video
-          await videoRef.current.loadAsync(require('../assets/videos/VIDEO.mp4'), {}, false);
-          await videoRef.current.setIsLoopingAsync(false);
-          await videoRef.current.playAsync();
+    const timer = setInterval(() => {
+      // Since we can't easily get the video position, we'll use a timer
+      // to check if enough time has passed since video started
+      if (!splashComplete && !hasSetFinalFrame.current) {
+        const elapsed = Date.now() - startTime.current;
+        if (elapsed >= VIDEO_DURATION - 100) {
+          console.log('Video near end, showing login UI');
+          hasSetFinalFrame.current = true;
+          clearInterval(timer);
+          
+          try {
+            videoPlayer.pause();
+          } catch (err) {
+            console.error('Error pausing video:', err);
+          }
+          
+          // Instead of fading in the overlay, we set it immediately to preserve the logo
+          setSplashComplete(true);
+          fadeAnim.setValue(1); // Set immediately to 1 instead of animating
         }
-      } catch (error) {
-        console.error("Error loading splash video:", error);
-        setSplashComplete(true);
       }
-    };
-
-    playSplashVideo();
+    }, 100);
     
-    return () => {
-      if (videoRef.current) {
-        videoRef.current.unloadAsync();
-      }
-    };
-  }, []);
+    return () => clearInterval(timer);
+  }, [videoPlayer, splashComplete]);
 
-  const onPlaybackStatusUpdate = (status: AV.AVPlaybackStatus) => {
-    if (!status.isLoaded) return;
-    
-    // Check if video is near the end (last 100ms)
-    if (status.positionMillis > 0 && 
-        status.positionMillis >= VIDEO_DURATION - 100 && 
-        !hasSetFinalFrame.current) {
-      
-      console.log('Video near end, freezing on final frame');
-      hasSetFinalFrame.current = true;
-      
-      // Pause the video at the current position (final frame)
-      if (videoRef.current) {
-        videoRef.current.pauseAsync().catch(err => 
-          console.error('Error pausing video:', err)
-        );
-      }
-      
-      // Show the login UI with fade-in animation
-      setSplashComplete(true);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }).start();
-    }
-    
-    // Alternative check using didJustFinish
-    if (status.didJustFinish && !hasSetFinalFrame.current) {
-      console.log('Video finished, freezing on final frame');
-      hasSetFinalFrame.current = true;
-      
-      // Set to the last frame and pause
-      if (videoRef.current) {
-        videoRef.current.setPositionAsync(VIDEO_DURATION - 50)
-          .then(() => videoRef.current?.pauseAsync())
-          .catch(err => console.error('Error setting final position:', err));
-      }
-      
-      // Show the login UI with fade-in animation
-      setSplashComplete(true);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }).start();
-    }
-  };
+  // Track video start time
+  const startTime = useRef(Date.now());
 
+  // Handle login
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       Alert.alert('Login Error', 'Please enter both Username and Password');
@@ -216,17 +180,13 @@ export default function IndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Video background - plays during splash and freezes for login */}
-      <AV.Video
-        ref={videoRef}
-        source={require('../assets/videos/VIDEO.mp4')}
-        style={styles.video}
-        resizeMode={AV.ResizeMode.COVER}
-        shouldPlay={true}
-        isLooping={false}
-        isMuted
-        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-      />
+      <View style={styles.videoWrapper}>
+        <VideoView
+          player={videoPlayer}
+          style={styles.video}
+          nativeControls={false}
+        />
+      </View>
 
       {/* Only show login content after splash is complete */}
       {splashComplete && (
@@ -372,16 +332,32 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#015f45',
+    backgroundColor: '#015F45', // Set to black to prevent any visible gaps
+    overflow: 'hidden', // Prevent content from spilling outside container
+  },
+  videoWrapper: {
+    position: 'absolute',
+    width: '120%', // Extra wide to prevent any borders
+    height: '120%', // Extra tall to prevent any borders
+    left: '-10%', // Negative margin to hide borders
+    top: '-10%',
+    backgroundColor: '#015F45',
+    overflow: 'hidden',
+    zIndex: 1,
   },
   video: {
-    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#015F45',
+    margin: 0,
+    padding: 0,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(1, 95, 69, 0.2)',
+    backgroundColor: 'rgba(1, 95, 69, 0.0)', // Make fully transparent to show video beneath
+    zIndex: 2,
   },
   contentContainer: {
     width: '100%',
