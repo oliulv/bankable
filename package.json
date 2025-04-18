@@ -64,7 +64,8 @@
     "react-native-webview": "13.12.5",
     "recharts": "^2.5.0",
     "yahoo-finance2": "^2.13.3",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "expo-video": "~2.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
