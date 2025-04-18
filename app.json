@@ -8,6 +8,11 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "eas": {
+        "projectId": "7a3c4b96-aa80-40b6-ac9a-c2d6f7b15e16"
+      }
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.BankableApp"
