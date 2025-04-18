@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import {
   View,
   Text,
@@ -90,6 +90,9 @@ const DynamicBudgetCalendarScreen = () => {
 
   // Category budgets state
   const [categoryBudgets, setCategoryBudgets] = useState<CategoryBudget[]>([])
+
+  // Create a ref for the FlatList
+  const flatListRef = useRef<FlatList>(null)
 
   // Initialize default budgets if none are stored
   useEffect(() => {
@@ -269,7 +272,7 @@ const DynamicBudgetCalendarScreen = () => {
       .forEach((t) => {
         const category = t.category || "Other"
         // Only include expense categories
-        if (EXPENSE_CATEGORIES.includes(category)) {
+        if (EXPENSE_CATEGORIES.includes(category) && category !== "Transfer") {
           if (categorySpending[category]) {
             categorySpending[category] += Math.abs(t.amount)
           } else {
@@ -614,7 +617,12 @@ const DynamicBudgetCalendarScreen = () => {
             <View style={styles.pillTabWrapper}>
               <TouchableOpacity
                 style={[styles.pillTab, activeTab === "overview" && styles.activePillTab]}
-                onPress={() => setActiveTab("overview")}
+                onPress={() => {
+                  setActiveTab("overview")
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToOffset({ offset: 0, animated: true })
+                  }
+                }}
               >
                 <View style={styles.tabIconTextContainer}>
                   <Ionicons
@@ -629,7 +637,12 @@ const DynamicBudgetCalendarScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.pillTab, activeTab === "transactions" && styles.activePillTab]}
-                onPress={() => setActiveTab("transactions")}
+                onPress={() => {
+                  setActiveTab("transactions")
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToOffset({ offset: 0, animated: true })
+                  }
+                }}
               >
                 <View style={styles.tabIconTextContainer}>
                   <Ionicons
@@ -644,7 +657,12 @@ const DynamicBudgetCalendarScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.pillTab, activeTab === "settings" && styles.activePillTab]}
-                onPress={() => setActiveTab("settings")}
+                onPress={() => {
+                  setActiveTab("settings")
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToOffset({ offset: 0, animated: true })
+                  }
+                }}
               >
                 <View style={styles.tabIconTextContainer}>
                   <Ionicons
@@ -851,6 +869,7 @@ const DynamicBudgetCalendarScreen = () => {
             </ScrollView>
           ) : activeTab === "transactions" ? (
             <FlatList
+              ref={flatListRef}
               data={filteredTransactions}
               renderItem={renderTransactionItem}
               keyExtractor={(item) => item.transaction_id}
@@ -1301,7 +1320,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   overBudgetBar: {
-    backgroundColor: "#000000",
+    backgroundColor: "#FF5252",
   },
   remainingBudget: {
     fontSize: 12,

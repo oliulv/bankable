@@ -456,7 +456,7 @@ const LoansScreen: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'loans' | 'offers'>('offers');
+  const [activeTab, setActiveTab] = useState<'loans' | 'offers'>('loans');
   const [selectedLoanType, setSelectedLoanType] = useState<LoanType | 'All'>('All');
   const [sortOption, setSortOption] = useState<'name' | 'balance' | 'date'>('balance');
   const loanTypeScrollViewRef = React.useRef<ScrollView>(null);
@@ -795,26 +795,34 @@ const LoansScreen: React.FC = () => {
     try {
       // Debt composition chart data
       const activeLoans = currentLoans.filter(loan => loan.status === 'Active');
-      
-      // Group by loan type
+
+      // Group by loan type and calculate total debt
       const loanTypeMap: Record<string, number> = {};
+      let totalDebt = 0;
+
       activeLoans.forEach(loan => {
+        totalDebt += loan.remainingBalance;
         if (loanTypeMap[loan.type]) {
           loanTypeMap[loan.type] += loan.remainingBalance;
         } else {
           loanTypeMap[loan.type] = loan.remainingBalance;
         }
       });
-      
+
       // Convert to chart data format
       const colors = ['#006A4D', '#4CAF50', '#8BC34A', '#CDDC39', '#FFC107', '#FF9800'];
-      const debtComposition = Object.keys(loanTypeMap).map((type, index) => ({
-        name: `% ${type}`,
-        balance: loanTypeMap[type],
-        color: colors[index % colors.length],
-        legendFontColor: '#7F7F7F',
-        legendFontSize: 12
-      }));
+      const debtComposition = Object.entries(loanTypeMap).map(([type, balance], index) => {
+        const percentage = (balance / totalDebt) * 100;
+        const roundedPercentage = percentage.toFixed(1);
+        return {
+          name: `% ${type}`,
+          value: parseFloat(roundedPercentage),  // Change from 'balance' to 'value'
+          legend: `${type}: ${roundedPercentage}%`, // Add the percentage to legend
+          color: colors[index % colors.length],
+          legendFontColor: '#333333', // Match InvestmentsScreen
+          legendFontSize: 12
+        };
+      });
       
       // Payment timeline data - future payments for next 6 months
       const months = [];
@@ -1704,7 +1712,7 @@ const LoansScreen: React.FC = () => {
             width={screenWidth - 40}
             height={180}
             chartConfig={chartConfig}
-            accessor="balance"
+            accessor="value" // Change from 'balance' to 'value'
             backgroundColor="transparent"
             paddingLeft="15"
             absolute
