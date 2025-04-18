@@ -809,7 +809,7 @@ const LoansScreen: React.FC = () => {
       // Convert to chart data format
       const colors = ['#006A4D', '#4CAF50', '#8BC34A', '#CDDC39', '#FFC107', '#FF9800'];
       const debtComposition = Object.keys(loanTypeMap).map((type, index) => ({
-        name: type,
+        name: `% ${type}`,
         balance: loanTypeMap[type],
         color: colors[index % colors.length],
         legendFontColor: '#7F7F7F',

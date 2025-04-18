@@ -45,7 +45,7 @@ type ValidScreenPath =
   | "/EcoFinancialImpactScreen"
   | "/BankableVirtualPetScreen" 
   | "/InvestmentsScreen"
-  | "/DynamicBudgetCalendarScreen"
+  | "/BudgetingScreen"
   | "/GroupSavingGoalsScreen"
   | "/LifeEventSupportScreen"
   | "/SettingsScreen"
@@ -59,7 +59,7 @@ const SCREEN_PATHS: Record<string, ValidScreenPath> = {
   "EcoFinancialImpactScreen": "/EcoFinancialImpactScreen",
   "BankableVirtualPetScreen": "/BankableVirtualPetScreen",
   "InvestmentsScreen": "/InvestmentsScreen",
-  "DynamicBudgetCalendarScreen": "/DynamicBudgetCalendarScreen",
+  "BudgetingScreen": "/BudgetingScreen",
   "GroupSavingGoalsScreen": "/GroupSavingGoalsScreen",
   "LifeEventSupportScreen": "/LifeEventSupportScreen",
   "SettingsScreen": "/SettingsScreen",
@@ -267,7 +267,7 @@ export default function BankableAIScreen() {
           "- EcoFinancialImpactScreen: Highlights the environmental and financial impacts of the user's spending and investment choices, promoting eco-friendly banking practices\n" +
           "- BankableVirtualPetScreen: Offers an engaging, gamified feature where users can interact with a virtual pet tied to their saving habits, encouraging regular saving and budgeting\n" +
           "- InvestmentsScreen: Showcases the user's investment portfolio including stocks, bonds, and other financial instruments with relevant market performance data\n" +
-          "- DynamicBudgetCalendarScreen: Presents a calendar-based tool for tracking and managing budgets, income, and expenses dynamically over time\n" +
+          "- BudgetingScreen: Presents a calendar-based tool for tracking and managing budgets, income, and expenses dynamically over time\n" +
           "- GroupSavingGoalsScreen: Enables collaborative saving where users can create or join saving goals with friends or family, fostering a community-driven approach to financial goals\n" +
           "- LifeEventSupportScreen: Provides tailored financial advice and support tools during major life events such as buying a home, starting a family, or retirement planning\n" +
           "- SettingsScreen: Contains configuration options allowing users to customize their app experience, manage security settings, and update personal information\n" +

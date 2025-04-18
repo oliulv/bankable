@@ -11,7 +11,7 @@ type AppScreenPath =
   | "/AccountsOverviewScreen"
   | "/GroupSavingGoalsScreen" 
   | "/InvestmentsScreen"
-  | "/DynamicBudgetCalendarScreen"
+  | "/BudgetingScreen"
   | "/EcoFinancialImpactScreen"
   | "/LoansScreen"
   | "/BankableVirtualPetScreen"
@@ -72,7 +72,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ closeDrawer }) => {
           <MenuItem 
             icon="calculator-outline" 
             title="Budgets" 
-            onPress={() => navigateTo("/DynamicBudgetCalendarScreen")} 
+            onPress={() => navigateTo("/BudgetingScreen")} 
           />
           <MenuItem 
             icon="trending-up-outline" 

@@ -465,7 +465,7 @@ const InvestmentsScreen: React.FC = () => {
       const percentage = (value / totalValue) * 100;
       const roundedPercentage = percentage.toFixed(1);
       return {
-        name: `${category}`,
+        name: `% ${category}`,
         value: parseFloat(roundedPercentage),
         legend: `${category}: ${roundedPercentage}%`,
         color: backgroundColor,

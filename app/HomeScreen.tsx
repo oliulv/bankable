@@ -837,7 +837,7 @@ const availableWidgets: AvailableWidget[] = [
     description: 'Track your spending with a dynamic calendar view',
     icon: 'calendar',
     preview: <DynamicBudgetPreview />,
-    screenLink: '/DynamicBudgetCalendarScreen'
+    screenLink: '/BudgetingScreen'
   },
   {
     id: 'investments',
