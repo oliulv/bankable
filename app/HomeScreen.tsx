@@ -11,9 +11,12 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-  PanResponder,
   Animated,
   Modal,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Alert
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../context/UserContext";
@@ -24,10 +27,15 @@ import { useScrollStatus } from "./_layout";
 import { useEditMode } from '../context/EditModeContext';
 import { Image as ExpoImage } from 'expo-image';
 
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth * 0.85; 
 const SPACING = (screenWidth - CARD_WIDTH) / 2;
+const CARD_HEIGHT = 200;
 
 interface Transaction {
   id: number;
@@ -113,8 +121,6 @@ interface AvailableWidget {
   preview: React.ReactNode;
   screenLink?: string;
 }
-
-const CARD_HEIGHT = 200;
 
 const styles = StyleSheet.create({
   container: {
@@ -291,7 +297,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   section: {
-    backgroundColor: "#ffff1", // Changed to light green
+    backgroundColor: "#f3fee8", // Changed to light green
     borderRadius: 16,
     padding: 16,
   },
@@ -481,35 +487,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 16,
   },
-  draggableWidget: {
-    zIndex: 100,
-  },
-  editModeOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#015F45', // Changed from #015F45 to dark green
-    borderStyle: 'dashed',
-    zIndex: 5,
-  },
-  editModeButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: '#015F45', // Changed from #015F45 to dark green
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 1000,
-  },
-  editModeButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
   closeModalButton: {
     position: 'absolute',
     top: 20,
@@ -578,6 +555,33 @@ const styles = StyleSheet.create({
   widgetPreviewButtonText: {
     fontSize: 12,
     color: '#015F45', // Changed from #015F45 to dark green
+    fontWeight: '500',
+  },
+  editModeOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#015F45', // Changed from #015F45 to dark green
+    borderStyle: 'dashed',
+    zIndex: 5,
+  },
+  reorderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#015F45',
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 4,
+  },
+  reorderButtonText: {
+    color: '#fff',
+    marginLeft: 8,
     fontWeight: '500',
   },
 });
@@ -907,24 +911,33 @@ export default function HomeScreen(): JSX.Element {
   const [accountTransactions, setAccountTransactions] = useState<Record<string, any[]>>({});
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [showWidgetPicker, setShowWidgetPicker] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
 
   // Use the edit mode from context instead of local state
   const { editMode, toggleEditMode } = useEditMode();
 
   // Widget configuration state
   const [widgets, setWidgets] = useState<WidgetConfig[]>([
-    { id: "daily-affirmation", type: "affirmation", title: "Daily Affirmation", order: 1, visible: true, removable: true },
-    { id: "recent-transactions", type: "transactions", title: "Recent Transactions", order: 2, visible: true, removable: true },
-    { id: "group-saving", type: "savings", title: "Group Saving Goals", order: 3, visible: true, removable: true },
-    { id: "spending-insights", type: "insights", title: "Spending Insights", order: 4, visible: true, removable: true },
-    { id: "emergency-fund", type: "fund", title: "Tomorrow Tracker", order: 5, visible: true, removable: true },
-    { id: "quick-actions", type: "actions", title: "Quick Actions", order: 6, visible: true, removable: true },
+    { id: "recent-transactions", type: "transactions", title: "Recent Transactions", order: 0, visible: true, removable: true },
+    { id: "group-saving", type: "savings", title: "Group Saving Goals", order: 1, visible: true, removable: true },
+    { id: "quick-actions", type: "actions", title: "Quick Actions", order: 2, visible: true, removable: true },
+    { id: "investments", type: "investments", title: "Investment Portfolio", order: 3, visible: true, removable: true, screenLink: '/InvestmentsScreen' },
+    { id: "eco-impact", type: "eco", title: "Eco Impact", order: 4, visible: true, removable: true, screenLink: '/EcoFinancialImpactScreen' },
   ]);
 
   // State for dragging widgets
   const [draggingWidget, setDraggingWidget] = useState<string | null>(null);
-  const [draggingPosition, setDraggingPosition] = useState<number | null>(null);
+  const [draggingPosition, setDraggingPosition] = useState<{ x: number, y: number } | null>(null);
+  const [placeholderIndex, setPlaceholderIndex] = useState<number | null>(null);
+  const [widgetLayouts, setWidgetLayouts] = useState<Record<string, { y: number, height: number }>>({});
+  
+  // Animated values for dragging
   const pan = useRef(new Animated.ValueXY()).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  
+  // Scroll view ref for auto-scrolling during drag
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Fetch accounts when screen loads
   useEffect(() => {
@@ -959,7 +972,6 @@ export default function HomeScreen(): JSX.Element {
 
   // Preload all card images when component mounts
   useEffect(() => {
-    // Preload all card images when component mounts
     if (accounts.length > 0) {
       accounts.forEach(item => {
         const imageSource = productTypeToImage[item.product.product_type] || 
@@ -1053,6 +1065,140 @@ export default function HomeScreen(): JSX.Element {
     setCurrentIndex(newIndex);
   };
 
+  // Move widget up in order
+  const moveWidgetUp = (widgetId: string) => {
+    setWidgets(prev => {
+      const updatedWidgets = [...prev];
+      const widgetIndex = updatedWidgets.findIndex(w => w.id === widgetId);
+      
+      if (widgetIndex > 0) {
+        // Find the previous visible widget
+        let prevVisibleIndex = -1;
+        for (let i = widgetIndex - 1; i >= 0; i--) {
+          if (updatedWidgets[i].visible) {
+            prevVisibleIndex = i;
+            break;
+          }
+        }
+        
+        if (prevVisibleIndex !== -1) {
+          // Swap orders
+          const temp = updatedWidgets[widgetIndex].order;
+          updatedWidgets[widgetIndex].order = updatedWidgets[prevVisibleIndex].order;
+          updatedWidgets[prevVisibleIndex].order = temp;
+          
+          // Apply layout animation
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        }
+      }
+      
+      return updatedWidgets;
+    });
+  };
+
+  // Move widget down in order
+  const moveWidgetDown = (widgetId: string) => {
+    setWidgets(prev => {
+      const updatedWidgets = [...prev];
+      const widgetIndex = updatedWidgets.findIndex(w => w.id === widgetId);
+      
+      if (widgetIndex < updatedWidgets.length - 1) {
+        // Find the next visible widget
+        let nextVisibleIndex = -1;
+        for (let i = widgetIndex + 1; i < updatedWidgets.length; i++) {
+          if (updatedWidgets[i].visible) {
+            nextVisibleIndex = i;
+            break;
+          }
+        }
+        
+        if (nextVisibleIndex !== -1) {
+          // Swap orders
+          const temp = updatedWidgets[widgetIndex].order;
+          updatedWidgets[widgetIndex].order = updatedWidgets[nextVisibleIndex].order;
+          updatedWidgets[nextVisibleIndex].order = temp;
+          
+          // Apply layout animation
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        }
+      }
+      
+      return updatedWidgets;
+    });
+  };
+
+  // Add widget functionality
+  const addWidget = (widget: AvailableWidget) => {
+    // Check if this widget type is already in the list
+    const existingWidget = widgets.find(w => w.type === widget.type);
+    
+    if (existingWidget) {
+      // If it exists but is not visible, make it visible
+      if (!existingWidget.visible) {
+        setWidgets(prev => {
+          const updatedWidgets = prev.map(w => 
+            w.id === existingWidget.id ? { ...w, visible: true } : w
+          );
+          
+          // Find the highest order among visible widgets
+          const maxOrder = Math.max(...updatedWidgets.filter(w => w.visible && w.id !== existingWidget.id).map(w => w.order), -1);
+          
+          // Set the newly visible widget's order to be after all other visible widgets
+          const widgetToUpdate = updatedWidgets.find(w => w.id === existingWidget.id);
+          if (widgetToUpdate) {
+            widgetToUpdate.order = maxOrder + 1;
+          }
+          
+          return updatedWidgets;
+        });
+      }
+    } else {
+      // Add as a new widget
+      setWidgets(prev => {
+        // Find the highest order among visible widgets
+        const maxOrder = Math.max(...prev.filter(w => w.visible).map(w => w.order), -1);
+        
+        return [
+          ...prev,
+          {
+            id: `${widget.type}-${Date.now()}`,
+            type: widget.type,
+            title: widget.title,
+            order: maxOrder + 1,
+            visible: true,
+            removable: true,
+            screenLink: widget.screenLink
+          }
+        ];
+      });
+    }
+    
+    setShowWidgetPicker(false);
+  };
+
+  // Remove widget functionality
+  const removeWidget = (widgetId: string) => {
+    // Instead of completely removing, just hide it
+    setWidgets(prev => {
+      const updatedWidgets = prev.map(w => 
+        w.id === widgetId ? { ...w, visible: false } : w
+      );
+      
+      // Reorder remaining visible widgets
+      const visibleWidgets = updatedWidgets.filter(w => w.visible);
+      visibleWidgets.forEach((widget, index) => {
+        widget.order = index;
+      });
+      
+      return updatedWidgets;
+    });
+  };
+
+  // Show reorder modal
+  const showReorderOptions = () => {
+    setShowReorderModal(true);
+  };
+
   const currentAccount = accounts.length > 0 ? accounts[currentIndex] : null;
   
   // Get transactions for current account
@@ -1061,7 +1207,9 @@ export default function HomeScreen(): JSX.Element {
     : [];
   
   // Sort widgets by order
-  const sortedWidgets = [...widgets].sort((a, b) => a.order - b.order);
+  const sortedWidgets = [...widgets]
+    .filter(w => w.visible)
+    .sort((a, b) => a.order - b.order);
 
   // Function to render widgets based on type
   const renderWidget = (widget: WidgetConfig) => {
@@ -1071,14 +1219,12 @@ export default function HomeScreen(): JSX.Element {
     const availableWidget = availableWidgets.find(aw => aw.type === widget.type);
     
     // If it's a custom widget from another screen, render its preview
-    if (availableWidget && widget.type !== "affirmation" && 
-        widget.type !== "transactions" && widget.type !== "savings" && 
-        widget.type !== "insights" && widget.type !== "fund" && 
-        widget.type !== "actions") {
+    if (availableWidget && widget.type !== "transactions" && 
+        widget.type !== "savings" && widget.type !== "actions") {
       return (
         <TouchableOpacity 
           onPress={() => {
-            if (widget.screenLink) {
+            if (!editMode && widget.screenLink) {
               router.push(widget.screenLink);
             }
           }}
@@ -1090,16 +1236,6 @@ export default function HomeScreen(): JSX.Element {
     
     // Otherwise render the default widgets
     switch (widget.type) {
-      case "affirmation":
-        return (
-          <View style={styles.affirmationSection}>
-            <Text style={styles.sectionTitle}>{widget.title}</Text>
-            <View style={styles.affirmationBox}>
-              <Text style={styles.affirmationText}>"{todayAffirmation}"</Text>
-            </View>
-          </View>
-        );
-        
       case "transactions":
         return (
           <View style={styles.section}>
@@ -1113,7 +1249,7 @@ export default function HomeScreen(): JSX.Element {
                     key={tx.id} 
                     style={styles.transactionItem}
                     onPress={() => {
-                      if (currentAccount) {
+                      if (!editMode && currentAccount) {
                         router.push({
                           pathname: '/AccountDetailsScreen',
                           params: { accountId: currentAccount.account_id }
@@ -1139,7 +1275,7 @@ export default function HomeScreen(): JSX.Element {
                 <TouchableOpacity 
                   style={styles.viewAllButton}
                   onPress={() => {
-                    if (currentAccount) {
+                    if (!editMode && currentAccount) {
                       router.push({
                         pathname: '/AccountDetailsScreen',
                         params: { accountId: currentAccount.account_id }
@@ -1179,62 +1315,52 @@ export default function HomeScreen(): JSX.Element {
           </View>
         );
         
-      case "insights":
-        return (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{widget.title}</Text>
-            <View style={styles.insightsBox}>
-              <Ionicons
-                name="pie-chart"
-                size={24}
-                color="#015F45"
-                style={{ marginRight: 12 }}
-              />
-              <Text style={styles.insightsText}>
-                Based on your recent transactions, you're managing your finances effectively.
-              </Text>
-            </View>
-          </View>
-        );
-        
-      case "fund":
-        return (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{widget.title}</Text>
-            <Text style={styles.subTitle}>Emergency fund progress</Text>
-            <View style={styles.goalRow}>
-              <Text style={styles.goalName}>Current: £1,500</Text>
-              <Text style={styles.goalPercent}>Goal: £3,000</Text>
-            </View>
-            <View style={styles.progressBarBackground}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: "50%" },
-                ]}
-              />
-            </View>
-          </View>
-        );
-        
       case "actions":
         return (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{widget.title}</Text>
             <View style={styles.quickActionsContainer}>
-              <TouchableOpacity style={styles.quickActionButton}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  if (!editMode) {
+                    // Handle action
+                  }
+                }}
+              >
                 <Ionicons name="send" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Transfer</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickActionButton}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  if (!editMode) {
+                    // Handle action
+                  }
+                }}
+              >
                 <Ionicons name="document-text" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Pay Bills</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickActionButton}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  if (!editMode) {
+                    // Handle action
+                  }
+                }}
+              >
                 <Ionicons name="card" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Freeze Card</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickActionButton}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  if (!editMode) {
+                    // Handle action
+                  }
+                }}
+              >
                 <Ionicons name="pulse" size={24} color="#015F45" />
                 <Text style={styles.quickActionText}>Investments</Text>
               </TouchableOpacity>
@@ -1247,106 +1373,6 @@ export default function HomeScreen(): JSX.Element {
     }
   };
 
-  // Create PanResponder for draggable widgets
-  const createPanResponder = (widgetId: string) => {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => editMode,
-      onMoveShouldSetPanResponder: () => editMode,
-      onPanResponderGrant: () => {
-        // When user starts dragging
-        setDraggingWidget(widgetId);
-        const widget = widgets.find(w => w.id === widgetId);
-        if (widget) {
-          setDraggingPosition(widget.order);
-        }
-        
-        // Animate the widget being dragged
-        Animated.event([{ y: pan.y }], { useNativeDriver: false });
-      },
-      onPanResponderMove: Animated.event(
-        [null, { dy: pan.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: (_, gestureState) => {
-        // Calculate new position based on gesture
-        if (draggingPosition !== null) {
-          const moveDistance = gestureState.dy;
-          const widgetHeight = 150; // Approximate height of a widget
-          const positionChange = Math.round(moveDistance / widgetHeight);
-          
-          if (positionChange !== 0) {
-            const newPosition = Math.max(0, Math.min(widgets.length - 1, draggingPosition + positionChange));
-            
-            // Reorder widgets
-            reorderWidgets(draggingPosition, newPosition);
-          }
-        }
-        
-        // Reset states
-        setDraggingWidget(null);
-        setDraggingPosition(null);
-        pan.setValue({ x: 0, y: 0 });
-      }
-    });
-  };
-
-  // Add widget functionality
-  const addWidget = (widget: AvailableWidget) => {
-    setWidgets(prev => [
-      ...prev,
-      {
-        id: `${widget.type}-${Date.now()}`,
-        type: widget.type,
-        title: widget.title,
-        order: prev.length,
-        visible: true,
-        removable: true,
-        screenLink: widget.screenLink
-      }
-    ]);
-    setShowWidgetPicker(false);
-  };
-
-  // Remove widget functionality
-  const removeWidget = (widgetId: string) => {
-    setWidgets(prev => {
-      const filtered = prev.filter(w => w.id !== widgetId);
-      // Reorder remaining widgets
-      return filtered.map((w, i) => ({ ...w, order: i }));
-    });
-  };
-
-  // Widget reordering logic
-  const reorderWidgets = (startIndex: number, endIndex: number) => {
-    if (startIndex === endIndex) return;
-    
-    const newWidgets = [...widgets];
-    // Find the widget at the start index
-    const widgetToMove = newWidgets.find(w => w.order === startIndex);
-    
-    if (!widgetToMove) return;
-    
-    // Update orders for all affected widgets
-    newWidgets.forEach(widget => {
-      if (startIndex < endIndex) {
-        // Moving down
-        if (widget.order > startIndex && widget.order <= endIndex) {
-          widget.order -= 1;
-        }
-      } else {
-        // Moving up
-        if (widget.order < startIndex && widget.order >= endIndex) {
-          widget.order += 1;
-        }
-      }
-    });
-    
-    // Set the moved widget to its new position
-    widgetToMove.order = endIndex;
-    
-    setWidgets(newWidgets);
-  };
-
   // Show loading indicator when fetching accounts
   if (isLoading) {
     return (
@@ -1357,33 +1383,16 @@ export default function HomeScreen(): JSX.Element {
     );
   }
 
-  // Draggable Widget Component
-  const DraggableWidget = ({ children, widget }: { children: React.ReactNode, widget: WidgetConfig }) => {
-    const panResponder = createPanResponder(widget.id);
-    const isDragging = draggingWidget === widget.id;
-    
+  // Widget Component with Edit Controls
+  const WidgetWithControls = ({ widget }: { widget: WidgetConfig }) => {
     return (
-      <Animated.View
-        {...(editMode ? panResponder.panHandlers : {})}
-        style={[
-          styles.widgetContainer,
-          isDragging && styles.draggableWidget,
-          isDragging && { transform: [{ translateY: pan.y }] }
-        ]}
-      >
-        {children}
+      <View style={styles.widgetContainer}>
+        {renderWidget(widget)}
         
         {editMode && (
           <>
             <View style={styles.editModeOverlay} />
             <View style={styles.widgetControls}>
-              <TouchableOpacity 
-                style={styles.dragHandle} 
-                onLongPress={() => setDraggingWidget(widget.id)}
-              >
-                <Ionicons name="move" size={20} color="#015F45" />
-              </TouchableOpacity>
-              
               {widget.removable && (
                 <TouchableOpacity 
                   style={styles.removeHandle} 
@@ -1395,13 +1404,14 @@ export default function HomeScreen(): JSX.Element {
             </View>
           </>
         )}
-      </Animated.View>
+      </View>
     );
   };
 
-  // Add a scroll handler
+  // Handle scroll events
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollY = event.nativeEvent.contentOffset.y;
+    
     if (scrollY > 10) {
       setHasScrolled(true);
     } else {
@@ -1435,21 +1445,21 @@ export default function HomeScreen(): JSX.Element {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 snapToInterval={CARD_WIDTH + 8}
-                decelerationRate={0.8} // Changed from "fast" to a numeric value for more precise control
+                decelerationRate={0.8}
                 snapToAlignment="center"
                 onScroll={onScroll}
                 onScrollEndDrag={onScrollEndDrag}
                 removeClippedSubviews={true}
-                scrollEventThrottle={4} // Changed from 16 to 8 for more responsive tracking
+                scrollEventThrottle={4}
                 contentContainerStyle={{ paddingHorizontal: SPACING }}
                 getItemLayout={(data, index) => ({
                   length: CARD_WIDTH + 8,
                   offset: (CARD_WIDTH + 8) * index,
                   index,
                 })}
-                pagingEnabled={true} // Add this for more intuitive paging behavior
-                directionalLockEnabled={true} // Lock to horizontal scrolling only
-                scrollToOverflowEnabled={true} // Better behavior near edges
+                pagingEnabled={true}
+                directionalLockEnabled={true}
+                scrollToOverflowEnabled={true}
                 renderItem={({ item }) => {
                   const imageSource = productTypeToImage[item.product.product_type] || 
                                       require("../assets/images/carddesign.png");
@@ -1458,19 +1468,21 @@ export default function HomeScreen(): JSX.Element {
                       style={styles.card}
                       activeOpacity={0.9}
                       onPress={() => {
-                        // Navigate to account details
-                        router.push({
-                          pathname: '/AccountDetailsScreen',
-                          params: { accountId: item.account_id }
-                        });
+                        if (!editMode) {
+                          // Navigate to account details
+                          router.push({
+                            pathname: '/AccountDetailsScreen',
+                            params: { accountId: item.account_id }
+                          });
+                        }
                       }}
                     >
                       <ExpoImage
-                                source={require('../assets/images/carddesign.png')}
-                                style={styles.cardImage}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                              />
+                        source={require('../assets/images/carddesign.png')}
+                        style={styles.cardImage}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                      />
                       <View style={styles.overlay} />
                       <View style={styles.headerCardContent}>
                         <Text style={styles.accountType}>{item.product.product_type}</Text>
@@ -1515,12 +1527,19 @@ export default function HomeScreen(): JSX.Element {
 
         {/* Editable Widgets Section */}
         <View style={styles.widgetsContainer}>
+          {/* Reorder button in edit mode */}
+          {editMode && sortedWidgets.length > 1 && (
+            <TouchableOpacity 
+              style={styles.reorderButton}
+              onPress={showReorderOptions}
+            >
+              <Ionicons name="reorder-two" size={20} color="#fff" />
+              <Text style={styles.reorderButtonText}>Reorder Widgets</Text>
+            </TouchableOpacity>
+          )}
+          
           {sortedWidgets.map((widget) => (
-            widget.visible && (
-              <DraggableWidget key={widget.id} widget={widget}>
-                {renderWidget(widget)}
-              </DraggableWidget>
-            )
+            <WidgetWithControls key={widget.id} widget={widget} />
           ))}
         </View>
       </ScrollView>
@@ -1553,7 +1572,11 @@ export default function HomeScreen(): JSX.Element {
             </TouchableOpacity>
             
             <FlatList
-              data={availableWidgets}
+              data={availableWidgets.filter(widget => {
+                // Show all widgets that aren't currently visible
+                const existingWidget = widgets.find(w => w.type === widget.type && w.visible);
+                return !existingWidget;
+              })}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
@@ -1567,6 +1590,68 @@ export default function HomeScreen(): JSX.Element {
                   </View>
                   <Text style={styles.widgetDescription}>{item.description}</Text>
                 </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+              contentContainerStyle={{ padding: 8 }}
+            />
+          </View>
+        </BlurView>
+      </Modal>
+
+      {/* Reorder Modal */}
+      <Modal
+        visible={showReorderModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowReorderModal(false)}
+      >
+        <BlurView style={styles.modalContainer} intensity={10}>
+          <View style={styles.widgetPickerContainer}>
+            <Text style={styles.modalTitle}>Reorder Widgets</Text>
+            <TouchableOpacity 
+              style={styles.closeModalButton}
+              onPress={() => setShowReorderModal(false)}
+            >
+              <Ionicons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+            
+            <FlatList
+              data={sortedWidgets}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item, index }) => (
+                <View style={[styles.widgetPreviewContainer, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.widgetPreviewContent}>
+                      <Ionicons name={availableWidgets.find(w => w.type === item.type)?.icon || 'apps'} size={24} color="#015F45" />
+                      <Text style={styles.widgetTitle}>{item.title}</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row' }}>
+                    <TouchableOpacity 
+                      style={{ padding: 10 }}
+                      disabled={index === 0}
+                      onPress={() => moveWidgetUp(item.id)}
+                    >
+                      <Ionicons 
+                        name="arrow-up" 
+                        size={24} 
+                        color={index === 0 ? '#ccc' : '#015F45'} 
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ padding: 10 }}
+                      disabled={index === sortedWidgets.length - 1}
+                      onPress={() => moveWidgetDown(item.id)}
+                    >
+                      <Ionicons 
+                        name="arrow-down" 
+                        size={24} 
+                        color={index === sortedWidgets.length - 1 ? '#ccc' : '#015F45'} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               )}
               ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
               contentContainerStyle={{ padding: 8 }}
