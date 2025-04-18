@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
@@ -24,13 +23,24 @@ interface Goal {
   members: string[];
 }
 
+// Sentinel type for the create card
+interface CreateItem { id: 0; }
+
+type ListItem = Goal | CreateItem;
+
+/** Helper to generate two random uppercase initials */
+const getRandomInitials = (): string => {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const pick = () => letters.charAt(Math.floor(Math.random() * letters.length));
+  return pick() + pick();
+};
+
 /** Initial sample goals */
 const initialGoals: Goal[] = [
   { id: 1, name: "Summer Holiday", target: 2000, current: 1500, members: ["JD", "AS", "MT"] },
   { id: 2, name: "New Gaming Console", target: 500, current: 350, members: ["JD", "RK"] },
 ];
 
-/** Main component */
 export default function GroupSavingGoalsScreen() {
   const [goals, setGoals] = useState<Goal[]>(initialGoals);
   const [newGoalName, setNewGoalName] = useState("");
@@ -41,239 +51,215 @@ export default function GroupSavingGoalsScreen() {
   const [confirmDeleteModalVisible, setConfirmDeleteModalVisible] = useState(false);
   const [goalToDeleteId, setGoalToDeleteId] = useState<number | null>(null);
 
-  // Load saved goals on initial render
+  // Ref for the create form's target input
+  const targetRef = useRef<TextInput>(null);
+
+  // Load saved goals on mount
   useEffect(() => {
-    const loadGoals = async () => {
+    (async () => {
       try {
-        const savedGoals = await AsyncStorage.getItem('savedGoals');
-        if (savedGoals !== null) {
-          setGoals(JSON.parse(savedGoals));
-        }
-      } catch (error) {
-        console.error('Failed to load goals', error);
+        const saved = await AsyncStorage.getItem('savedGoals');
+        if (saved) setGoals(JSON.parse(saved));
+      } catch (e) {
+        console.error('Load failed', e);
       }
-    };
-    
-    loadGoals();
+    })();
   }, []);
 
-  // Save goals whenever they change
+  // Save goals when changed
   useEffect(() => {
-    const saveGoals = async () => {
+    (async () => {
       try {
         await AsyncStorage.setItem('savedGoals', JSON.stringify(goals));
-      } catch (error) {
-        console.error('Failed to save goals', error);
+      } catch (e) {
+        console.error('Save failed', e);
       }
-    };
-    
-    saveGoals();
+    })();
   }, [goals]);
+
+  /** Add a dummy member to a goal with random initials */
+  const handleAddMember = (goalId: number) => {
+    setGoals(prev =>
+      prev.map(g =>
+        g.id === goalId
+          ? { ...g, members: [...g.members, getRandomInitials()] }
+          : g
+      )
+    );
+  };
 
   /** Create a new goal */
   const handleCreateGoal = () => {
     if (newGoalName.trim() && newGoalTarget.trim()) {
       const newGoal: Goal = {
-        id: Date.now(), // Use timestamp for unique ID
-        name: newGoalName,
+        id: Date.now(),
+        name: newGoalName.trim(),
         target: parseFloat(newGoalTarget),
         current: 0,
         members: ["You"],
       };
-      setGoals([...goals, newGoal]);
+      setGoals(prev => [...prev, newGoal]);
       setNewGoalName("");
       setNewGoalTarget("");
       Keyboard.dismiss();
     }
   };
 
+  /** Open the contribute modal */
+  const openContributeModal = (goalId: number) => {
+    setSelectedGoalId(goalId);
+    setModalVisible(true);
+  };
+
   /** Contribute to selected goal */
   const handleContribute = () => {
-    if (selectedGoalId && contributionAmount.trim()) {
+    if (selectedGoalId !== null && contributionAmount.trim()) {
       const amount = parseFloat(contributionAmount);
-      setGoals((prev) =>
-        prev.map((g) =>
+      setGoals(prev =>
+        prev.map(g =>
           g.id === selectedGoalId ? { ...g, current: g.current + amount } : g
         )
       );
       setContributionAmount("");
       setSelectedGoalId(null);
       setModalVisible(false);
+      Keyboard.dismiss();
     }
   };
 
-  /** Open modal for a specific goal */
-  const openContributeModal = (goalId: number) => {
-    setSelectedGoalId(goalId);
-    setModalVisible(true);
-  };
-
-  /** Confirm delete for a goal */
+  /** Ask user to confirm deletion */
   const confirmDeleteGoal = (goalId: number) => {
     setGoalToDeleteId(goalId);
     setConfirmDeleteModalVisible(true);
   };
 
-  /** Delete a goal */
+  /** Delete the selected goal */
   const deleteGoal = () => {
     if (goalToDeleteId !== null) {
-      setGoals(goals.filter(goal => goal.id !== goalToDeleteId));
+      setGoals(prev => prev.filter(g => g.id !== goalToDeleteId));
       setConfirmDeleteModalVisible(false);
       setGoalToDeleteId(null);
     }
   };
 
-  const renderCreateGoal = () => {
-    // Create refs for input fields to manage focus properly
-    const targetInputRef = useRef<TextInput>(null);
-    
-    return (
-      <View style={[styles.createCard, { marginTop: 16 }]}>
-        <Text style={styles.cardTitle}>Create New Goal</Text>
-        <View style={{ marginTop: 12 }}>
-          <TextInput
-            placeholder="Goal Name"
-            value={newGoalName}
-            onChangeText={setNewGoalName}
-            style={styles.input}
-            placeholderTextColor="#999"
-            returnKeyType="next"
-            blurOnSubmit={false}
-            onSubmitEditing={() => targetInputRef.current?.focus()}
-          />
-          <TextInput
-            ref={targetInputRef}
-            placeholder="Target Amount (£)"
-            keyboardType="numeric"
-            value={newGoalTarget}
-            onChangeText={setNewGoalTarget}
-            style={styles.input}
-            placeholderTextColor="#999"
-            returnKeyType="done"
-            onSubmitEditing={handleCreateGoal}
-          />
-          <TouchableOpacity style={styles.createButton} onPress={handleCreateGoal}>
-            <Text style={styles.createText}>Create Group Goal</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
+  /** Render each savings goal card */
   const renderGoalItem = ({ item }: { item: Goal }) => {
-    const progressPercent = Math.min(100, (item.current / item.target) * 100);
-    
+    const progress = Math.min(100, (item.current / item.target) * 100);
     return (
       <View style={styles.card}>
         <View style={styles.flexRowSpace}>
           <Text style={styles.cardTitle}>{item.name}</Text>
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={() => confirmDeleteGoal(item.id)}
-          >
-            <Ionicons name="trash-outline" size={18} color="#000000" />
+          <TouchableOpacity onPress={() => confirmDeleteGoal(item.id)} style={styles.deleteButton}>
+            <Ionicons name="trash-outline" size={18} color="#000" />
           </TouchableOpacity>
         </View>
-        
-        <Text style={styles.cardSubtitle}>Group savings progress</Text>
-        
-        <View style={{ marginTop: 8, marginBottom: 12 }}>
-          <View style={styles.flexRowSpace}>
-            <Text style={styles.label}>Progress</Text>
-            <Text style={styles.label}>
-              £{item.current} / £{item.target}
-            </Text>
-          </View>
-          <View style={styles.progressBackground}>
-            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-          </View>
+        <Text style={styles.cardSubtitle}>Progress: £{item.current} / £{item.target}</Text>
+        <View style={styles.progressBackground}>
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
 
-        <View style={[styles.flexRow, { marginBottom: 12 }]}>
+        <View style={[styles.flexRow, { marginVertical: 12 }]}>          
           <Ionicons name="people" size={20} color="#555" style={{ marginRight: 4 }} />
           <View style={styles.avatarContainer}>
-            {item.members.map((member, idx) => (
-              <View key={idx} style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>{member}</Text>
+            {item.members.map((m, i) => (
+              <View key={i} style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>{m}</Text>
               </View>
             ))}
+            <TouchableOpacity style={styles.ghostButton} onPress={() => handleAddMember(item.id)}>
+              <Ionicons name="add-circle-outline" size={20} color="#555" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.ghostButton}>
-            <Ionicons name="add-circle-outline" size={18} color="#555" />
-          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.contributeButton}
-          onPress={() => openContributeModal(item.id)}
-        >
+        <TouchableOpacity style={styles.contributeButton} onPress={() => openContributeModal(item.id)}>
           <Text style={styles.contributeText}>Contribute</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
+  /** Render the "Create New Goal" card at the bottom */
+  const renderCreateCard = () => (
+    <View style={[styles.createCard, { marginBottom: 16 }]}>        
+      <Text style={styles.cardTitle}>Create New Goal</Text>
+      <TextInput
+        placeholder="Goal Name"
+        value={newGoalName}
+        onChangeText={setNewGoalName}
+        style={styles.input}
+        placeholderTextColor="#999"
+        blurOnSubmit={false}
+        returnKeyType="next"
+        onSubmitEditing={() => targetRef.current?.focus()}
+      />
+      <TextInput
+        ref={targetRef}
+        placeholder="Target Amount (£)"
+        keyboardType="numeric"
+        returnKeyType="done"
+        blurOnSubmit={true}
+        value={newGoalTarget}
+        onChangeText={setNewGoalTarget}
+        style={styles.input}
+        placeholderTextColor="#999"
+        onSubmitEditing={handleCreateGoal}
+      />
+      <TouchableOpacity style={styles.createButton} onPress={handleCreateGoal}>
+        <Text style={styles.createText}>Create Group Goal</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Append a sentinel item for the create card
+  const listData: ListItem[] = [...goals, { id: 0 }];
+
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      {/* Static Header with dynamic subtitle */}
       <View style={styles.headerContainer}>
         <Text style={styles.title}>Group Savings</Text>
         <Text style={styles.subtitle}>
           {goals.length} {goals.length === 1 ? 'goal' : 'goals'} active
         </Text>
       </View>
-      
-      <FlatList
-        data={goals}
-        renderItem={renderGoalItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ padding: 16 }}
-        ListFooterComponent={renderCreateGoal}
-        keyboardShouldPersistTaps="always" 
+
+      <FlatList<ListItem>
+        data={listData}
+        renderItem={({ item }) =>
+          'name' in item ? renderGoalItem({ item }) : renderCreateCard()
+        }
+        keyExtractor={item => item.id.toString()}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
       />
 
       {/* Contribute Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              Contribute to {goals.find((g) => g.id === selectedGoalId)?.name}
+              Contribute to {goals.find(g => g.id === selectedGoalId)?.name}
             </Text>
-            <Text style={styles.modalDesc}>
-              Enter the amount you'd like to contribute to this goal.
-            </Text>
-
             <TextInput
               placeholder="Amount"
               keyboardType="numeric"
+              returnKeyType="done"
+              blurOnSubmit={true}
               value={contributionAmount}
               onChangeText={setContributionAmount}
               style={styles.input}
               placeholderTextColor="#999"
-              returnKeyType="done"
               onSubmitEditing={handleContribute}
             />
-
             <View style={styles.modalButtonRow}>
-              <TouchableOpacity
-                style={[styles.createButton, { flex: 1, marginRight: 8 }]}
-                onPress={handleContribute}
-              >
+              <TouchableOpacity style={[styles.createButton, { flex: 1, marginRight: 8 }]} onPress={handleContribute}>
                 <Text style={styles.createText}>Contribute</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.ghostButton, { flex: 1 }]}
-                onPress={() => setModalVisible(false)}
-              >
+              <TouchableOpacity style={[styles.ghostButton, { flex: 1 }]} onPress={() => { setModalVisible(false); Keyboard.dismiss(); }}>
                 <Text style={{ color: "#555", textAlign: "center" }}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -282,207 +268,63 @@ export default function GroupSavingGoalsScreen() {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        visible={confirmDeleteModalVisible}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setConfirmDeleteModalVisible(false)}
-      >
+      <Modal visible={confirmDeleteModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Delete Goal</Text>
             <Text style={styles.modalDesc}>
               Are you sure you want to delete this goal? This action cannot be undone.
             </Text>
-
             <View style={styles.modalButtonRow}>
-              <TouchableOpacity
-                style={[styles.deleteConfirmButton, { flex: 1, marginRight: 8 }]}
-                onPress={deleteGoal}
-              >
+              <TouchableOpacity style={[styles.deleteConfirmButton, { flex: 1, marginRight: 8 }]} onPress={deleteGoal}>
                 <Text style={styles.createText}>Delete</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.ghostButton, { flex: 1 }]}
-                onPress={() => setConfirmDeleteModalVisible(false)}
-              >
+              <TouchableOpacity style={[styles.ghostButton, { flex: 1 }]} onPress={() => { setConfirmDeleteModalVisible(false); Keyboard.dismiss(); }}>
                 <Text style={{ color: "#555", textAlign: "center" }}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
     </KeyboardAvoidingView>
   );
 }
 
-/** Updated styling */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  card: {
-    backgroundColor: '#f3fee8',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#015F45",
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: "#555",
-    marginTop: 2,
-  },
-  label: {
-    fontSize: 13,
-    color: "#333",
-  },
-  flexRowSpace: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  progressBackground: {
-    height: 8,
-    backgroundColor: "#eee",
-    borderRadius: 4,
-    marginTop: 4,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#015F45",
-  },
-  flexRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  avatarContainer: {
-    flexDirection: "row",
-    marginLeft: 4,
-  },
-  avatarCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: -8, // overlap effect
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  avatarText: {
-    fontSize: 10,
-    color: "#333",
-  },
-  ghostButton: {
-    padding: 6,
-    borderRadius: 50,
-  },
-  contributeButton: {
-    backgroundColor: "#015F45",
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  contributeText: {
-    textAlign: "center",
-    color: "#fff",
-    fontWeight: "600",
-  },
-  // Updated input style to match BankableAIScreen
-  input: {
-    height: 50,
-    backgroundColor: "#f3fee8",
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 12,
-    fontSize: 16,
-    color: "#015F45",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    borderWidth: 0,
-  },
-  createButton: {
-    backgroundColor: "#015F45",
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  createText: {
-    textAlign: "center",
-    color: "#fff",
-    fontWeight: "600",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    width: "85%",
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-    color: "#015F45",
-  },
-  modalDesc: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 16,
-  },
-  modalButtonRow: {
-    flexDirection: "row",
-    marginTop: 12,
-  },
-  headerContainer: {
-    padding: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
-    backgroundColor: '#ffffff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: "#015F45",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 4,
-  },
-  createCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    elevation: 2,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  deleteConfirmButton: {
-    backgroundColor: "#ff3b30",
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  headerContainer: { padding: 16, backgroundColor: '#fff' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#015F45' },
+  subtitle: { fontSize: 14, color: '#666', marginTop: 4 },
+
+  card: { backgroundColor: '#f3fee8', borderRadius: 16, padding: 16, marginBottom: 16, elevation: 2, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#015F45' },
+  cardSubtitle: { fontSize: 14, color: '#555', marginTop: 4 },
+  flexRowSpace: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  flexRow: { flexDirection: 'row', alignItems: 'center' },
+
+  progressBackground: { height: 8, backgroundColor: '#eee', borderRadius: 4, overflow: 'hidden', marginTop: 8 },
+  progressFill: { height: '100%', backgroundColor: '#015F45' },
+
+  avatarContainer: { flexDirection: 'row' },
+  avatarCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#ddd', alignItems: 'center', justifyContent: 'center', marginRight: -8, borderWidth: 2, borderColor: '#fff' },
+  avatarText: { fontSize: 10, color: '#333' },
+
+  ghostButton: { padding: 6, borderRadius: 50 },
+  deleteButton: { padding: 4 },
+
+  contributeButton: { backgroundColor: '#015F45', paddingVertical: 12, borderRadius: 24 },
+  contributeText: { textAlign: 'center', color: '#fff', fontWeight: '600' },
+
+  createCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, elevation: 2, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 },
+  input: { height: 50, backgroundColor: '#f3fee8', borderRadius: 24, paddingHorizontal: 16, marginBottom: 12, fontSize: 16, color: '#015F45', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 },
+  createButton: { backgroundColor: '#015F45', paddingVertical: 12, borderRadius: 24 },
+  createText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#015F45' },
+  modalDesc: { fontSize: 14, color: '#555', marginBottom: 16 },
+  deleteConfirmButton: { backgroundColor: '#ff3b30', paddingVertical: 12, borderRadius: 24 },
+  modalButtonRow: { flexDirection: 'row', marginTop: 12 }
 });
