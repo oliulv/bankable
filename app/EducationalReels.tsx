@@ -13,6 +13,7 @@ import {
   Platform,
   Image,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,23 +33,89 @@ interface FinancialTip {
 // Get screen dimensions
 const { width, height } = Dimensions.get('window');
 
+// Utility function to shuffle array (Fisher-Yates algorithm)
+const shuffleArray = <T extends any>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const EducationalReels: React.FC = () => {
   // State
-  const [tips, setTips] = useState<FinancialTip[]>(FINANCIAL_TIPS_DATA);
+  const [tips, setTips] = useState<FinancialTip[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSavedTips, setShowSavedTips] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [headerShadowVisible, setHeaderShadowVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Refs
   const flatListRef = useRef<FlatList>(null);
   const favoriteAnimation = useRef(new Animated.Value(1)).current;
   const savedTipsScrollY = useRef<number>(0);
 
-  // Load saved favorites on component mount
+  // Initial load with randomized order
   useEffect(() => {
-    loadFavorites();
+    initializeData();
   }, []);
+
+  // Initialize data with shuffled order
+  const initializeData = async () => {
+    const shuffledData = shuffleArray(FINANCIAL_TIPS_DATA);
+    
+    // Load saved favorites
+    try {
+      const favoritesJson = await AsyncStorage.getItem('@bankable_favorites');
+      if (favoritesJson) {
+        const favoritesIds = JSON.parse(favoritesJson);
+        
+        // Apply favorites status to shuffled data
+        const tipsWithFavorites = shuffledData.map(tip => ({
+          ...tip,
+          isFavorite: favoritesIds.includes(tip.id)
+        }));
+        
+        setTips(tipsWithFavorites);
+      } else {
+        setTips(shuffledData);
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      setTips(shuffledData);
+    }
+  };
+
+  // Handle refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    
+    // Get current favorite IDs before reshuffling
+    const favoriteIds = tips
+      .filter(tip => tip.isFavorite)
+      .map(tip => tip.id);
+    
+    // Reshuffle data
+    const shuffledData = shuffleArray(FINANCIAL_TIPS_DATA).map(tip => ({
+      ...tip,
+      isFavorite: favoriteIds.includes(tip.id)
+    }));
+    
+    setTips(shuffledData);
+    
+    // Reset to first item
+    if (flatListRef.current) {
+      flatListRef.current.scrollToIndex({
+        index: 0,
+        animated: false,
+      });
+      setCurrentIndex(0);
+    }
+    
+    setRefreshing(false);
+  };
 
   // Load favorites from AsyncStorage
   const loadFavorites = async () => {
@@ -269,6 +336,16 @@ const EducationalReels: React.FC = () => {
           onViewableItemsChanged={onViewableItemsChanged}
           pagingEnabled
           contentContainerStyle={styles.flatListContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#015f45']}
+              tintColor="#015f45"
+              title="Pull to refresh"
+              titleColor="#015f45"
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="document-text-outline" size={60} color="#ccc" />
