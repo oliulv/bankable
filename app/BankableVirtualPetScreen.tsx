@@ -1,8 +1,9 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, FlatList, Animated, Dimensions } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, FlatList, Animated, Dimensions, TextInput, Alert } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import { Video } from 'expo-av'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Types
 type PetItem = {
@@ -21,6 +22,8 @@ type Reward = {
   price: number
   image: string
   partner: string
+  redeemed?: boolean
+  code?: string
 }
 
 type Friend = {
@@ -29,6 +32,16 @@ type Friend = {
   points: number
   petImage: string
   petItems: string[]
+}
+
+// Keys for AsyncStorage
+const STORAGE_KEYS = {
+  POINTS: 'bankable_points',
+  OWNED_ITEMS: 'bankable_owned_items',
+  EQUIPPED_ITEMS: 'bankable_equipped_items',
+  PET_NAME: 'bankable_pet_name',
+  HAPPINESS: 'bankable_pet_happiness',
+  VOUCHERS: 'bankable_vouchers'
 }
 
 // Mock data (kept the same)
@@ -149,6 +162,9 @@ const VirtualPetBanking: React.FC = () => {
   const [activeItemShopTab, setActiveItemShopTab] = useState("shop") // New state for tracking active tab
   const [activeRewardShopTab, setActiveRewardShopTab] = useState("shop") // New state for rewards tab
   const [redeemedVouchers, setRedeemedVouchers] = useState<Reward[]>([]) // Track redeemed vouchers
+  const [petName, setPetName] = useState("My Turtle") // New state for pet name
+  const [editingPetName, setEditingPetName] = useState(false) // New state for pet name editing mode
+  const [isLoading, setIsLoading] = useState(true) // Track loading state
   const videoRef = useRef<Video>(null);
   
   // User context (mock)
@@ -160,6 +176,66 @@ const VirtualPetBanking: React.FC = () => {
   // Animations
   const bounceAnim = useState(new Animated.Value(0))[0]
   const happinessAnim = useState(new Animated.Value(0))[0]
+
+  // Load saved data when component mounts
+  useEffect(() => {
+    loadSavedData()
+  }, [])
+
+  // Save data whenever it changes
+  useEffect(() => {
+    if (!isLoading) {
+      saveData()
+    }
+  }, [points, ownedItems, equippedItems, petHappiness, petName, redeemedVouchers, isLoading])
+
+  // Load data from AsyncStorage
+  const loadSavedData = async () => {
+    try {
+      const savedPoints = await AsyncStorage.getItem(STORAGE_KEYS.POINTS)
+      const savedOwnedItems = await AsyncStorage.getItem(STORAGE_KEYS.OWNED_ITEMS)
+      const savedEquippedItems = await AsyncStorage.getItem(STORAGE_KEYS.EQUIPPED_ITEMS)
+      const savedPetName = await AsyncStorage.getItem(STORAGE_KEYS.PET_NAME)
+      const savedHappiness = await AsyncStorage.getItem(STORAGE_KEYS.HAPPINESS)
+      const savedVouchers = await AsyncStorage.getItem(STORAGE_KEYS.VOUCHERS)
+
+      if (savedPoints) setPoints(parseInt(savedPoints))
+      if (savedOwnedItems) setOwnedItems(JSON.parse(savedOwnedItems))
+      if (savedEquippedItems) setEquippedItems(JSON.parse(savedEquippedItems))
+      if (savedPetName) setPetName(savedPetName)
+      if (savedHappiness) setPetHappiness(parseInt(savedHappiness))
+      if (savedVouchers) setRedeemedVouchers(JSON.parse(savedVouchers))
+      
+    } catch (error) {
+      console.error("Error loading data:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Save data to AsyncStorage
+  const saveData = async () => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.POINTS, points.toString())
+      await AsyncStorage.setItem(STORAGE_KEYS.OWNED_ITEMS, JSON.stringify(ownedItems))
+      await AsyncStorage.setItem(STORAGE_KEYS.EQUIPPED_ITEMS, JSON.stringify(equippedItems))
+      await AsyncStorage.setItem(STORAGE_KEYS.PET_NAME, petName)
+      await AsyncStorage.setItem(STORAGE_KEYS.HAPPINESS, petHappiness.toString())
+      await AsyncStorage.setItem(STORAGE_KEYS.VOUCHERS, JSON.stringify(redeemedVouchers))
+    } catch (error) {
+      console.error("Error saving data:", error)
+    }
+  }
+
+  // Generate a random voucher code
+  const generateVoucherCode = (partner: string) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let code = partner.substring(0, 3).toUpperCase() + '-'
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return code
+  }
 
   // Simulate financial goal achievements
   useEffect(() => {
@@ -248,18 +324,66 @@ const VirtualPetBanking: React.FC = () => {
     }
   }
 
-  // Redeem reward
+  // Redeem reward - updated to track purchased but unredeemed vouchers
   const redeemReward = (reward: Reward) => {
     if (points >= reward.price) {
       setPoints((prev) => prev - reward.price)
-      setRedeemedVouchers(prev => [...prev, reward]) // Add to redeemed vouchers
-      setNotificationMessage(`You redeemed ${reward.name}!`)
+      // Add to redeemed vouchers with redeemed status as false
+      setRedeemedVouchers(prev => [...prev, {...reward, redeemed: false}])
+      setNotificationMessage(`You bought ${reward.name}!`)
       setShowNotification(true)
 
       setTimeout(() => {
         setShowNotification(false)
       }, 3000)
     }
+  }
+
+  // Generate code and mark voucher as redeemed
+  const generateCode = (voucher: Reward) => {
+    const code = generateVoucherCode(voucher.partner)
+    
+    setRedeemedVouchers(prev => 
+      prev.map(v => 
+        v.id === voucher.id 
+          ? {...v, redeemed: true, code: code} 
+          : v
+      )
+    )
+
+    Alert.alert(
+      "Voucher Redeemed!", 
+      `Your code: ${code}\n\nShow this code to redeem your reward at ${voucher.partner}.`,
+      [{ text: "OK" }]
+    )
+  }
+
+  // Remove a redeemed voucher
+  const removeVoucher = (voucherId: string) => {
+    Alert.alert(
+      "Remove Voucher",
+      "Are you sure you want to remove this voucher?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Remove", 
+          style: "destructive",
+          onPress: () => {
+            setRedeemedVouchers(prev => prev.filter(v => v.id !== voucherId))
+            setNotificationMessage("Voucher removed")
+            setShowNotification(true)
+            setTimeout(() => {
+              setShowNotification(false)
+            }, 3000)
+          }
+        }
+      ]
+    )
+  }
+
+  // Handle pet name edit toggle
+  const togglePetNameEdit = () => {
+    setEditingPetName(!editingPetName);
   }
 
   // Render item in shop
@@ -307,11 +431,13 @@ const VirtualPetBanking: React.FC = () => {
 
   // Render reward
   const renderReward = ({ item }: { item: Reward }) => {
+    const isOwned = redeemedVouchers.some(v => v.id === item.id)
+    
     return (
       <TouchableOpacity 
         style={styles.rewardItem} 
-        onPress={() => redeemReward(item)} 
-        disabled={points < item.price}
+        onPress={() => !isOwned && redeemReward(item)} 
+        disabled={isOwned || points < item.price}
       >
         <Image source={{ uri: item.image }} style={styles.rewardImage} />
         <View style={styles.rewardInfo}>
@@ -320,14 +446,59 @@ const VirtualPetBanking: React.FC = () => {
           <Text style={styles.rewardDescription}>{item.description}</Text>
         </View>
         <LinearGradient
-          colors={points < item.price ? ["#8fbda8", "#8fbda8"] : ["#015F45", "#017a5a"]}
+          colors={isOwned || points < item.price ? ["#8fbda8", "#8fbda8"] : ["#015F45", "#017a5a"]}
           style={styles.redeemButton}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Text style={styles.redeemButtonText}>{points < item.price ? "Not enough" : `${item.price} pts`}</Text>
+          <Text style={styles.redeemButtonText}>
+            {isOwned ? "Owned" : points < item.price ? "Not enough" : `${item.price} pts`}
+          </Text>
         </LinearGradient>
       </TouchableOpacity>
+    )
+  }
+
+  // Render redeemed voucher with status and action buttons
+  const renderRedeemedVoucher = ({ item }: { item: Reward }) => {
+    return (
+      <View style={styles.rewardItem}>
+        <Image source={{ uri: item.image }} style={styles.rewardImage} />
+        <View style={styles.rewardInfo}>
+          <Text style={styles.rewardName}>{item.name}</Text>
+          <Text style={styles.rewardPartner}>{item.partner}</Text>
+          <Text style={styles.rewardDescription}>{item.description}</Text>
+          
+          {item.redeemed && item.code && (
+            <View style={styles.codeContainer}>
+              <Text style={styles.voucherCodeLabel}>Code:</Text>
+              <Text style={styles.voucherCode}>{item.code}</Text>
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.voucherActionsContainer}>
+          {!item.redeemed ? (
+            <TouchableOpacity 
+              style={styles.redeemCodeButton}
+              onPress={() => generateCode(item)}
+            >
+              <Text style={styles.redeemCodeButtonText}>Get Code</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.redeemedBadge}>
+              <Text style={styles.redeemedText}>Redeemed</Text>
+            </View>
+          )}
+          
+          <TouchableOpacity 
+            style={styles.removeVoucherButton}
+            onPress={() => removeVoucher(item.id)}
+          >
+            <Text style={styles.removeVoucherText}>Remove</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     )
   }
 
@@ -347,76 +518,84 @@ const VirtualPetBanking: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Updated Header with Shadow */}
-      <View style={styles.headerContainer}>
+      {/* Fixed Header with Shadow */}
+      <View style={styles.fixedHeader}>
         <Text style={styles.title}>Bankable Pet</Text>
         <View style={styles.pointsDisplay}>
           <Text style={styles.pointsText}>{points} pts</Text>
         </View>
       </View>
 
-      {/* Pet Display with updated styling and shadow */}
-      <View style={styles.petCard}>
-        <View style={styles.petCardGradient}>
-          <View style={styles.petHeaderRow}>
-            <View style={styles.happinessContainer}>
-              <Text style={styles.happinessLabel}>Pet Happiness</Text>
-              <View style={styles.happinessBarContainer}>
-                <Animated.View
+      <View style={styles.content}>
+        {/* Pet Display with updated styling and shadow */}
+        <View style={styles.petCard}>
+          <View style={styles.petCardGradient}>
+            {/* Pet Name Section */}
+            <View style={styles.petNameContainer}>
+              {editingPetName ? (
+                <View style={styles.petNameEditContainer}>
+                  <TextInput
+                    style={styles.petNameInput}
+                    value={petName}
+                    onChangeText={setPetName}
+                    autoFocus
+                    maxLength={20}
+                  />
+                  <TouchableOpacity style={styles.petNameSaveButton} onPress={togglePetNameEdit}>
+                    <Text style={styles.petNameSaveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.petNameDisplayContainer}>
+                  <Text style={styles.petNameText}>{petName}</Text>
+                  <TouchableOpacity style={styles.petNameEditButton} onPress={togglePetNameEdit}>
+                    <Text style={styles.petNameEditButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            <Animated.View style={[styles.petWrapper, { transform: [{ translateY: bounceAnim }] }]}>
+              <Video
+                ref={videoRef}
+                source={require('../assets/turtle.mp4')}
+                style={styles.petImage}
+                isLooping
+                shouldPlay
+                rate={0.5} // Slows down the video to half speed
+              />
+
+              {/* Render equipped items */}
+              {equippedItems.map((item) => (
+                <Image
+                  key={item.id}
+                  source={{ uri: item.image }}
                   style={[
-                    styles.happinessBarFill,
-                    {
-                      width: happinessAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ["0%", "100%"],
-                      }),
-                    },
+                    styles.equippedItemImage,
+                    item.type === "background" && styles.backgroundItem,
+                    item.type === "clothing" && styles.clothingItem,
+                    item.type === "accessory" && styles.accessoryItem,
                   ]}
                 />
-              </View>
-            </View>
+              ))}
+            </Animated.View>
           </View>
-
-          <Animated.View style={[styles.petWrapper, { transform: [{ translateY: bounceAnim }] }]}>
-            <Video
-              ref={videoRef}
-              source={require('../assets/turtle.mp4')}
-              style={styles.petImage}
-              isLooping
-              shouldPlay
-              rate={0.5} // Slows down the video to half speed
-            />
-
-            {/* Render equipped items */}
-            {equippedItems.map((item) => (
-              <Image
-                key={item.id}
-                source={{ uri: item.image }}
-                style={[
-                  styles.equippedItemImage,
-                  item.type === "background" && styles.backgroundItem,
-                  item.type === "clothing" && styles.clothingItem,
-                  item.type === "accessory" && styles.accessoryItem,
-                ]}
-              />
-            ))}
-          </Animated.View>
         </View>
-      </View>
 
-      {/* Navigation Buttons - Updated to Pill Style */}
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity style={styles.navButton} onPress={() => setShowItemShop(true)}>
-          <Text style={styles.buttonText}>Pet Shop</Text>
-        </TouchableOpacity>
+        {/* Navigation Buttons - Updated to Pill Style */}
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity style={styles.navButton} onPress={() => setShowItemShop(true)}>
+            <Text style={styles.buttonText}>Pet Shop</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navButton} onPress={() => setShowVoucherShop(true)}>
-          <Text style={styles.buttonText}>Rewards</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.navButton} onPress={() => setShowVoucherShop(true)}>
+            <Text style={styles.buttonText}>Rewards</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navButton} onPress={() => setShowLeaderboard(true)}>
-          <Text style={styles.buttonText}>Leaderboard</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.navButton} onPress={() => setShowLeaderboard(true)}>
+            <Text style={styles.buttonText}>Leaderboard</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Item Shop Modal */}
@@ -475,7 +654,7 @@ const VirtualPetBanking: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Voucher Shop Modal */}
+      {/* Voucher Shop Modal - Updated with redemption system */}
       <Modal
         visible={showVoucherShop}
         animationType="slide"
@@ -519,19 +698,10 @@ const VirtualPetBanking: React.FC = () => {
             {activeRewardShopTab === "myVouchers" && (
               <FlatList
                 data={redeemedVouchers}
-                renderItem={({ item }) => (
-                  <View style={styles.rewardItem}>
-                    <Image source={{ uri: item.image }} style={styles.rewardImage} />
-                    <View style={styles.rewardInfo}>
-                      <Text style={styles.rewardName}>{item.name}</Text>
-                      <Text style={styles.rewardPartner}>{item.partner}</Text>
-                      <Text style={styles.rewardDescription}>{item.description}</Text>
-                    </View>
-                  </View>
-                )}
+                renderItem={renderRedeemedVoucher}
                 keyExtractor={(item) => item.id + "-redeemed"}
                 contentContainerStyle={styles.rewardsList}
-                ListEmptyComponent={<Text style={styles.emptyText}>You haven't redeemed any vouchers yet.</Text>}
+                ListEmptyComponent={<Text style={styles.emptyText}>You haven't purchased any vouchers yet.</Text>}
               />
             )}
           </View>
@@ -590,18 +760,29 @@ const { width } = Dimensions.get("window")
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: "white",
   },
-  // Updated header styles with shadow
-  headerContainer: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+  // Fixed header styles
+  fixedHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: "white",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 4, // Android shadow
-    zIndex: 1, // Ensure shadow is visible
+    elevation: 5,
+    zIndex: 10,
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+    paddingTop: 12,
   },
   title: {
     fontSize: 24,
@@ -634,103 +815,60 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     backgroundColor: "#f3fee8",
   },
-  // ...existing code...
-
-  // Updated notification to match BudgetingScreen pill style
-  notification: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: "#f3fee8",
-    borderRadius: 24,
-    padding: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  notificationText: {
-    color: "#015F45",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  // ...existing code...
-
-  // Updated buttons to match pill style from budget page
-  buttonsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  navButton: {
-    flex: 1,
-    marginHorizontal: 5,
-    height: 44,
-    borderRadius: 24,
-    backgroundColor: "#f3fee8",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  buttonText: {
-    color: "#015F45",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  // ...existing code...
-
-  // Updated leaderboard friend items with shadow
-  friendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f3fee8",
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  // ...existing code...
   petCardGradient: {
     padding: 16,
     borderRadius: 18,
   },
-  petHeaderRow: {
+  // Pet name styling
+  petNameContainer: {
+    marginBottom: 16,
+  },
+  petNameDisplayContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
   },
-  happinessContainer: {
-    flex: 1,
+  petNameText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#015F45",
   },
-  happinessLabel: {
-    fontSize: 14,
-    color: "#015F45", 
-    marginBottom: 4,
+  petNameEditButton: {
+    backgroundColor: "#fff",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  petNameEditButtonText: {
+    color: "#015F45",
+    fontSize: 12,
     fontWeight: "500",
   },
-  happinessBarContainer: {
-    height: 8,
-    backgroundColor: "#e2e8e5",
-    borderRadius: 4,
-    overflow: "hidden",
+  petNameEditContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  happinessBarFill: {
-    height: "100%",
-    backgroundColor: "#015F45", 
-    borderRadius: 4,
+  petNameInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 8,
+    fontSize: 16,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  petNameSaveButton: {
+    backgroundColor: "#015F45",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  petNameSaveButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
   petWrapper: {
     position: "relative",
@@ -1003,6 +1141,132 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 16,
     padding: 20,
+  },
+  notification: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "#f3fee8",
+    borderRadius: 24,
+    padding: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  notificationText: {
+    color: "#015F45",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  buttonsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  navButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    height: 44,
+    borderRadius: 24,
+    backgroundColor: "#f3fee8",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  buttonText: {
+    color: "#015F45",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  friendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3fee8",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  // New styles for voucher redemption
+  codeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    backgroundColor: '#f8f9fa',
+    padding: 6,
+    borderRadius: 6,
+  },
+  voucherCodeLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    marginRight: 6,
+  },
+  voucherCode: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+    fontWeight: '700',
+    color: '#015F45',
+  },
+  voucherActionsContainer: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    height: '100%',
+    paddingVertical: 5,
+  },
+  redeemCodeButton: {
+    backgroundColor: '#015F45',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    minWidth: 90,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  redeemCodeButtonText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  redeemedBadge: {
+    backgroundColor: '#e2e8f0',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    minWidth: 90,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  redeemedText: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  removeVoucherButton: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  removeVoucherText: {
+    color: '#ef4444',
+    fontSize: 13,
+    fontWeight: '600',
   },
 })
 
