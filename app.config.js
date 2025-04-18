@@ -3,6 +3,10 @@ export default {
       name: "BankableApp",
       "scheme": "myapp",
       "newArchEnabled": true,
+      "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.BankableApp"
+    },
       // ... other expo config
       extra: {
         supabaseUrl: process.env.SUPABASE_URL,
