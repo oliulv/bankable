@@ -233,6 +233,7 @@ export default function GroupSavingGoalsScreen() {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ padding: 16 }}
         ListFooterComponent={renderCreateGoal}
+        keyboardShouldPersistTaps="always" 
       />
 
       {/* Contribute Modal */}

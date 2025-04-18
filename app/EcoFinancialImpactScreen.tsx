@@ -228,35 +228,7 @@ const EcoFinancialImpactScreen: React.FC = () => {
                 <View style={styles.carbonValueContainer}>
                   <Text style={styles.carbonLabel}>Carbon Footprint Reduced</Text>
                   <Text style={styles.carbonTotalValue}>{totalCarbonSaved} kg CO₂</Text>
-                  
-                  {/* Period selector styled as filter buttons */}
-                  <View style={styles.periodSelectorContainer}>
-                    <TouchableOpacity
-                      style={[styles.periodButton, selectedPeriod === 'week' && styles.activePeriod]}
-                      onPress={() => setSelectedPeriod('week')}
-                    >
-                      <Text style={[styles.periodButtonText, selectedPeriod === 'week' && styles.activePeriodText]}>
-                        Week
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.periodButton, selectedPeriod === 'month' && styles.activePeriod]}
-                      onPress={() => setSelectedPeriod('month')}
-                    >
-                      <Text style={[styles.periodButtonText, selectedPeriod === 'month' && styles.activePeriodText]}>
-                        Month
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.periodButton, selectedPeriod === 'year' && styles.activePeriod]}
-                      onPress={() => setSelectedPeriod('year')}
-                    >
-                      <Text style={[styles.periodButtonText, selectedPeriod === 'year' && styles.activePeriodText]}>
-                        Year
-                      </Text>
-                    </TouchableOpacity>
                   </View>
-                </View>
               </View>
             </View>
 
