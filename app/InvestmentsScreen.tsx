@@ -1392,10 +1392,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 0 }, // Changed height to 0 for more even shadow
+    shadowOpacity: 0.15, // Increased opacity
+    shadowRadius: 6, // Increased radius
+    elevation: 5, // Increased elevation for Android
   },
   assetHeader: {
     flexDirection: 'row',
