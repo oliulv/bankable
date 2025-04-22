@@ -66,6 +66,14 @@ const SCREEN_PATHS: Record<string, ValidScreenPath> = {
   "LoansScreen": "/LoansScreen"
 };
 
+// Define hard-coded responses
+const hardcodedResponses: Record<string, string> = {
+  "How many adults demonstrate adequate financial literacy globally?": "Only 33%!! Insane right? Did you also know that in the UK, 20% of households struggle to cover unexpected expenses?",
+  "Well shouldn't the UK be worried then?": "Good question, in fact around 17.7M UK adults suffer daily anxiety about their finances, and nearly 48% of UK adults rely on overdrafts...",
+  "This is concerning me, how many families in the UK skip their meals?": "1 in 5 UK households skip meals because of financial reasons.",
+  "Okey you've really scared me here, what are some other statistics that can get me a real picture of the problem here?": "It really is a problem, here are some more statistics:\n\n - 11.5 million people in the UK have less than £100 in savings.\n - Nearly 9 million face serious debt, yet only a third receive any help.\n - In response: nearly 90% of banks worldwide are ramping up digital investments to meet evolving customer needs."
+};
+
 export default function BankableAIScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -345,23 +353,37 @@ export default function BankableAIScreen() {
     }
   };
 
-  // Update handleSend to work with the new response format
+  // Update handleSend to work with the new response format and hard-coded responses
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    
+
     // Add user message
     const userMessage = input.trim();
     const userMessageObj: Message = { role: "user", content: userMessage };
     setMessages(prev => [...prev, userMessageObj]);
     setInput("");
-    
-    // Get AI response
-    const aiResponse = await callTogetherAI(userMessage);
-    setMessages(prev => [...prev, { 
-      role: "assistant", 
-      content: aiResponse.content,
-      navigationOptions: aiResponse.navigationOptions
-    }]);
+
+    // Check for hard-coded responses
+    if (hardcodedResponses[userMessage]) {
+      setIsLoading(true); // Show loading indicator
+      setTimeout(() => {
+        const hardcodedAnswer = hardcodedResponses[userMessage];
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: hardcodedAnswer,
+          navigationOptions: [] // No navigation for hard-coded responses
+        }]);
+        setIsLoading(false); // Hide loading indicator
+      }, 1000); // Simulate 1 second delay
+    } else {
+      // Get AI response if not a hard-coded question
+      const aiResponse = await callTogetherAI(userMessage);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: aiResponse.content,
+        navigationOptions: aiResponse.navigationOptions
+      }]);
+    }
   };
 
   // Auto-scroll to bottom when messages change
