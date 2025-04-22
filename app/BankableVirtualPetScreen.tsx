@@ -234,34 +234,70 @@ const rewards: Reward[] = [
   },
 ]
 
+// Updated friends data with local skin names and more users
 const friends: Friend[] = [
   {
     id: "1",
     name: "Sarah",
     points: 1250,
-    petImage: "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=250&h=250&fit=crop&crop=faces",
+    petImage: "love.png", // Use skin name
     petItems: ["1", "3"],
   },
   {
     id: "2",
     name: "Mike",
     points: 980,
-    petImage: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=250&h=250&fit=crop",
+    petImage: "cool.png", // Use skin name
     petItems: ["2", "6"],
   },
   {
     id: "3",
     name: "Emma",
     points: 1500,
-    petImage: "https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?w=250&h=250&fit=crop",
+    petImage: "birthday.png", // Use skin name
     petItems: ["5", "4"],
   },
   {
     id: "4",
     name: "John",
     points: 750,
-    petImage: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=250&h=250&fit=crop",
+    petImage: "walking.png", // Use skin name
     petItems: ["1", "6"],
+  },
+  {
+    id: "5",
+    name: "Chloe",
+    points: 1100,
+    petImage: "paint.png", // Use skin name
+    petItems: ["9", "1"],
+  },
+  {
+    id: "6",
+    name: "David",
+    points: 600,
+    petImage: "sad.png", // Use skin name
+    petItems: ["11"],
+  },
+  {
+    id: "7",
+    name: "Liam",
+    points: 1350,
+    petImage: "pizza.png", // Use skin name
+    petItems: ["10", "2"],
+  },
+  {
+    id: "8",
+    name: "Olivia",
+    points: 880,
+    petImage: "bathing.png", // Use skin name
+    petItems: ["3", "7"],
+  },
+  {
+    id: "9",
+    name: "Noah",
+    points: 1050,
+    petImage: "beach.png", // Use skin name
+    petItems: ["4", "8"],
   },
 ]
 
@@ -1061,16 +1097,19 @@ const VirtualPetBanking: React.FC = () => {
     );
   };
 
-  // Render friend - FIX: Ensuring each item has a unique key
+  // Render friend - FIX: Ensuring each item has a unique key and uses local turtle images
   const renderFriend = ({ item, index }: { item: Friend; index: number }) => {
+    // Determine the image source using the helper function
+    const imageSource = getTurtleImage(item.petImage);
+
     return (
       <View style={styles.friendItem}>
         <Text style={styles.friendRank}>#{index + 1}</Text>
-        <ExpoImage 
-          source={{ uri: item.petImage }} 
-          style={styles.friendPetImage} 
-          contentFit="cover" 
-          cachePolicy="memory-disk" 
+        <ExpoImage
+          source={imageSource} // Use the resolved local image
+          style={styles.friendPetImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
         />
         <View style={styles.friendInfo}>
           <Text style={styles.friendName}>{item.name}</Text>
@@ -1291,7 +1330,7 @@ const VirtualPetBanking: React.FC = () => {
       {/* Voucher Detail Modal */}
       {renderVoucherDetailModal()}
 
-      {/* Leaderboard Modal - FIX: Ensuring unique keys in the list data */}
+      {/* Leaderboard Modal - FIX: Ensuring unique keys and using correct turtle images */}
       <Modal
         visible={showLeaderboard}
         animationType="slide"
@@ -1307,24 +1346,42 @@ const VirtualPetBanking: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.yourRankContainer}>
-              <Text style={styles.yourRankLabel}>{user.firstName}'s Rank</Text>
-              <Text style={styles.yourRankValue}>#2</Text>
-              <Text style={styles.yourRankPoints}>{points} points</Text>
-            </View>
+            {/* Prepare leaderboard data including the user */}
+            {(() => {
+              const userLeaderboardEntry: Friend = {
+                id: "user",
+                name: user.firstName,
+                points: points,
+                // Use equipped skin image, fallback to default 'happy.png'
+                petImage: equippedSkin ? equippedSkin.skinImage : 'happy.png',
+                petItems: ownedItems.map(item => item.id), // Show user's owned items if needed
+              };
 
-            <FlatList
-              data={[
-                // Create leaderboard data with unique IDs - this fixes the duplicate key issue
-                { id: "sarah", name: "Sarah", points: 1250, petImage: "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=250&h=250&fit=crop&crop=faces", petItems: ["1", "3"] },
-                { id: "user", name: user.firstName, points: points, petImage: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=250&h=250&fit=crop", petItems: [] },
-                { id: "emma", name: "Emma", points: 1500, petImage: "https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?w=250&h=250&fit=crop", petItems: ["5", "4"] },
-                { id: "john", name: "John", points: 750, petImage: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=250&h=250&fit=crop&crop=faces", petItems: ["1", "6"] }
-              ].sort((a, b) => b.points - a.points)}
-              renderItem={renderFriend}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.friendsList}
-            />
+              // Combine friends and user, then sort
+              const leaderboardData = [...friends, userLeaderboardEntry]
+                .sort((a, b) => b.points - a.points);
+
+              // Find user's rank
+              const userRank = leaderboardData.findIndex(f => f.id === "user") + 1;
+
+              return (
+                <>
+                  <View style={styles.yourRankContainer}>
+                    <Text style={styles.yourRankLabel}>{user.firstName}'s Rank</Text>
+                    <Text style={styles.yourRankValue}>#{userRank}</Text>
+                    <Text style={styles.yourRankPoints}>{points} points</Text>
+                  </View>
+
+                  <FlatList
+                    data={leaderboardData}
+                    // Pass the combined and sorted data
+                    renderItem={({ item, index }) => renderFriend({ item, index })} // Use the updated renderFriend
+                    keyExtractor={(item) => item.id} // Use unique ID
+                    contentContainerStyle={styles.friendsList}
+                  />
+                </>
+              );
+            })()}
           </View>
         </View>
       </Modal>
@@ -1697,8 +1754,11 @@ const styles = StyleSheet.create({
   friendPetImage: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 25, // Make it circular (half of width/height)
     marginRight: 15,
+    backgroundColor: '#f3fee8', // Match card background color
+    borderWidth: 2, // Add border width
+    borderColor: '#015F45', // Set border color
   },
   friendInfo: {
     flex: 1,
