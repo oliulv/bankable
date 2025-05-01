@@ -10,6 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
+  FlatList,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../context/UserContext";
@@ -17,9 +20,23 @@ import { getAccountTransactions } from "../api/userData";
 import { useRouter } from "expo-router"; // Add this import
 import Constants from "expo-constants";
 import Footer from "../components/Footer"; // Import the Footer component
+import { Sheet, SheetTrigger, SheetContent } from "../components/ui/sheet"; // Import Sheet components
 
 // Access API Key
 const togetherAiApiKey = Constants.expoConfig?.extra?.togetherAiApiKey;
+
+// Define the list of available models for the UI
+const availableModels = [
+  "Llama 4 Maverick",
+  "Deepseek R1",
+  "Deepseek V3",
+  "Qwen 2.5-VL",
+  "ChatGPT-4o",
+  "ChatGPT o4-mini",
+  "Gemini 2.5 Pro",
+  "Claude 3.7 Sonnet",
+  "Grok 3"
+];
 
 interface Message {
   role: "assistant" | "user" | "system";
@@ -66,6 +83,14 @@ const SCREEN_PATHS: Record<string, ValidScreenPath> = {
   "LoansScreen": "/LoansScreen"
 };
 
+// Define hard-coded responses
+const hardcodedResponses: Record<string, string> = {
+  "How many adults demonstrate adequate financial literacy globally?": "Only 33%!! Insane right? Did you also know that in the UK, 20% of households struggle to cover unexpected expenses?",
+  "Well shouldn't the UK be worried then?": "Good question, in fact around 17.7M UK adults suffer daily anxiety about their finances, and nearly 48% of UK adults rely on overdrafts...",
+  "This is concerning me, how many families in the UK skip their meals?": "1 in 5 UK households skip meals because of financial reasons.",
+  "Okey you've really scared me here, what are some other statistics that can get me a real picture of the problem here?": "It really is a problem, here are some more statistics:\n\n - 11.5 million people in the UK have less than £100 in savings.\n - Nearly 9 million face serious debt, yet only a third receive any help.\n - In response: nearly 90% of banks worldwide are ramping up digital investments to meet evolving customer needs."
+};
+
 export default function BankableAIScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -77,6 +102,8 @@ export default function BankableAIScreen() {
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(availableModels[0]); // Add state for selected model
+  const [modelModalVisible, setModelModalVisible] = useState(false); // State for modal visibility
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter(); // Initialize router
   const [isScrolled, setIsScrolled] = useState(false);
@@ -345,23 +372,37 @@ export default function BankableAIScreen() {
     }
   };
 
-  // Update handleSend to work with the new response format
+  // Update handleSend to work with the new response format and hard-coded responses
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    
+
     // Add user message
     const userMessage = input.trim();
     const userMessageObj: Message = { role: "user", content: userMessage };
     setMessages(prev => [...prev, userMessageObj]);
     setInput("");
-    
-    // Get AI response
-    const aiResponse = await callTogetherAI(userMessage);
-    setMessages(prev => [...prev, { 
-      role: "assistant", 
-      content: aiResponse.content,
-      navigationOptions: aiResponse.navigationOptions
-    }]);
+
+    // Check for hard-coded responses
+    if (hardcodedResponses[userMessage]) {
+      setIsLoading(true); // Show loading indicator
+      setTimeout(() => {
+        const hardcodedAnswer = hardcodedResponses[userMessage];
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: hardcodedAnswer,
+          navigationOptions: [] // No navigation for hard-coded responses
+        }]);
+        setIsLoading(false); // Hide loading indicator
+      }, 1000); // Simulate 1 second delay
+    } else {
+      // Get AI response if not a hard-coded question
+      const aiResponse = await callTogetherAI(userMessage);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: aiResponse.content,
+        navigationOptions: aiResponse.navigationOptions
+      }]);
+    }
   };
 
   // Auto-scroll to bottom when messages change
@@ -370,6 +411,12 @@ export default function BankableAIScreen() {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, [messages]);
+
+  // Function to handle model selection
+  const handleModelSelection = (model: string) => {
+    setSelectedModel(model);
+    setModelModalVisible(false);
+  };
 
   return (
     <>
@@ -382,6 +429,54 @@ export default function BankableAIScreen() {
         <View style={[styles.header, isScrolled && styles.headerWithShadow]}>
           <Text style={styles.headerTitle}>Chat with Bankable AI</Text>
           <Text style={styles.headerSubtitle}>Get personalized financial advice</Text>
+          
+          {/* Model Selection Display */}
+          <TouchableOpacity 
+            style={styles.modelSelector} 
+            onPress={() => setModelModalVisible(true)}
+          >
+            <Text style={styles.modelSelectorText}>Using Model: {selectedModel}</Text>
+            <Ionicons name="chevron-down" size={16} color="#666" />
+          </TouchableOpacity>
+          
+          {/* Model Selection Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={modelModalVisible}
+            onRequestClose={() => setModelModalVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setModelModalVisible(false)}
+            >
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select AI Model</Text>
+                  <TouchableOpacity onPress={() => setModelModalVisible(false)}>
+                    <Ionicons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={availableModels}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.modelItem}
+                      onPress={() => handleModelSelection(item)}
+                    >
+                      <Text style={styles.modelItemText}>{item}</Text>
+                      {selectedModel === item && (
+                        <Ionicons name="checkmark" size={20} color="#006a4d" />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  ItemSeparatorComponent={() => <View style={styles.separator} />}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </View>
 
         {/* Chat Area - add onScroll handler */}
@@ -485,7 +580,7 @@ export default function BankableAIScreen() {
   );
 }
 
-// Add new styles for navigation buttons
+// Styles definition (Removed the duplicate from the previous edit)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -512,6 +607,21 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: "#666",
+    marginBottom: 8, // Add margin below subtitle
+  },
+  modelSelector: { // Style for the model selector container
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start', // Align to the left
+  },
+  modelSelectorText: { // Style for the model selector text
+    fontSize: 12,
+    color: '#333',
+    marginRight: 4,
   },
   headerWithShadow: {
     shadowColor: "#000",
@@ -628,5 +738,62 @@ const styles = StyleSheet.create({
     color: "#000000",
     fontSize: 14,
     fontWeight: "500",
+  },
+  // Styles for the Sheet Content (Model Selection)
+  sheetContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 16, // Add padding for safe area on iOS
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    backgroundColor: '#ffffff', // Match header background
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#333',
+  },
+  modelItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  modelItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e0e0e0', // Light separator line
+  },
+  // Model Selection Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+    maxHeight: Dimensions.get('window').height * 0.6,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
   },
 });
